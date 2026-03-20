@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  OPERATIVE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIAL
+}
+
+model Tenant {
+  id               String         @id @default(uuid())
+  name             String
+  rfc              String?        // RFC de la empresa/persona moral
+  stripeCustomerId String?        @unique
+  subscription     Subscription?
+  users            User[]
+  projects         Project[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  tenantId  String             @unique
+  tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planId    String
+  status    SubscriptionStatus @default(TRIAL)
+  endDate   DateTime?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+}
+
+model User {
+  id               String      @id @default(uuid())
+  tenantId         String
+  tenant           Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email            String      @unique
+  name             String
+  role             Role        @default(OPERATIVE)
+  
+  // Nuevos campos de registro
+  personType       String?     // "fisica" | "moral"
+  rfc              String?
+  phone            String?
+  age              Int?
+  gender           String?
+
+  fullyLoadedCost  Decimal     @default(0.0) @db.Decimal(10, 2)
+  timeEntries      TimeEntry[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model Project {
+  id                String      @id @default(uuid())
+  tenantId          String
+  tenant            Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name              String
+  contractValue     Decimal     @default(0.0) @db.Decimal(12, 2) 
+  pocPercentage     Decimal     @default(0.0) @db.Decimal(5, 2)  
+  tasks             Task[]
+  timeEntries       TimeEntry[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model Task {
+  id          String      @id @default(uuid())
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  isCompleted Boolean     @default(false)
+  timeEntries TimeEntry[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model TimeEntry {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  taskId      String?
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  hours       Decimal  @db.Decimal(5, 2)
+  date        DateTime @default(now())
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

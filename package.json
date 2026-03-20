@@ -1,0 +1,48 @@
+{
+  "name": "erp-fiscal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@calcom/embed-react": "^1.5.3",
+    "@prisma/client": "5.14.0",
+    "@radix-ui/react-toast": "^1.2.15",
+    "@stripe/stripe-js": "^8.10.0",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/ssr": "^0.3.0",
+    "@supabase/supabase-js": "^2.99.2",
+    "class-variance-authority": "^0.7.1",
+    "classnames": "^2.5.1",
+    "clsx": "^2.1.1",
+    "fast-xml-parser": "^5.4.1",
+    "lucide-react": "^0.378.0",
+    "next": "14.2.3",
+    "next-themes": "^0.3.0",
+    "pg": "^8.20.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-merge-refs": "^3.0.2",
+    "recharts": "^2.12.7",
+    "stripe": "^20.4.1",
+    "tailwind-merge": "^2.6.1",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.2",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.27",
+    "dotenv": "^17.3.1",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.3",
+    "postcss": "^8.4.38",
+    "prisma": "5.14.0",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5"
+  }
+}
