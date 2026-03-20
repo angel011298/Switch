@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { login, signup, signInWithGoogle } from './actions'
+import { createClient } from '@/utils/supabase/client'
+import { login, syncUserWithPrisma, signInWithGoogle } from './actions'
+import { useRouter } from 'next/navigation'
 
 function LoginForm() {
   const [isLogin, setIsLogin] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [clientError, setClientError] = useState('')
+  const router = useRouter()
 
   // Nuevos estados para el formulario
   const [personType, setPersonType] = useState('moral') // 'fisica' o 'moral'
@@ -19,6 +22,7 @@ function LoginForm() {
 
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
+    const password = formData.get('password') as string
 
     if (!isLogin) {
       if (formData.get('email') !== formData.get('confirmEmail')) {
@@ -34,19 +38,76 @@ function LoginForm() {
     setIsLoading(true)
 
     try {
-      const response = isLogin ? await login(formData) : await signup(formData)
+      if (isLogin) {
+        const response = await login(formData)
+        if (response?.error) {
+          setClientError(response.error)
+          setIsLoading(false)
+        }
+      } else {
+        // CLIENT-SIDE SIGNUP
+        const supabase = createClient()
+        const fullName = formData.get('fullName') as string
+        const rfc = formData.get('rfc') as string
+        const phone = `${formData.get('phoneCode')}${formData.get('phone')}`
+        const age = formData.get('age') ? parseInt(formData.get('age') as string) : null
+        const gender = formData.get('gender') as string
 
-      if (response?.error) {
-        setClientError(response.error)
-        setIsLoading(false)
-      } else if (response?.success && response.message) {
-        // Mostrar mensaje si lo hay (ej. confirmar email)
-        setClientError(response.message) 
-        setIsLoading(false)
+        // Lógica Super Admin
+        const isSuperAdmin = email === '553angelortiz@gmail.com'
+
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+              person_type: personType,
+              rfc: rfc,
+              phone_number: phone,
+              age: age,
+              gender: gender,
+              is_super_admin: isSuperAdmin
+            }
+          }
+        })
+
+        if (authError) {
+          setClientError(authError.message)
+          setIsLoading(false)
+          return
+        }
+
+        if (authData.user) {
+          // SYNC WITH PRISMA
+          const syncRes = await syncUserWithPrisma(authData.user.id, {
+            email,
+            fullName,
+            personType,
+            rfc,
+            phone,
+            age,
+            gender
+          })
+
+          if (syncRes.error) {
+            setClientError(syncRes.error)
+            setIsLoading(false)
+            return
+          }
+
+          // Redirección segura o OTP
+          if (authData.session) {
+            window.location.href = '/'
+          } else {
+            // Requiere verificación OTP
+            window.location.href = `/auth/verify?email=${encodeURIComponent(email)}`
+          }
+        }
       }
     } catch (err) {
-      // Si llegamos aquí, puede ser por la redirección automática del server action (que lanza un error capturable)
-      // En Next.js, esto es normal. Si no es un error de Next, lo logueamos.
+      console.error(err)
+      setIsLoading(false)
     }
   }
 

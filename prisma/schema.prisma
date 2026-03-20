@@ -58,6 +58,7 @@ model User {
   phone            String?
   age              Int?
   gender           String?
+  isSuperAdmin     Boolean     @default(false)
 
   fullyLoadedCost  Decimal     @default(0.0) @db.Decimal(10, 2)
   timeEntries      TimeEntry[]
