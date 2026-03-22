@@ -8,6 +8,8 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ─── ENUMS ──────────────────────────────────────────────
+
 enum Role {
   ADMIN
   MANAGER
@@ -21,16 +23,73 @@ enum SubscriptionStatus {
   TRIAL
 }
 
+enum ModuleKey {
+  // Centro Estratégico
+  DASHBOARD
+  CALENDAR
+  BI
+
+  // Capital Humano (HCM)
+  HCM
+  PAYROLL
+  TALENT
+
+  // Finanzas (ERP Core)
+  FINANCE
+  TAXES
+  COLLECTIONS
+
+  // Facturación Electrónica SAT — independiente de FINANCE/TAXES
+  BILLING_CFDI
+
+  // Punto de Venta — independiente
+  POS
+
+  // Comercial (CRM & CX)
+  CRM
+  MARKETING
+  SUPPORT
+
+  // Operaciones (SCM)
+  SCM
+  INVENTORY
+  LOGISTICS
+
+  // Manufactura (MRP)
+  MRP
+  QUALITY
+
+  // Servicios y Proyectos
+  PROJECTS
+}
+
+// ─── MODELOS ────────────────────────────────────────────
+
 model Tenant {
   id               String         @id @default(uuid())
   name             String
-  rfc              String?        // RFC de la empresa/persona moral
+  rfc              String?
   stripeCustomerId String?        @unique
   subscription     Subscription?
+  modules          TenantModule[]
   users            User[]
   projects         Project[]
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+}
+
+model TenantModule {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  moduleKey   ModuleKey
+  isActive    Boolean   @default(true)
+  activatedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([tenantId, moduleKey])
+  @@index([tenantId, isActive])
 }
 
 model Subscription {
@@ -51,9 +110,9 @@ model User {
   email            String      @unique
   name             String
   role             Role        @default(OPERATIVE)
-  
-  // Nuevos campos de registro
-  personType       String?     // "fisica" | "moral"
+
+  // Campos de registro (Fase 1)
+  personType       String?
   rfc              String?
   phone            String?
   age              Int?
@@ -64,6 +123,8 @@ model User {
   timeEntries      TimeEntry[]
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+
+  @@index([tenantId])
 }
 
 model Project {
@@ -71,12 +132,14 @@ model Project {
   tenantId          String
   tenant            Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   name              String
-  contractValue     Decimal     @default(0.0) @db.Decimal(12, 2) 
-  pocPercentage     Decimal     @default(0.0) @db.Decimal(5, 2)  
+  contractValue     Decimal     @default(0.0) @db.Decimal(12, 2)
+  pocPercentage     Decimal     @default(0.0) @db.Decimal(5, 2)
   tasks             Task[]
   timeEntries       TimeEntry[]
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
+
+  @@index([tenantId])
 }
 
 model Task {
@@ -103,4 +166,7 @@ model TimeEntry {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([projectId])
 }
