@@ -1,7 +1,6 @@
 import { type EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest, NextResponse } from 'next/server'
-
-import { createClient } from '@/utils/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -15,30 +14,39 @@ export async function GET(request: NextRequest) {
   redirectTo.searchParams.delete('token_hash')
   redirectTo.searchParams.delete('type')
   redirectTo.searchParams.delete('code')
+  redirectTo.searchParams.delete('next')
 
-  const supabase = createClient()
+  // En Route Handlers, debemos manejar cookies con request/response directamente
+  let response = NextResponse.redirect(redirectTo)
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
+        },
+      },
+    }
+  )
 
   if (token_hash && type) {
-    const { error } = await supabase.auth.verifyOtp({
-      type,
-      token_hash,
-    })
-
-    if (!error) {
-      redirectTo.searchParams.delete('next')
-      return NextResponse.redirect(redirectTo)
-    }
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash })
+    if (!error) return response
   } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
-       redirectTo.searchParams.delete('next')
-       return NextResponse.redirect(redirectTo)
-    }
+    if (!error) return response
   }
 
-  // Si hay error o no hay parámetros, regresar a login
+  // Error → regresar a login
   const errorUrl = request.nextUrl.clone()
   errorUrl.pathname = '/login'
-  errorUrl.searchParams.set('error', 'Token de confirmación no válido o expirado')
+  errorUrl.searchParams.set('error', 'Token de confirmación no válido o expirado.')
   return NextResponse.redirect(errorUrl)
 }
