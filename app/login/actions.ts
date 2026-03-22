@@ -1,62 +1,69 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
-import { redirect } from 'next/navigation'
 
-export async function login(formData: FormData): Promise<{ success?: boolean; error?: string }> {
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-
-  const supabase = createClient()
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-  if (error) {
-    return { error: 'Credenciales incorrectas. Verifica tu correo y contraseña.' }
+/**
+ * Server Action: Sincroniza el usuario de Supabase Auth con el modelo Prisma.
+ * Se invoca DESPUÉS del signUp exitoso en el cliente.
+ */
+export async function syncUserWithPrisma(
+  userId: string,
+  data: {
+    email: string
+    fullName: string
+    personType: string
+    rfc: string
+    phone: string
+    age: number | null
+    gender: string
   }
-
-  redirect('/')
-}
-
-export async function syncUserWithPrisma(userId: string, data: any): Promise<{ success?: boolean; error?: string }> {
+): Promise<{ success?: boolean; error?: string }> {
   const { email, fullName, personType, rfc, phone, age, gender } = data
 
-  // 1. Crear el Tenant y el User en Prisma
   try {
+    // Verificar si el usuario ya existe (idempotencia)
+    const existingUser = await prisma.user.findUnique({ where: { id: userId } })
+    if (existingUser) return { success: true }
+
     const tenantName = personType === 'moral' ? fullName : `ERP - ${fullName}`
-    
-    // Verificar si es super admin por correo (Logic relocated here for DB consistency)
     const isSuperAdmin = email === '553angelortiz@gmail.com'
 
     await prisma.tenant.create({
       data: {
         name: tenantName,
-        rfc: rfc,
+        rfc: rfc || null,
         users: {
           create: {
             id: userId,
-            email: email,
+            email,
             name: fullName,
             role: 'ADMIN',
-            personType: personType,
-            rfc: rfc,
-            phone: phone,
-            age: age,
-            gender: gender,
-            isSuperAdmin: isSuperAdmin,
-          }
-        }
-      }
+            personType,
+            rfc: rfc || null,
+            phone: phone || null,
+            age,
+            gender: gender || null,
+            isSuperAdmin,
+          },
+        },
+      },
     })
+
     return { success: true }
   } catch (error: any) {
-    console.error("🚨 Error Prisma Sync:", error)
+    console.error('syncUserWithPrisma error:', error)
+    // Si es error de unique constraint, el usuario ya existe
+    if (error?.code === 'P2002') return { success: true }
     return { error: 'Error al sincronizar el perfil con la base de datos.' }
   }
 }
 
-export async function signInWithGoogle() {
+/**
+ * Server Action: Genera la URL de OAuth para Google.
+ * Usa el service-role o server client para construir la URL.
+ */
+export async function getGoogleOAuthUrl(): Promise<{ url?: string; error?: string }> {
+  const { createClient } = await import('@/utils/supabase/server')
   const supabase = createClient()
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -66,6 +73,6 @@ export async function signInWithGoogle() {
     },
   })
 
-  if (data.url) return { url: data.url }
-  return { error: 'Error al conectar con Google' }
+  if (error || !data.url) return { error: 'Error al conectar con Google.' }
+  return { url: data.url }
 }
