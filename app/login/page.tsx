@@ -60,6 +60,7 @@ function LoginForm() {
           email,
           password,
           options: {
+            emailRedirectTo: `${window.location.origin}/auth/confirm`,
             data: {
               full_name: fullName,
               person_type: personType,

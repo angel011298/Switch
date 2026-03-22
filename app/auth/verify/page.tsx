@@ -28,7 +28,10 @@ function VerifyForm() {
       setMessage(`Error: ${error.message}`)
       setIsLoading(false)
     } else {
-      window.location.href = '/'
+      setMessage('¡Cuenta verificada! Redirigiendo...')
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 1500)
     }
   }
 
@@ -36,8 +39,9 @@ function VerifyForm() {
     <div className="w-full max-w-md p-10 bg-white border border-slate-200 rounded-3xl shadow-sm text-center">
       <h1 className="text-2xl font-semibold mb-4 text-slate-900">Verifica tu cuenta</h1>
       <p className="text-sm text-slate-500 mb-8">
-        Hemos enviado un código de 6 dígitos a <span className="font-semibold">{email}</span>.
-        Ingrésalo a continuación para continuar.
+        Hemos enviado un <strong>enlace de confirmación</strong> (y un código opcional) a <span className="font-semibold">{email}</span>.
+        <br /><br />
+        Por favor, <strong>haz clic en el enlace del correo</strong> para activar tu cuenta. Si recibiste un código de 6 dígitos, puedes ingresarlo aquí abajo.
       </p>
 
       {message && (
