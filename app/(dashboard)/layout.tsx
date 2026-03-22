@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { Providers } from '../providers';
 import { getSwitchSession } from '@/lib/auth/session';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
+import ModuleDeniedToast from '@/components/dashboard/ModuleDeniedToast';
 import '../../styles/main.css';
 
 export const metadata = {
@@ -57,6 +59,11 @@ export default async function DashboardLayout({
               </main>
             </div>
           </div>
+
+          {/* Toast de modulo denegado */}
+          <Suspense fallback={null}>
+            <ModuleDeniedToast />
+          </Suspense>
         </Providers>
       </body>
     </html>
