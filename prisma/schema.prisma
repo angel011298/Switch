@@ -140,6 +140,8 @@ model Tenant {
   invoices         Invoice[]
   csdVault         CsdVault?
   customers        Customer[]
+  products         Product[]
+  posOrders        PosOrder[]
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -235,6 +237,106 @@ model TimeEntry {
 
   @@index([userId])
   @@index([projectId])
+}
+
+// ─── PUNTO DE VENTA (POS) ───────────────────────────────
+
+/// Producto o servicio del catalogo del Tenant.
+/// Se cachea en el cliente (Zustand) para operacion offline-first.
+model Product {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  sku             String?           // Codigo interno del producto
+  barcode         String?           // Codigo de barras (EAN/UPC)
+  name            String
+  description     String?
+  category        String?           // Categoria libre para filtrado rapido
+  claveProdServ   String            // Clave SAT c_ClaveProdServ
+  claveUnidad     String  @default("H87") // c_ClaveUnidad (H87 = Pieza)
+  unidad          String? @default("Pieza")
+
+  price           Decimal @db.Decimal(12, 2) // Precio de venta (puede ser con o sin IVA)
+  priceIncludesTax Boolean @default(true)    // true = precio ya incluye IVA (comun en retail)
+  taxRate         Decimal @default(0.16) @db.Decimal(8, 6) // Tasa de impuesto (0.16 = 16%)
+  cost            Decimal? @db.Decimal(12, 2) // Costo (para margen)
+
+  stock           Int     @default(0)        // Inventario disponible
+  trackStock      Boolean @default(false)    // true = descontar stock en venta
+
+  imageUrl        String?
+  isActive        Boolean @default(true)
+
+  orderItems      PosOrderItem[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, sku])
+  @@index([tenantId, isActive])
+  @@index([tenantId, barcode])
+}
+
+/// Orden/Ticket del Punto de Venta.
+/// Cada venta genera un ticket con codigo unico para auto-facturacion.
+model PosOrder {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Codigo alfanumerico unico para auto-factura (ej. "SW-A3K9M2")
+  ticketCode      String   @unique
+  orderNumber     Int      // Consecutivo por tenant
+
+  // Totales (desglose inverso si precio incluye IVA)
+  subtotal        Decimal  @db.Decimal(12, 2)
+  totalTax        Decimal  @db.Decimal(12, 2)
+  discount        Decimal  @default(0) @db.Decimal(12, 2)
+  total           Decimal  @db.Decimal(12, 2)
+
+  // Pago
+  paymentMethod   String   @default("01") // c_FormaPago SAT (01=Efectivo, 04=Tarjeta)
+  amountPaid      Decimal  @db.Decimal(12, 2)
+  changeDue       Decimal  @default(0) @db.Decimal(12, 2) // Cambio
+
+  // Estado de facturacion
+  isInvoiced      Boolean  @default(false) // true = ya se genero CFDI
+  invoiceId       String?  // ID de la Invoice si fue facturado
+
+  // Datos del cajero
+  cashierId       String?  // userId del cajero
+
+  items           PosOrderItem[]
+  closedAt        DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, closedAt])
+  @@index([tenantId, ticketCode])
+  @@index([tenantId, isInvoiced])
+}
+
+/// Linea de un ticket POS.
+model PosOrderItem {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           PosOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id])
+
+  productName     String   // Snapshot del nombre al momento de la venta
+  quantity        Decimal  @db.Decimal(10, 3) // Soporta fracciones (ej. 1.5 kg)
+  unitPrice       Decimal  @db.Decimal(12, 2) // Precio unitario SIN IVA
+  taxRate         Decimal  @db.Decimal(8, 6)  // Tasa aplicada
+  taxAmount       Decimal  @db.Decimal(12, 2) // Impuesto de esta linea
+  subtotal        Decimal  @db.Decimal(12, 2) // quantity * unitPrice
+  total           Decimal  @db.Decimal(12, 2) // subtotal + taxAmount
+  discount        Decimal  @default(0) @db.Decimal(12, 2)
+
+  createdAt       DateTime @default(now())
+
+  @@index([orderId])
 }
 
 // ─── CRM: CLIENTES / TERCEROS FISCALES ─────────────────
