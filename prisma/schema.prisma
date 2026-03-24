@@ -139,6 +139,7 @@ model Tenant {
   projects         Project[]
   invoices         Invoice[]
   csdVault         CsdVault?
+  customers        Customer[]
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -236,6 +237,57 @@ model TimeEntry {
   @@index([projectId])
 }
 
+// ─── CRM: CLIENTES / TERCEROS FISCALES ─────────────────
+
+/// Cliente/Tercero fiscal del Tenant.
+/// Almacena datos fiscales validados del receptor para facturación CFDI 4.0.
+/// Los datos pueden ingresarse manualmente o via escaneo QR de la CSF del SAT.
+///
+/// Validaciones:
+/// - RFC: 12 chars (Persona Moral) o 13 chars (Persona Física) — regex SAT oficial
+/// - Código postal: 5 dígitos
+/// - Régimen fiscal: vinculado al catálogo TaxRegime
+///
+/// Ref: CFF Art. 27 (inscripción RFC), Anexo 20 nodo cfdi:Receptor
+model Customer {
+  id                String      @id @default(uuid())
+  tenantId          String
+  tenant            Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Datos fiscales (requeridos para CFDI 4.0)
+  rfc               String      // RFC validado (12 o 13 caracteres)
+  legalName         String      // Razón social o nombre completo
+  personType        PersonType  // FISICA o MORAL
+  zipCode           String      // Código postal del domicilio fiscal
+  email             String?     // Email de contacto
+
+  // Régimen fiscal del cliente (catálogo SAT)
+  taxRegimeId       String?
+  taxRegime         TaxRegime?  @relation(fields: [taxRegimeId], references: [id])
+
+  // Uso de CFDI preferido (c_UsoCFDI)
+  defaultUsoCfdi    String?     // Ej: "G03" = Gastos en general
+
+  // Datos comerciales CRM
+  phone             String?
+  address           String?
+  city              String?
+  state             String?
+  notes             String?
+  tags              String?     // Tags separados por coma para segmentación
+
+  // Origen del registro
+  source            String      @default("MANUAL") // MANUAL, QR_SCAN, CSV_IMPORT, API
+
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@unique([tenantId, rfc])  // Un RFC por Tenant (evita duplicados)
+  @@index([tenantId, isActive])
+  @@index([tenantId, rfc])
+}
+
 // ─── MOTOR DE REGLAS FISCALES (SAT) ────────────────────
 
 /// Catalogo de regimenes fiscales del SAT (c_RegimenFiscal).
@@ -248,6 +300,7 @@ model TaxRegime {
   personType   PersonType // A que tipo de persona aplica
   isActive     Boolean    @default(true)
   tenants      Tenant[]
+  customers    Customer[]
   rules        TaxRuleRegime[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
