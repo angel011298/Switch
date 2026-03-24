@@ -45,7 +45,7 @@ function LoginForm() {
     try {
       if (isLogin) {
         // ── LOGIN: Client-side para inyección nativa de cookie ──
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        const { data: loginData, error } = await supabase.auth.signInWithPassword({ email, password })
 
         if (error) {
           setClientError(
@@ -59,9 +59,23 @@ function LoginForm() {
           return
         }
 
-        // Cookie inyectada por el browser client → navegar
-        router.push('/')
-        router.refresh()
+        // Debug: verificar que la sesión se haya creado
+        console.log('[login] signIn OK | session:', loginData.session ? 'EXISTS' : 'NULL')
+        console.log('[login] cookies:', document.cookie)
+
+        if (!loginData.session) {
+          setClientError('Login exitoso pero no se generó sesión. Verifica la configuración de Supabase Auth.')
+          setIsLoading(false)
+          return
+        }
+
+        // Esperar un momento para que las cookies se escriban
+        await new Promise(resolve => setTimeout(resolve, 200))
+
+        console.log('[login] cookies after wait:', document.cookie)
+
+        // Navegar al dashboard
+        window.location.href = '/'
       } else {
         // ── SIGNUP: Client-side + Server Action para Prisma ──
         const fullName = (formData.get('fullName') as string).trim()
