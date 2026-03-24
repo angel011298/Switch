@@ -63,13 +63,52 @@ enum ModuleKey {
   PROJECTS
 }
 
-// ─── MODELOS ────────────────────────────────────────────
+// Tipo de persona para efectos fiscales (Art. 1 CFF)
+enum PersonType {
+  FISICA
+  MORAL
+}
+
+// Tipo de impuesto segun legislacion mexicana
+enum TaxType {
+  IVA           // Impuesto al Valor Agregado (LIVA)
+  ISR           // Impuesto Sobre la Renta (LISR)
+  IEPS          // Impuesto Especial sobre Produccion y Servicios
+  ISH           // Impuesto Sobre Hospedaje (estatal)
+  RETENCION_IVA // Retencion de IVA (Art. 1-A LIVA)
+  RETENCION_ISR // Retencion de ISR (Art. 106 LISR)
+}
+
+// Tipo de operacion para determinar reglas aplicables
+enum OperationType {
+  SALE_PRODUCT        // Venta de bienes
+  SALE_SERVICE        // Prestacion de servicios
+  PURCHASE_PRODUCT    // Compra de bienes
+  PURCHASE_SERVICE    // Adquisicion de servicios
+  PAYROLL             // Nomina
+  LEASE               // Arrendamiento
+  ROYALTY             // Regalias
+  COMMISSION          // Comisiones
+}
+
+// ─── MODELOS CORE ───────────────────────────────────────
 
 model Tenant {
   id               String         @id @default(uuid())
   name             String
   rfc              String?
+  personType       PersonType?
   stripeCustomerId String?        @unique
+
+  // Perfil fiscal del Tenant (CFDI 4.0)
+  taxRegimeId      String?
+  taxRegime        TaxRegime?     @relation(fields: [taxRegimeId], references: [id])
+  zipCode          String?        // Codigo postal del domicilio fiscal (requerido CFDI 4.0)
+  legalName        String?        // Razon social / Nombre completo para facturacion
+  csdCerUploaded   Boolean        @default(false)
+  csdKeyUploaded   Boolean        @default(false)
+  logoUrl          String?
+
   subscription     Subscription?
   modules          TenantModule[]
   users            User[]
@@ -169,4 +208,77 @@ model TimeEntry {
 
   @@index([userId])
   @@index([projectId])
+}
+
+// ─── MOTOR DE REGLAS FISCALES (SAT) ────────────────────
+
+/// Catalogo de regimenes fiscales del SAT (c_RegimenFiscal).
+/// Ref: Anexo 20 CFDI 4.0 — Catalogo c_RegimenFiscal.
+/// Cada registro corresponde a una clave del catalogo oficial.
+model TaxRegime {
+  id           String     @id @default(uuid())
+  satCode      String     @unique // Clave SAT ej. "601", "612", "626"
+  name         String     // Nombre oficial: "General de Ley Personas Morales"
+  personType   PersonType // A que tipo de persona aplica
+  isActive     Boolean    @default(true)
+  tenants      Tenant[]
+  rules        TaxRuleRegime[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([personType, isActive])
+}
+
+/// Regla de impuesto parametrizada. Cada regla define UNA tasa o cuota
+/// para UN tipo de impuesto, aplicable a ciertos regimenes y operaciones.
+///
+/// Ejemplo: "IVA 16% trasladado en venta de productos, vigente desde 2024-01-01"
+///
+/// El campo validTo = null significa regla vigente indefinidamente.
+/// Cuando la Miscelanea Fiscal cambia, se crea una nueva regla con validFrom
+/// actualizado y se cierra la anterior con validTo.
+///
+/// Ref: LIVA Art. 1, 2-A | LISR Art. 106, 111, 113 | RMF vigente
+model TaxRule {
+  id              String        @id @default(uuid())
+  code            String        @unique // Identificador interno: "IVA_GENERAL_16", "RET_ISR_RESICO_125"
+  name            String        // Nombre descriptivo legible
+  description     String?       // Fundamento legal detallado
+
+  taxType         TaxType       // IVA, ISR, IEPS, RETENCION_IVA, RETENCION_ISR
+  operationType   OperationType // Tipo de operacion donde aplica
+  rate            Decimal       @db.Decimal(8, 6) // Tasa: 0.160000 = 16%, 0.012500 = 1.25%
+  isPercentage    Boolean       @default(true)     // true = porcentaje, false = cuota fija
+  isWithholding   Boolean       @default(false)    // true = retencion (se resta del total)
+
+  // Condiciones de aplicacion automatica
+  // Si ambos son null, aplica a cualquier combinacion emisor/receptor
+  emitterPersonType  PersonType?  // Tipo de persona del EMISOR (quien factura)
+  receiverPersonType PersonType?  // Tipo de persona del RECEPTOR (quien recibe)
+
+  // Vigencia temporal (soporta versionado de Miscelanea Fiscal)
+  validFrom       DateTime       // Inicio de vigencia
+  validTo         DateTime?      // Fin de vigencia (null = vigente)
+
+  // Relacion M:N con regimenes
+  regimes         TaxRuleRegime[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([taxType, operationType])
+  @@index([validFrom, validTo])
+}
+
+/// Tabla pivote: que reglas aplican a que regimenes.
+/// Permite que una regla aplique a multiples regimenes y viceversa.
+model TaxRuleRegime {
+  id          String    @id @default(uuid())
+  taxRuleId   String
+  taxRule     TaxRule   @relation(fields: [taxRuleId], references: [id], onDelete: Cascade)
+  taxRegimeId String
+  taxRegime   TaxRegime @relation(fields: [taxRegimeId], references: [id], onDelete: Cascade)
+
+  @@unique([taxRuleId, taxRegimeId])
+  @@index([taxRegimeId])
 }
