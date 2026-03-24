@@ -1,16 +1,61 @@
 'use client';
 
-import { useState } from 'react';
-import { 
-  Target, Users, Kanban, Megaphone, Headset, 
-  Sparkles, Calendar, DollarSign, FileSignature, 
+import { useState, useTransition, useEffect } from 'react';
+import {
+  Target, Users, Kanban, Megaphone, Headset,
+  Sparkles, Calendar, DollarSign, FileSignature,
   TrendingUp, AlertCircle, CheckCircle2, Search,
   Phone, Mail, MessageSquare, AlertTriangle, Zap,
-  MoreVertical, Clock
+  MoreVertical, Clock, QrCode, UserPlus
 } from 'lucide-react';
+import QrScanner from '@/components/crm/QrScanner';
+import CustomerForm from '@/components/crm/CustomerForm';
+import { scrapeCustomerFromQr, getCustomers } from './actions';
+import type { CsfData } from '@/lib/crm/sat-csf-scraper';
 
 export default function CRMPage() {
-  const [activeTab, setActiveTab] = useState<'360' | 'pipeline' | 'marketing' | 'tickets'>('360');
+  const [activeTab, setActiveTab] = useState<'360' | 'pipeline' | 'marketing' | 'tickets' | 'fiscal'>('360');
+  const [isPending, startTransition] = useTransition();
+  const [fiscalView, setFiscalView] = useState<'list' | 'qr' | 'form'>('list');
+  const [prefillData, setPrefillData] = useState<CsfData | null>(null);
+  const [scrapeError, setScrapeError] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+
+  useEffect(() => {
+    if (activeTab === 'fiscal') loadCustomers();
+  }, [activeTab]);
+
+  function loadCustomers() {
+    startTransition(async () => {
+      try {
+        const result = await getCustomers();
+        setCustomers(result.customers);
+        setTotalCustomers(result.total);
+      } catch { /* silent */ }
+    });
+  }
+
+  function handleQrSuccess(url: string) {
+    setScrapeError(null);
+    startTransition(async () => {
+      const result = await scrapeCustomerFromQr(url);
+      if (result.success && result.data) {
+        setPrefillData(result.data as CsfData);
+        setFiscalView('form');
+      } else {
+        setScrapeError(result.error ?? 'No se pudieron extraer datos del QR');
+        setPrefillData(null);
+        setFiscalView('form');
+      }
+    });
+  }
+
+  function handleFormSuccess() {
+    setPrefillData(null);
+    setFiscalView('list');
+    loadCustomers();
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-black p-4 md:p-8 transition-colors duration-300">
@@ -82,6 +127,7 @@ export default function CRMPage() {
               { id: 'pipeline', label: 'SFA & Pipeline Kanban', icon: Kanban },
               { id: 'marketing', label: 'Marketing y Segmentación', icon: Megaphone },
               { id: 'tickets', label: 'Soporte y SLA (Ticketing)', icon: Headset },
+              { id: 'fiscal', label: 'Clientes Fiscales (QR)', icon: QrCode },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -342,6 +388,142 @@ export default function CRMPage() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {/* 5. CLIENTES FISCALES — ONBOARDING QR */}
+            {activeTab === 'fiscal' && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+
+                {/* Header de la pestaña fiscal */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-neutral-900 dark:text-white">Clientes Fiscales</h2>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      Alta automatizada via QR de la Constancia de Situacion Fiscal del SAT
+                    </p>
+                  </div>
+                  {fiscalView === 'list' && (
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setPrefillData(null); setFiscalView('qr'); setScrapeError(null); }}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-purple-500/20"
+                      >
+                        <QrCode className="h-4 w-4" /> Escanear QR (CSF)
+                      </button>
+                      <button
+                        onClick={() => { setPrefillData(null); setFiscalView('form'); setScrapeError(null); }}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all text-sm"
+                      >
+                        <UserPlus className="h-4 w-4" /> Alta Manual
+                      </button>
+                    </div>
+                  )}
+                  {fiscalView !== 'list' && (
+                    <button
+                      onClick={() => { setFiscalView('list'); setPrefillData(null); setScrapeError(null); }}
+                      className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl text-sm"
+                    >
+                      Volver a Lista
+                    </button>
+                  )}
+                </div>
+
+                {/* Sub-vista: QR Scanner */}
+                {fiscalView === 'qr' && (
+                  <div className="bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 p-6 rounded-2xl space-y-4">
+                    <h3 className="font-bold text-neutral-900 dark:text-white">Escanear Constancia de Situacion Fiscal</h3>
+                    <p className="text-sm text-neutral-500">
+                      Escanee el QR impreso en la CSF del cliente. Los datos (RFC, Nombre, Regimen, CP) se extraeran automaticamente.
+                    </p>
+                    <QrScanner onScanSuccess={handleQrSuccess} onScanError={(err) => setScrapeError(err)} />
+                    {isPending && (
+                      <div className="flex items-center gap-3 p-4 bg-neutral-100 dark:bg-neutral-800/50 rounded-lg">
+                        <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-neutral-600 dark:text-neutral-300">Consultando datos en el SAT...</span>
+                      </div>
+                    )}
+                    {scrapeError && (
+                      <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-lg space-y-2">
+                        <p className="text-amber-700 dark:text-amber-300 text-sm">{scrapeError}</p>
+                        <button onClick={() => { setFiscalView('form'); setPrefillData(null); }} className="text-sm text-purple-600 dark:text-purple-400 hover:underline font-bold">
+                          Continuar con ingreso manual
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sub-vista: Formulario */}
+                {fiscalView === 'form' && (
+                  <div className="bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 p-6 rounded-2xl">
+                    <h3 className="font-bold text-neutral-900 dark:text-white mb-1">
+                      {prefillData ? 'Confirmar Datos del QR' : 'Alta Manual de Cliente'}
+                    </h3>
+                    {prefillData && (
+                      <p className="text-sm text-emerald-600 dark:text-emerald-400 mb-4">Datos pre-llenados desde la CSF. Verifique y complete.</p>
+                    )}
+                    <CustomerForm
+                      prefillData={prefillData}
+                      onSuccess={handleFormSuccess}
+                      onCancel={() => { setFiscalView('list'); setPrefillData(null); }}
+                    />
+                  </div>
+                )}
+
+                {/* Sub-vista: Lista de clientes */}
+                {fiscalView === 'list' && (
+                  <div className="border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
+                    <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-black/50">
+                      <p className="text-sm text-neutral-500">{totalCustomers} cliente{totalCustomers !== 1 ? 's' : ''} registrado{totalCustomers !== 1 ? 's' : ''}</p>
+                    </div>
+
+                    {customers.length === 0 ? (
+                      <div className="px-6 py-16 text-center">
+                        <QrCode className="w-12 h-12 mx-auto text-neutral-400 dark:text-neutral-600 mb-4" />
+                        <p className="text-neutral-600 dark:text-neutral-400 font-bold">No hay clientes fiscales registrados</p>
+                        <p className="text-neutral-500 text-sm mt-1">Escanee un QR de la CSF o agregue un cliente manualmente</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                          <thead className="bg-neutral-50 dark:bg-black/50 border-b border-neutral-200 dark:border-neutral-800">
+                            <tr>
+                              <th className="px-6 py-3 font-bold text-xs text-neutral-500 uppercase">RFC</th>
+                              <th className="px-6 py-3 font-bold text-xs text-neutral-500 uppercase">Nombre / Razon Social</th>
+                              <th className="px-6 py-3 font-bold text-xs text-neutral-500 uppercase">Tipo</th>
+                              <th className="px-6 py-3 font-bold text-xs text-neutral-500 uppercase">Regimen</th>
+                              <th className="px-6 py-3 font-bold text-xs text-neutral-500 uppercase">CP</th>
+                              <th className="px-6 py-3 font-bold text-xs text-neutral-500 uppercase">Origen</th>
+                              <th className="px-6 py-3 font-bold text-xs text-neutral-500 uppercase">Fecha</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
+                            {customers.map((c: any) => (
+                              <tr key={c.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                                <td className="px-6 py-4 font-mono text-purple-600 dark:text-purple-400 font-bold">{c.rfc}</td>
+                                <td className="px-6 py-4 text-neutral-900 dark:text-white font-medium">{c.legalName}</td>
+                                <td className="px-6 py-4">
+                                  <span className={`text-[10px] px-2 py-1 rounded font-black uppercase ${c.personType === 'MORAL' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400'}`}>
+                                    {c.personType === 'MORAL' ? 'Moral' : 'Fisica'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-neutral-500">{c.taxRegime?.satCode ?? '—'}</td>
+                                <td className="px-6 py-4 text-neutral-500">{c.zipCode}</td>
+                                <td className="px-6 py-4">
+                                  <span className={`text-[10px] px-2 py-1 rounded font-black uppercase ${c.source === 'QR_SCAN' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}>
+                                    {c.source === 'QR_SCAN' ? 'QR' : 'Manual'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-neutral-500 text-xs">{new Date(c.createdAt).toLocaleDateString('es-MX')}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
