@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "npx tsx prisma/seed.ts"
+    "seed": "npx tsx prisma/seed.ts",
+    "seed:tax": "npx tsx prisma/seed-tax-rules.ts"
   },
   "dependencies": {
     "@calcom/embed-react": "^1.5.3",
