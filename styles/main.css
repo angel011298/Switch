@@ -57,3 +57,17 @@ p a {
 .height-screen-helper {
   min-height: calc(100vh - 80px);
 }
+
+/* Toast auto-dismiss progress bar */
+@keyframes shrink-width {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-shrink-width {
+  animation: shrink-width linear forwards;
+}

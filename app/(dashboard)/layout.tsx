@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
-import { Providers } from '../providers';
+import { Suspense } from 'react';
 import { getSwitchSession } from '@/lib/auth/session';
+import { ensurePrismaUser } from '@/lib/auth/ensure-user';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
-import '../../styles/main.css';
+import ModuleDeniedToast from '@/components/dashboard/ModuleDeniedToast';
 
 export const metadata = {
   title: 'Switch OS',
@@ -14,9 +15,11 @@ export const metadata = {
  * Layout principal del Dashboard — Server Component.
  *
  * 1. Lee la sesion de Supabase (server-side)
- * 2. Extrae active_modules y is_super_admin del JWT
- * 3. Pasa datos serializables al Sidebar (client component)
- * 4. No hay fetch de modulos en el cliente = 0 waterfalls
+ * 2. Sincroniza el usuario con Prisma si no existe (post-reset safety)
+ * 3. Extrae active_modules y is_super_admin del JWT
+ * 4. Pasa datos serializables al Sidebar (client component)
+ *
+ * NOTA: NO incluye <html> ni <body> — eso lo hace el root layout (app/layout.tsx).
  */
 export default async function DashboardLayout({
   children,
@@ -30,35 +33,37 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
+  // Asegurar que el usuario exista en Prisma (cubre resets de BD)
+  await ensurePrismaUser(session.userId, session.email, session.name);
+
   return (
-    <html lang="es" suppressHydrationWarning>
-      <body className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 transition-colors duration-300">
-        <Providers>
-          <div className="flex h-screen overflow-hidden">
-            {/* Sidebar dinamico — solo modulos activos */}
-            <Sidebar
-              activeModules={session.activeModules}
-              isSuperAdmin={session.isSuperAdmin}
-              userName={session.name}
-            />
+    <div className="flex h-screen overflow-hidden">
+      {/* Sidebar dinamico — solo modulos activos */}
+      <Sidebar
+        activeModules={session.activeModules}
+        isSuperAdmin={session.isSuperAdmin}
+        userName={session.name}
+      />
 
-            {/* Area principal */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Header con perfil */}
-              <Header
-                userName={session.name}
-                userEmail={session.email}
-                isSuperAdmin={session.isSuperAdmin}
-              />
+      {/* Area principal */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header con perfil */}
+        <Header
+          userName={session.name}
+          userEmail={session.email}
+          isSuperAdmin={session.isSuperAdmin}
+        />
 
-              {/* Contenido de la pagina */}
-              <main className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300">
-                {children}
-              </main>
-            </div>
-          </div>
-        </Providers>
-      </body>
-    </html>
+        {/* Contenido de la pagina */}
+        <main className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300">
+          {children}
+        </main>
+      </div>
+
+      {/* Toast de modulo denegado */}
+      <Suspense fallback={null}>
+        <ModuleDeniedToast />
+      </Suspense>
+    </div>
   );
 }
