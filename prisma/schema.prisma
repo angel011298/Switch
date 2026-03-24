@@ -91,6 +91,30 @@ enum OperationType {
   COMMISSION          // Comisiones
 }
 
+// Estado del CFDI en el ciclo de vida de facturacion
+enum InvoiceStatus {
+  DRAFT       // Borrador, aun no sellado
+  SEALED      // Sellado con CSD, listo para timbrar
+  STAMPED     // Timbrado por PAC (UUID asignado)
+  CANCELLED   // Cancelado ante el SAT
+  ERROR       // Error en timbrado o cancelacion
+}
+
+// Tipo de comprobante (c_TipoDeComprobante Anexo 20)
+enum TipoComprobante {
+  I   // Ingreso
+  E   // Egreso
+  T   // Traslado
+  P   // Pago
+  N   // Nomina
+}
+
+// Metodo de pago (c_MetodoPago)
+enum MetodoPago {
+  PUE  // Pago en Una sola Exhibicion
+  PPD  // Pago en Parcialidades o Diferido
+}
+
 // ─── MODELOS CORE ───────────────────────────────────────
 
 model Tenant {
@@ -113,6 +137,8 @@ model Tenant {
   modules          TenantModule[]
   users            User[]
   projects         Project[]
+  invoices         Invoice[]
+  csdVault         CsdVault?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -281,4 +307,138 @@ model TaxRuleRegime {
 
   @@unique([taxRuleId, taxRegimeId])
   @@index([taxRegimeId])
+}
+
+// ─── MOTOR DE FACTURACION CFDI 4.0 ─────────────────────
+
+/// Boveda de CSD (Certificado de Sello Digital) por Tenant.
+/// Almacena .cer, .key (bytes) y contrasena cifrada con AES-256-GCM.
+/// Ref: CFF Art. 17-D, 29 fraccion II.
+model CsdVault {
+  id             String   @id @default(uuid())
+  tenantId       String   @unique
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  cerDer         Bytes    // Archivo .cer en formato DER (binario)
+  keyDer         Bytes    // Archivo .key en formato DER cifrado por SAT
+
+  // Contrasena del .key cifrada con AES-256-GCM
+  passwordEnc    String   // Ciphertext base64
+  passwordIv     String   // IV base64 (12 bytes)
+  passwordTag    String   // Auth tag base64 (16 bytes)
+
+  // Datos extraidos del certificado
+  noCertificado  String   // Numero de certificado (20 digitos)
+  validFrom      DateTime // Inicio de vigencia del CSD
+  validTo        DateTime // Fin de vigencia del CSD
+  isActive       Boolean  @default(true)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+/// Factura electronica CFDI 4.0.
+/// Ref: CFF Art. 29, 29-A | Anexo 20 SAT.
+model Invoice {
+  id                 String          @id @default(uuid())
+  tenantId           String
+  tenant             Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  status             InvoiceStatus   @default(DRAFT)
+
+  // Identificadores
+  serie              String?
+  folio              Int
+  uuid               String?         @unique // UUID del Timbre Fiscal Digital
+
+  // Datos del comprobante
+  fechaEmision       DateTime        @default(now())
+  tipoComprobante    TipoComprobante @default(I)
+  formaPago          String          // Clave SAT c_FormaPago (ej. "01", "03", "99")
+  metodoPago         MetodoPago      @default(PUE)
+  moneda             String          @default("MXN")
+  tipoCambio         Decimal?        @db.Decimal(10, 4)
+  lugarExpedicion    String          // Codigo postal del lugar de expedicion
+  exportacion        String          @default("01") // c_Exportacion
+  condicionesDePago  String?
+
+  // Emisor
+  emisorRfc             String
+  emisorNombre          String
+  emisorRegimenFiscal   String       // Clave SAT c_RegimenFiscal
+
+  // Receptor
+  receptorRfc              String
+  receptorNombre           String
+  receptorDomicilioFiscal  String    // CP del receptor
+  receptorRegimenFiscal    String    // Clave SAT c_RegimenFiscal del receptor
+  receptorUsoCfdi          String    // Clave SAT c_UsoCFDI
+
+  // Totales (precision monetaria MXN)
+  subtotal                    Decimal  @db.Decimal(12, 2)
+  descuento                   Decimal  @default(0) @db.Decimal(12, 2)
+  totalImpuestosTrasladados   Decimal  @default(0) @db.Decimal(12, 2)
+  totalImpuestosRetenidos     Decimal  @default(0) @db.Decimal(12, 2)
+  total                       Decimal  @db.Decimal(12, 2)
+
+  // Sello digital del emisor
+  noCertificado  String?    // 20 digitos del CSD
+  certificado    String?    // Base64 del .cer DER
+  sello          String?    // Base64 firma SHA256-RSA de la cadena original
+  cadenaOriginal String?    // Cadena original para auditoria
+
+  // Timbre Fiscal Digital (del PAC)
+  selloSat          String?
+  noCertificadoSat  String?
+  fechaTimbrado     DateTime?
+  rfcProvCertif     String?
+  xmlTimbrado       String?  @db.Text  // XML completo timbrado
+
+  // Relaciones
+  items          InvoiceItem[]
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([tenantId, serie, folio])
+  @@index([tenantId, status])
+  @@index([tenantId, fechaEmision])
+}
+
+/// Concepto (linea) de una factura CFDI 4.0.
+/// Ref: Anexo 20 — Nodo: cfdi:Concepto.
+model InvoiceItem {
+  id              String   @id @default(uuid())
+  invoiceId       String
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  // Datos del concepto
+  claveProdServ   String   // Clave SAT c_ClaveProdServ
+  noIdentificacion String? // Clave interna del producto/servicio
+  cantidad        Decimal  @db.Decimal(10, 6)
+  claveUnidad     String   // Clave SAT c_ClaveUnidad (ej. "E48", "H87")
+  unidad          String?  // Descripcion de la unidad
+  descripcion     String
+  valorUnitario   Decimal  @db.Decimal(12, 6)
+  importe         Decimal  @db.Decimal(12, 2) // cantidad * valorUnitario redondeado
+  descuento       Decimal  @default(0) @db.Decimal(12, 2)
+  objetoImp       String   @default("02") // c_ObjetoImp: "02" = Si objeto de impuesto
+
+  // Impuestos trasladados del concepto
+  trasladoBase          Decimal?  @db.Decimal(12, 2)
+  trasladoImpuesto      String?   // "002" = IVA, "003" = IEPS
+  trasladoTipoFactor    String?   // "Tasa", "Cuota", "Exento"
+  trasladoTasaOCuota    Decimal?  @db.Decimal(8, 6) // 0.160000
+  trasladoImporte       Decimal?  @db.Decimal(12, 2)
+
+  // Impuestos retenidos del concepto (opcional)
+  retencionBase         Decimal?  @db.Decimal(12, 2)
+  retencionImpuesto     String?   // "001" = ISR, "002" = IVA
+  retencionTipoFactor   String?
+  retencionTasaOCuota   Decimal?  @db.Decimal(8, 6)
+  retencionImporte      Decimal?  @db.Decimal(12, 2)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([invoiceId])
 }
