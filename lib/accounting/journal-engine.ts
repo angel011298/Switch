@@ -33,6 +33,16 @@ type JournalSourceType = 'XML_IMPORT' | 'POS_SALE' | 'MANUAL' | 'CFDI_EMITIDO';
 
 // ─── TIPOS ─────────────────────────────────────────────
 
+export interface PosOrderData {
+  orderId: string;
+  ticketCode: string;
+  date: Date;
+  subtotal: number;   // sin IVA
+  totalTax: number;   // IVA
+  total: number;      // con IVA
+  paymentMethod: string; // '01' efectivo | '03' transferencia | '04' tarjeta
+}
+
 export interface JournalLineInput {
   accountCode: string;
   description: string;
@@ -94,6 +104,52 @@ export function validateDoubleEntry(lines: JournalLineInput[]): {
     totalDebit,
     totalCredit,
     difference,
+  };
+}
+
+// ─── PÓLIZA DESDE VENTA POS ────────────────────────────
+
+/**
+ * Genera póliza de ingreso a partir de una venta del POS.
+ *   Cargo  → Caja (101.01) si pago en efectivo, Bancos (101.02) en otro caso
+ *   Abono  → Ventas (401.01)  por el subtotal
+ *   Abono  → IVA Trasladado (208.01) por el IVA
+ */
+export function generateJournalFromPosOrder(order: PosOrderData): JournalEntryInput {
+  const cashAccount = order.paymentMethod === '01' ? '101.01' : '101.02';
+
+  const lines: JournalLineInput[] = [
+    {
+      accountCode: cashAccount,
+      description: `Venta POS ticket ${order.ticketCode}`,
+      debit: round2(order.total),
+      credit: 0,
+    },
+    {
+      accountCode: '401.01',
+      description: `Ventas POS ticket ${order.ticketCode}`,
+      debit: 0,
+      credit: round2(order.subtotal),
+    },
+  ];
+
+  if (order.totalTax > 0) {
+    lines.push({
+      accountCode: '208.01',
+      description: 'IVA trasladado POS',
+      debit: 0,
+      credit: round2(order.totalTax),
+    });
+  }
+
+  return {
+    tenantId: '',
+    date: order.date,
+    concept: `Venta POS — ${order.ticketCode}`,
+    reference: order.ticketCode,
+    entryType: 'INGRESO',
+    sourceType: 'POS_SALE',
+    lines,
   };
 }
 

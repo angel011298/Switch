@@ -14,6 +14,8 @@ import { createCfdi, storeCsd } from '@/lib/cfdi';
 import type { CfdiInput } from '@/lib/cfdi';
 import { MockPac } from '@/lib/cfdi/pac/mock-pac';
 import { revalidatePath } from 'next/cache';
+import { generateJournalFromCfdi, type ParsedCfdiData } from '@/lib/accounting/journal-engine';
+import { createJournalEntryFromInput } from '@/lib/accounting/create-journal';
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -169,13 +171,94 @@ export async function cancelInvoiceAction(
 
 // ─── Crear factura ─────────────────────────────────────────────────────────
 
-export async function createInvoiceAction(input: CfdiInput) {
+/**
+ * Emite un CFDI 4.0.
+ * @param input      - Datos del comprobante
+ * @param posOrderId - (opcional) ID del PosOrder de origen.
+ *                     Si se provee y el CFDI se timbra correctamente,
+ *                     marca la orden como facturada (isInvoiced=true).
+ */
+export async function createInvoiceAction(input: CfdiInput, posOrderId?: string) {
   const session = await getSwitchSession();
   if (!session?.tenantId) throw new Error('No autenticado');
-  if (session.tenantId !== input.tenantId) throw new Error('No autorizado');
 
-  const result = await createCfdi(input, new MockPac());
+  // Sobreescribir tenantId siempre con el de la sesión (seguridad)
+  const secureInput: CfdiInput = { ...input, tenantId: session.tenantId };
+
+  const result = await createCfdi(secureInput, new MockPac());
+
+  // ── Interconexión CFDI → Contabilidad (best-effort) ──
+  if (result.status === 'STAMPED' && result.uuid) {
+    try {
+      // Leer datos completos de la factura recién creada
+      const invoice = await prisma.invoice.findUnique({
+        where: { id: result.invoiceId },
+        select: {
+          subtotal: true,
+          total: true,
+          totalImpuestosTrasladados: true,
+          totalImpuestosRetenidos: true,
+          emisorRfc: true,
+          emisorNombre: true,
+          receptorRfc: true,
+          receptorNombre: true,
+          fechaEmision: true,
+          formaPago: true,
+          moneda: true,
+        },
+      });
+
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: session.tenantId },
+        select: { rfc: true },
+      });
+
+      if (invoice && tenant?.rfc) {
+        const parsedData: ParsedCfdiData = {
+          uuid: result.uuid,
+          tipoComprobante: input.tipoComprobante ?? 'I',
+          fecha: invoice.fechaEmision,
+          emisorRfc: invoice.emisorRfc,
+          emisorNombre: invoice.emisorNombre,
+          receptorRfc: invoice.receptorRfc,
+          receptorNombre: invoice.receptorNombre,
+          subtotal: Number(invoice.subtotal),
+          total: Number(invoice.total),
+          totalImpuestosTrasladados: Number(invoice.totalImpuestosTrasladados),
+          totalImpuestosRetenidos: Number(invoice.totalImpuestosRetenidos),
+          formaPago: invoice.formaPago,
+          moneda: invoice.moneda,
+        };
+
+        const journalInput = generateJournalFromCfdi(parsedData, tenant.rfc);
+        if (journalInput) {
+          await createJournalEntryFromInput(
+            session.tenantId,
+            { ...journalInput, tenantId: session.tenantId },
+            'CFDI_EMITIDO',
+            result.invoiceId
+          );
+        }
+      }
+    } catch (journalErr) {
+      console.warn('[CFDI→Accounting] Póliza omitida:', journalErr);
+    }
+  }
+
+  // ── Interconexión POS → CFDI: marcar orden como facturada ──
+  if (result.status === 'STAMPED' && posOrderId) {
+    try {
+      await prisma.posOrder.update({
+        where: { id: posOrderId, tenantId: session.tenantId },
+        data: { isInvoiced: true, invoiceId: result.invoiceId },
+      });
+    } catch (posErr) {
+      console.warn('[POS→CFDI] No se pudo marcar orden como facturada:', posErr);
+    }
+  }
+
   revalidatePath('/billing');
+  revalidatePath('/pos');
   return result;
 }
 
@@ -206,6 +289,52 @@ export async function uploadCsdAction(formData: FormData) {
     noCertificado: vault.noCertificado,
     validFrom: vault.validFrom.toISOString(),
     validTo: vault.validTo.toISOString(),
+  };
+}
+
+// ─── Interconexión POS → CFDI ─────────────────────────────────────────────────
+
+/**
+ * Obtiene una orden POS lista para pre-llenar el wizard de facturación.
+ * Valida que la orden pertenezca al tenant y no haya sido facturada ya.
+ */
+export async function getPosOrderForBilling(orderId: string) {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) throw new Error('No autenticado');
+  const tenantId = session.tenantId;
+
+  const order = await prisma.posOrder.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  });
+
+  if (!order || order.tenantId !== tenantId) throw new Error('Orden no encontrada');
+  if (order.isInvoiced) throw new Error('Esta orden ya fue facturada');
+
+  // Enriquecer ítems con claves SAT del catálogo de productos
+  const productIds = order.items.map((i) => i.productId).filter(Boolean) as string[];
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true, claveProdServ: true, claveUnidad: true, unidad: true },
+  });
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
+  return {
+    id: order.id,
+    ticketCode: order.ticketCode,
+    paymentMethod: order.paymentMethod,
+    items: order.items.map((i) => {
+      const prod = i.productId ? productMap.get(i.productId) : undefined;
+      return {
+        productName: i.productName,
+        quantity: Number(i.quantity),
+        unitPrice: Number(i.unitPrice),   // sin IVA
+        taxRate: Number(i.taxRate),
+        claveProdServ: prod?.claveProdServ ?? '84111506',
+        claveUnidad: prod?.claveUnidad ?? 'H87',
+        unidad: prod?.unidad ?? 'Pieza',
+      };
+    }),
   };
 }
 

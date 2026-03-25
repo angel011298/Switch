@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { usePosStore } from '@/stores/pos-store';
 import { loadProducts, checkout } from '@/app/(dashboard)/pos/actions';
 import type { CheckoutInput } from '@/app/(dashboard)/pos/actions';
@@ -16,7 +17,7 @@ import type { CheckoutInput } from '@/app/(dashboard)/pos/actions';
 export default function PosTerminal() {
   const store = usePosStore();
   const [isPending, startTransition] = useTransition();
-  const [lastTicket, setLastTicket] = useState<{ code: string; total: number } | null>(null);
+  const [lastTicket, setLastTicket] = useState<{ code: string; total: number; orderId: string } | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
 
   // Cargar catálogo una vez
@@ -61,7 +62,7 @@ export default function PosTerminal() {
     startTransition(async () => {
       try {
         const result = await checkout(input);
-        setLastTicket({ code: result.ticketCode, total: result.total });
+        setLastTicket({ code: result.ticketCode, total: result.total, orderId: result.orderId });
         store.clearCart();
       } catch (err) {
         alert(err instanceof Error ? err.message : 'Error en checkout');
@@ -284,19 +285,28 @@ export default function PosTerminal() {
 
         {/* Ticket generado */}
         {lastTicket && (
-          <div className="border-t border-zinc-800 px-4 py-3 bg-green-900/20">
+          <div className="border-t border-zinc-800 px-4 py-4 bg-green-900/20">
             <div className="text-center">
               <p className="text-green-400 font-bold text-sm">Venta completada</p>
               <p className="text-white font-mono text-2xl mt-1">{lastTicket.code}</p>
               <p className="text-zinc-400 text-xs mt-1">
-                Total: ${lastTicket.total.toFixed(2)} — El cliente puede facturar con este codigo
+                Total: ${lastTicket.total.toFixed(2)}
               </p>
-              <button
-                onClick={() => setLastTicket(null)}
-                className="text-xs text-zinc-500 hover:text-zinc-300 mt-2 underline"
-              >
-                Cerrar
-              </button>
+              {/* ── Interconexión POS → CFDI ── */}
+              <div className="flex gap-2 mt-3 justify-center">
+                <Link
+                  href={`/billing/nueva?posOrderId=${lastTicket.orderId}`}
+                  className="flex-1 py-2 px-3 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold rounded-lg transition-colors text-center"
+                >
+                  Facturar
+                </Link>
+                <button
+                  onClick={() => setLastTicket(null)}
+                  className="flex-1 py-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-lg transition-colors"
+                >
+                  Nueva venta
+                </button>
+              </div>
             </div>
           </div>
         )}
