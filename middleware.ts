@@ -50,6 +50,7 @@ const ALWAYS_ALLOWED = [
   '/dashboard',
   '/settings',
   '/perfil',
+  '/onboarding',           // FASE 12: Onboarding obligatorio — accesible siempre
   '/billing/subscription', // Pagina de pago — accesible aunque este suspendido
 ];
 
@@ -64,7 +65,13 @@ const PUBLIC_ROUTES = [
 ];
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  // FASE 12: Inyectar pathname en headers para que Server Components puedan leerlo
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', request.nextUrl.pathname);
+
+  let supabaseResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
