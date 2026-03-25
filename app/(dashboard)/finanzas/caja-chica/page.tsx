@@ -1,344 +1,497 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import {
-  FileBarChart2, ScrollText, FolderClosed, Plus,
-  BadgeCheck, Hourglass, Banknote, Loader2,
-  ScanLine, FileUp, AlertTriangle, Scale, Lock,
-  History, Settings2, Receipt
-} from 'lucide-react';
-import { createClient } from '@/utils/supabase/client';
+/**
+ * Switch OS — Caja Chica
+ * ========================
+ * FASE 16: Fondo fijo con CRUD de gastos desde Prisma.
+ * Póliza contable automática por cada gasto registrado.
+ */
 
-// Helper para moneda
-function formatoMoneda(valor: number) {
-  return valor.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 2 });
+import { useState, useEffect, useTransition } from 'react';
+import {
+  Banknote, Plus, Trash2, AlertTriangle, CheckCircle2,
+  Loader2, ScrollText, FileBarChart2, Settings2, X,
+  Scale, History, Receipt,
+} from 'lucide-react';
+import {
+  getOrCreateFund,
+  addExpense,
+  getExpenses,
+  deleteExpense,
+  updateFundAmount,
+  CATEGORIES,
+  type FundSummary,
+  type ExpenseRow,
+} from './actions';
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+function fmt(n: number) {
+  return n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 2 });
 }
+
+// ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function CajaChicaPage() {
   const [activeTab, setActiveTab] = useState<'registro' | 'historial' | 'arqueo' | 'politicas'>('registro');
-  const [ingresos, setIngresos] = useState<any[]>([]);
+  const [isPending, startTransition] = useTransition();
+
+  const [fund, setFund] = useState<FundSummary | null>(null);
+  const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [error, setError] = useState<string | null>(null);
 
-  // 1. Cargar datos desde Supabase (Usamos tu tabla base como proxy de movimientos)
-  useEffect(() => {
-    async function cargarDatos() {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const { data, error } = await supabase
-          .from('ingresos_cfdi') // En producción, idealmente usarías una tabla 'movimientos_caja'
-          .select('*')
-          .eq('user_id', user.id)
-          .order('fecha_emision', { ascending: false });
+  // Formulario gasto
+  const [form, setForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    concept: '',
+    amount: '',
+    category: 'General',
+    receiptRef: '',
+  });
 
-        if (!error && data) {
-          setIngresos(data);
-        }
-      }
+  // Modal editar fondo
+  const [showFundModal, setShowFundModal] = useState(false);
+  const [newFundAmount, setNewFundAmount] = useState('');
+
+  // ── Cargar ──
+  async function load() {
+    setLoading(true);
+    try {
+      const f = await getOrCreateFund();
+      const ex = await getExpenses(f.id, 1);
+      setFund(f);
+      setExpenses(ex);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
       setLoading(false);
     }
-    cargarDatos();
-  }, [supabase]);
-
-  // 2. Calcular Resúmenes del Fondo Fijo (Lógica de Caja Chica)
-  const resumenCaja = useMemo(() => {
-    // Simulamos un fondo fijo de $10,000
-    const fondoFijo = 10000;
-    const gastosMes = ingresos.reduce((acc, curr) => acc + (Number(curr.total) || 0), 0);
-    const saldoActual = fondoFijo - gastosMes;
-    
-    // Alerta de reposición si queda menos del 20%
-    const requiereReposicion = saldoActual < (fondoFijo * 0.20);
-    const noDeducibles = ingresos.filter(i => i.metodo_pago === 'PUE' && i.total > 2000).length; // Simulación de regla LISR
-
-    return { fondoFijo, gastosMes, saldoActual, requiereReposicion, noDeducibles };
-  }, [ingresos]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-neutral-50 dark:bg-black">
-        <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
-      </div>
-    );
   }
 
+  useEffect(() => { load(); }, []);
+
+  // ── Registrar gasto ──
+  function handleAddExpense(e: React.FormEvent) {
+    e.preventDefault();
+    if (!fund) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        await addExpense({
+          fundId: fund.id,
+          date: form.date,
+          concept: form.concept,
+          amount: parseFloat(form.amount),
+          category: form.category,
+          receiptRef: form.receiptRef || undefined,
+        });
+        setForm({ date: new Date().toISOString().split('T')[0], concept: '', amount: '', category: 'General', receiptRef: '' });
+        await load();
+      } catch (err: any) {
+        setError(err.message);
+      }
+    });
+  }
+
+  // ── Eliminar gasto ──
+  function handleDelete(id: string) {
+    if (!confirm('¿Eliminar este gasto?')) return;
+    startTransition(async () => {
+      try {
+        await deleteExpense(id);
+        await load();
+      } catch (err: any) {
+        setError(err.message);
+      }
+    });
+  }
+
+  // ── Editar fondo ──
+  function handleUpdateFund(e: React.FormEvent) {
+    e.preventDefault();
+    if (!fund) return;
+    startTransition(async () => {
+      try {
+        await updateFundAmount(fund.id, parseFloat(newFundAmount));
+        setShowFundModal(false);
+        await load();
+      } catch (err: any) {
+        setError(err.message);
+      }
+    });
+  }
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+    </div>
+  );
+
+  const pctUsado = fund ? ((fund.totalGastos / fund.fundAmount) * 100) : 0;
+
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-black p-4 md:p-8 transition-colors duration-300">
+    <div className="min-h-screen bg-neutral-50 dark:bg-black p-4 md:p-8 transition-colors">
       <div className="max-w-[1400px] mx-auto space-y-6">
-        
-        {/* HEADER ERP */}
+
+        {/* ── HEADER ── */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-3xl shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20">
-              <Banknote className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+            <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20">
+              <Banknote className="h-8 w-8 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-neutral-950 dark:text-white tracking-tight">Caja Chica (Fondo Fijo)</h1>
+              <h1 className="text-3xl font-black text-neutral-950 dark:text-white tracking-tight">Caja Chica</h1>
               <p className="text-neutral-500 font-medium text-sm mt-1">
-                Registro rápido, validación LISR (Art. 27) y reposición de fondos.
+                Fondo fijo {fund ? fmt(fund.fundAmount) : ''} · LISR Art. 27 · Póliza automática
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all text-sm">
-              <ScanLine className="h-4 w-4" /> Escanear Ticket (OCR)
-            </button>
-            <button className="flex items-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl transition-all shadow-lg shadow-emerald-500/20 text-sm">
-              <Plus className="h-4 w-4" /> Nuevo Gasto Manual
-            </button>
-          </div>
+          <button
+            onClick={() => { setNewFundAmount(String(fund?.fundAmount ?? 10000)); setShowFundModal(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl hover:bg-neutral-200 transition-all text-sm"
+          >
+            <Settings2 className="h-4 w-4" /> Ajustar fondo
+          </button>
         </header>
 
-        {/* ALERTA DE REPOSICIÓN */}
-        {resumenCaja.requiereReposicion && (
-          <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-4 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm text-amber-800 dark:text-amber-400 font-bold">Saldo de Caja Crítico</p>
-              <p className="text-xs text-amber-700 dark:text-amber-500 mt-1">El saldo actual ({formatoMoneda(resumenCaja.saldoActual)}) está por debajo del 20% del fondo fijo. Solicita una reposición al departamento de Tesorería.</p>
-            </div>
-            <button className="ml-auto text-xs font-bold bg-amber-500 text-white px-3 py-1.5 rounded-lg shadow-sm">
-              Solicitar Reembolso
-            </button>
+        {/* ── ERROR ── */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-2xl px-5 py-4 text-sm font-medium text-red-700 dark:text-red-400">
+            {error}
           </div>
         )}
 
-        {/* TOP METRICS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800">
-            <div className="flex justify-between items-start mb-2">
-              <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Saldo Físico (Disponible)</p>
-              <Banknote className="h-5 w-5 text-emerald-500" />
+        {/* ── KPIs ── */}
+        {fund && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 border-l-4 border-l-amber-500">
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Fondo Fijo</p>
+              <p className="text-2xl font-black text-neutral-900 dark:text-white mt-1">{fmt(fund.fundAmount)}</p>
             </div>
-            <p className="text-3xl font-black text-neutral-900 dark:text-white">{formatoMoneda(resumenCaja.saldoActual)}</p>
-            <div className="w-full bg-neutral-100 dark:bg-black rounded-full h-2 mt-4 border border-neutral-200 dark:border-neutral-800">
-              <div className={`h-full rounded-full ${resumenCaja.requiereReposicion ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${(resumenCaja.saldoActual / resumenCaja.fondoFijo) * 100}%` }}></div>
+            <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 border-l-4 border-l-rose-500">
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Gastado (mes)</p>
+              <p className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">{fmt(fund.totalGastos)}</p>
+            </div>
+            <div className={`p-5 rounded-2xl border border-l-4 ${
+              fund.requiereReposicion
+                ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 border-l-red-500'
+                : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 border-l-emerald-500'
+            }`}>
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Saldo Disponible</p>
+              <p className={`text-2xl font-black mt-1 ${fund.requiereReposicion ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                {fmt(fund.saldoDisponible)}
+              </p>
+              {fund.requiereReposicion && (
+                <p className="text-[10px] text-red-600 dark:text-red-400 mt-1 font-bold">⚠ Requiere reposición</p>
+              )}
+            </div>
+            <div className={`p-5 rounded-2xl border border-l-4 ${
+              fund.noDeducibles > 0
+                ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800 border-l-amber-500'
+                : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 border-l-neutral-300'
+            }`}>
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">No Deducibles</p>
+              <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{fund.noDeducibles}</p>
+              <p className="text-[10px] text-neutral-400 mt-1">Gastos &gt;$2,000 efectivo</p>
             </div>
           </div>
+        )}
 
-          <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800">
-            <div className="flex justify-between items-start mb-2">
-              <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Gastos Comprobados</p>
-              <Receipt className="h-5 w-5 text-blue-500" />
+        {/* Barra de uso del fondo */}
+        {fund && (
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-4">
+            <div className="flex justify-between text-xs font-bold mb-2">
+              <span className="text-neutral-500">Uso del fondo</span>
+              <span className={pctUsado > 80 ? 'text-red-500' : 'text-neutral-700 dark:text-neutral-300'}>
+                {pctUsado.toFixed(1)}%
+              </span>
             </div>
-            <p className="text-3xl font-black text-neutral-900 dark:text-white">{formatoMoneda(resumenCaja.gastosMes)}</p>
-            <p className="text-xs font-bold text-neutral-400 mt-4">Fondo Fijo Asignado: {formatoMoneda(resumenCaja.fondoFijo)}</p>
+            <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-2.5 overflow-hidden">
+              <div
+                className={`h-2.5 rounded-full transition-all duration-500 ${
+                  pctUsado > 80 ? 'bg-red-500' : pctUsado > 60 ? 'bg-amber-500' : 'bg-emerald-500'
+                }`}
+                style={{ width: `${Math.min(100, pctUsado)}%` }}
+              />
+            </div>
           </div>
+        )}
 
-          <div className="bg-white dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-200 dark:border-neutral-800">
-            <div className="flex justify-between items-start mb-2">
-              <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Alerta LISR (No Deducibles)</p>
-              <Scale className="h-5 w-5 text-rose-500" />
-            </div>
-            <p className="text-3xl font-black text-rose-600 dark:text-rose-400">{resumenCaja.noDeducibles}</p>
-            <p className="text-xs font-medium text-neutral-500 mt-4 leading-tight">Gastos en efectivo que superan los $2,000 MXN o son de combustible.</p>
-          </div>
+        {/* ── TABS ── */}
+        <div className="flex overflow-x-auto border-b border-neutral-200 dark:border-neutral-800 pb-2 gap-2">
+          {[
+            { id: 'registro',  label: 'Registro Rápido',   icon: Plus         },
+            { id: 'historial', label: 'Historial',          icon: History      },
+            { id: 'arqueo',    label: 'Arqueo de Caja',    icon: Scale        },
+            { id: 'politicas', label: 'Políticas LISR',    icon: ScrollText   },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                  : 'bg-white dark:bg-neutral-900 text-neutral-500 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+              }`}
+            >
+              <tab.icon className="h-4 w-4" /> {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* CONTENEDOR DE PESTAÑAS */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-sm min-h-[500px] overflow-hidden">
-          
-          <div className="flex overflow-x-auto border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-black/50 p-2 gap-2">
-            {[
-              { id: 'registro', label: 'Registro Rápido' },
-              { id: 'historial', label: 'Historial de Gastos' },
-              { id: 'arqueo', label: 'Arqueo de Caja' },
-              { id: 'politicas', label: 'Políticas y Reglas' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-6 py-3 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
-                  activeTab === tab.id 
-                    ? 'bg-white dark:bg-neutral-900 text-emerald-600 dark:text-emerald-400 shadow-sm border border-neutral-200 dark:border-neutral-800' 
-                    : 'text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-800'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        {/* ── CONTENIDO ── */}
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-sm p-6">
 
-          <div className="p-6">
-            
-            {/* 1. REGISTRO RÁPIDO (Mobile-First) */}
-            {activeTab === 'registro' && (
-              <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300">
-                <div className="text-center mb-8">
-                  <h2 className="text-2xl font-black text-neutral-900 dark:text-white">Captura de Gasto</h2>
-                  <p className="text-neutral-500 text-sm mt-1">Registra tickets, facturas (XML) o viáticos.</p>
+          {/* REGISTRO */}
+          {activeTab === 'registro' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-black text-neutral-900 dark:text-white">Registrar Gasto</h2>
+              <form onSubmit={handleAddExpense} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-1">
+                    Fecha <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <button className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-emerald-200 dark:border-emerald-500/30 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors group">
-                    <FileUp className="h-8 w-8 text-emerald-600 dark:text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
-                    <span className="font-bold text-emerald-900 dark:text-emerald-100 text-sm">Cargar XML</span>
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">Extrae datos del SAT</span>
-                  </button>
-                  <button className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-blue-200 dark:border-blue-500/30 rounded-2xl bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors group">
-                    <ScanLine className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-2 group-hover:scale-110 transition-transform" />
-                    <span className="font-bold text-blue-900 dark:text-blue-100 text-sm">Foto de Ticket</span>
-                    <span className="text-[10px] text-blue-600 dark:text-blue-400 mt-1">Lector Inteligente (OCR)</span>
+                <div>
+                  <label className="block text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-1">
+                    Categoría
+                  </label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  >
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-1">
+                    Concepto <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Compra de papelería"
+                    value={form.concept}
+                    onChange={(e) => setForm((f) => ({ ...f, concept: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-1">
+                    Monto <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="500.00"
+                    value={form.amount}
+                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                    required min={0.01} step={0.01}
+                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  />
+                  {form.amount && parseFloat(form.amount) > 2000 && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> Gasto &gt;$2,000 no deducible (LISR Art. 27)
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-1">
+                    Folio de comprobante
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: REC-2026-001"
+                    value={form.receiptRef}
+                    onChange={(e) => setForm((f) => ({ ...f, receiptRef: e.target.value }))}
+                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div className="md:col-span-2 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isPending}
+                    className="flex items-center gap-2 px-6 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 text-sm"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {isPending ? 'Registrando...' : 'Registrar gasto'}
                   </button>
                 </div>
+              </form>
+            </div>
+          )}
 
-                <form className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-500 uppercase mb-2">Monto Total</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-3.5 font-bold text-neutral-400">$</span>
-                        <input type="number" placeholder="0.00" className="w-full pl-8 pr-4 py-3 bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl font-mono font-bold text-lg text-neutral-900 dark:text-white outline-none focus:border-emerald-500" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-neutral-500 uppercase mb-2">Categoría</label>
-                      <select className="w-full p-3 bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl font-bold text-neutral-900 dark:text-white outline-none focus:border-emerald-500 h-[52px]">
-                        <option>Papelería y Oficina</option>
-                        <option>Alimentos (Viáticos)</option>
-                        <option>Combustible</option>
-                        <option>Transporte / Taxis</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-neutral-500 uppercase mb-2">Concepto / Justificación</label>
-                    <input type="text" placeholder="Ej. Comida con cliente prospecto" className="w-full p-3 bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl font-medium text-neutral-900 dark:text-white outline-none focus:border-emerald-500" />
-                  </div>
-                  
-                  {/* Simulación Lógica Soft Warning */}
-                  <div className="bg-neutral-100 dark:bg-black p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-                    <span className="text-xs font-bold text-neutral-500 flex items-center gap-1"><Lock className="h-3 w-3" /> Estatus Fiscal</span>
-                    <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 px-2 py-1 rounded text-[10px] font-black uppercase">100% Deducible</span>
-                  </div>
-
-                  <button type="button" className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl transition-all shadow-lg mt-4">
-                    Registrar en Caja Chica
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* 2. HISTORIAL DE GASTOS (Tu tabla original adaptada) */}
-            {activeTab === 'historial' && (
-              <div className="space-y-4 animate-in fade-in duration-300">
-                <div className="flex items-center gap-2 mb-4">
-                  <History className="h-5 w-5 text-neutral-400" />
-                  <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Movimientos del Periodo</h2>
+          {/* HISTORIAL */}
+          {activeTab === 'historial' && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-black text-neutral-900 dark:text-white">Historial del Mes</h2>
+              {expenses.length === 0 ? (
+                <div className="text-center py-12">
+                  <Receipt className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
+                  <p className="text-neutral-500 font-medium">Sin gastos registrados este mes</p>
                 </div>
-                
+              ) : (
                 <div className="overflow-x-auto border border-neutral-200 dark:border-neutral-800 rounded-2xl">
-                  <table className="min-w-full text-sm whitespace-nowrap text-left">
-                    <thead className="bg-neutral-50 dark:bg-black/50 border-b border-neutral-200 dark:border-neutral-800 text-[10px] uppercase text-neutral-500 tracking-widest">
+                  <table className="min-w-full text-sm text-left whitespace-nowrap">
+                    <thead className="bg-neutral-50 dark:bg-black/50 border-b border-neutral-200 dark:border-neutral-800 text-[10px] uppercase text-neutral-500 tracking-widest font-black">
                       <tr>
-                        <th className="py-4 px-4 font-bold">Fecha</th>
-                        <th className="py-4 px-4 font-bold">Concepto / Proveedor</th>
-                        <th className="py-4 px-4 font-bold">Categoría</th>
-                        <th className="py-4 px-4 font-bold text-right">Monto</th>
-                        <th className="py-4 px-4 font-bold text-center">Deducibilidad</th>
+                        <th className="p-4">Fecha</th>
+                        <th className="p-4">Concepto</th>
+                        <th className="p-4">Categoría</th>
+                        <th className="p-4">Folio</th>
+                        <th className="p-4 text-right">Monto</th>
+                        <th className="p-4 text-center">Deducible</th>
+                        <th className="p-4"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
-                      {ingresos.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="py-12 text-center text-neutral-500 font-medium">No hay registros en caja chica.</td>
+                      {expenses.map((exp) => (
+                        <tr key={exp.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
+                          <td className="p-4 text-xs text-neutral-500">
+                            {new Date(exp.date).toLocaleDateString('es-MX')}
+                          </td>
+                          <td className="p-4 font-medium text-neutral-900 dark:text-white">{exp.concept}</td>
+                          <td className="p-4">
+                            <span className="px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded text-[10px] font-bold text-neutral-600 dark:text-neutral-400">
+                              {exp.category}
+                            </span>
+                          </td>
+                          <td className="p-4 text-xs text-neutral-500 font-mono">{exp.receiptRef ?? '—'}</td>
+                          <td className="p-4 text-right font-mono font-bold">{fmt(exp.amount)}</td>
+                          <td className="p-4 text-center">
+                            {exp.esNoDeducible
+                              ? <AlertTriangle className="h-4 w-4 text-amber-500 mx-auto" />
+                              : <CheckCircle2 className="h-4 w-4 text-emerald-500 mx-auto" />
+                            }
+                          </td>
+                          <td className="p-4">
+                            <button
+                              onClick={() => handleDelete(exp.id)}
+                              disabled={isPending}
+                              className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
                         </tr>
-                      ) : (
-                        ingresos.slice(0, 10).map((row, idx) => {
-                          // Simulación visual de regla fiscal basada en el monto
-                          const isNoDeducible = Number(row.total) > 2000;
-                          return (
-                            <tr key={row.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 group">
-                              <td className="px-4 py-3 text-neutral-600 dark:text-neutral-400 font-mono text-xs">{row.fecha_emision}</td>
-                              <td className="px-4 py-3">
-                                <p className="font-bold text-neutral-900 dark:text-white truncate max-w-[200px]">{row.nombre_cliente || 'Gasto General'}</p>
-                                <p className="text-[10px] text-neutral-500 mt-0.5">{row.rfc_cliente}</p>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 px-2 py-1 rounded-md text-xs font-medium border border-neutral-200 dark:border-neutral-700">
-                                  Administración
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-right font-black text-neutral-900 dark:text-white">
-                                {formatoMoneda(Number(row.total))}
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                                  isNoDeducible 
-                                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' 
-                                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
-                                }`}>
-                                  {isNoDeducible ? 'No Deducible' : 'Deducible'}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
+                      ))}
                     </tbody>
+                    <tfoot className="border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-black/50">
+                      <tr>
+                        <td colSpan={4} className="p-4 text-xs font-black text-neutral-600 dark:text-neutral-400 uppercase tracking-widest">Total del mes</td>
+                        <td className="p-4 text-right font-mono font-black text-rose-600 dark:text-rose-400">
+                          {fmt(expenses.reduce((s, e) => s + e.amount, 0))}
+                        </td>
+                        <td colSpan={2} />
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* ARQUEO */}
+          {activeTab === 'arqueo' && fund && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-black text-neutral-900 dark:text-white">Arqueo de Caja</h2>
+              <div className="max-w-md space-y-3">
+                {[
+                  { label: 'Fondo fijo autorizado',  value: fund.fundAmount,      color: 'text-neutral-900 dark:text-white' },
+                  { label: 'Total gastado (mes)',     value: -fund.totalGastos,   color: 'text-rose-600 dark:text-rose-400' },
+                  { label: 'Saldo disponible',        value: fund.saldoDisponible, color: fund.requiereReposicion ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' },
+                ].map((row) => (
+                  <div key={row.label} className="flex justify-between items-center py-3 border-b border-neutral-100 dark:border-neutral-800">
+                    <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">{row.label}</span>
+                    <span className={`font-black font-mono ${row.color}`}>{fmt(Math.abs(row.value))}</span>
+                  </div>
+                ))}
               </div>
-            )}
-
-            {/* 3. POLÍTICAS Y REGLAS (Configuración) */}
-            {activeTab === 'politicas' && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="flex items-center gap-2 mb-6">
-                  <Settings2 className="h-5 w-5 text-neutral-400" />
-                  <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Motor de Reglas LISR y PLD</h2>
+              {fund.requiereReposicion && (
+                <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-2xl p-4 flex items-center gap-3 mt-4">
+                  <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  <p className="text-sm font-medium text-red-700 dark:text-red-400">
+                    El saldo disponible es menor al 20% del fondo fijo. Se recomienda solicitar reposición.
+                  </p>
                 </div>
+              )}
+            </div>
+          )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 bg-neutral-50 dark:bg-black">
-                    <h3 className="font-bold text-neutral-900 dark:text-white mb-1">Límite de Efectivo (LISR)</h3>
-                    <p className="text-xs text-neutral-500 mb-4">Gastos generales pagados en efectivo (Forma 01) que superen este monto serán marcados como no deducibles.</p>
-                    <input type="text" readOnly value="$2,000.00 MXN" className="w-full p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl font-mono text-sm font-bold text-neutral-500 outline-none" />
-                  </div>
-
-                  <div className="border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 bg-neutral-50 dark:bg-black">
-                    <h3 className="font-bold text-neutral-900 dark:text-white mb-1">Regla Combustibles (Art. 27 LISR)</h3>
-                    <p className="text-xs text-neutral-500 mb-4">Montos pagados en efectivo para gasolina o diésel.</p>
-                    <input type="text" readOnly value="$0.00 MXN (Hard Block)" className="w-full p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl font-mono text-sm font-bold text-rose-500 outline-none" />
-                  </div>
-
-                  <div className="border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 bg-neutral-50 dark:bg-black md:col-span-2">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="font-bold text-neutral-900 dark:text-white">Log de Excepciones (Auditoría)</h3>
-                        <p className="text-xs text-neutral-500 mt-1">Bitácora inmutable de gastos forzados por el administrador.</p>
-                      </div>
-                      <button className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">Descargar CSV</button>
+          {/* POLÍTICAS */}
+          {activeTab === 'politicas' && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-black text-neutral-900 dark:text-white">Políticas Fiscales (LISR)</h2>
+              <div className="space-y-3">
+                {[
+                  {
+                    title: 'Art. 27 Fracc. III — Límite efectivo',
+                    detail: 'Gastos en efectivo superiores a $2,000 MXN no son deducibles fiscalmente.',
+                    icon: AlertTriangle, color: 'amber',
+                  },
+                  {
+                    title: 'Art. 27 — Comprobante fiscal',
+                    detail: 'Todo gasto mayor a $2,000 requiere CFDI. Los tickets y notas simples no son válidos.',
+                    icon: ScrollText, color: 'blue',
+                  },
+                  {
+                    title: 'Fondo fijo — Reposición',
+                    detail: 'El fondo debe reponerse cuando el saldo baje del 20% del monto autorizado.',
+                    icon: Banknote, color: 'emerald',
+                  },
+                ].map((policy, i) => (
+                  <div key={i} className={`flex items-start gap-4 p-4 rounded-2xl bg-${policy.color}-50 dark:bg-${policy.color}-500/10 border border-${policy.color}-200 dark:border-${policy.color}-800`}>
+                    <policy.icon className={`h-5 w-5 text-${policy.color}-500 flex-shrink-0 mt-0.5`} />
+                    <div>
+                      <p className={`font-bold text-sm text-${policy.color}-900 dark:text-${policy.color}-100`}>{policy.title}</p>
+                      <p className={`text-xs text-${policy.color}-700 dark:text-${policy.color}-400 mt-1`}>{policy.detail}</p>
                     </div>
-                    <div className="bg-white dark:bg-neutral-900 p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 text-xs font-mono text-neutral-500 space-y-2">
-                      <p>[2026-03-13 08:30:12] IP: 189.215.x.x - Usuario: angel@adastra.com - ACCIÓN: Bloqueo Gasto $500 (Combustible Efectivo)</p>
-                      <p className="text-amber-600 dark:text-amber-500">[2026-03-12 14:15:00] IP: 189.215.x.x - Usuario: admin@adastra.com - ACCIÓN: Warning Ignore $3,500 (Marcado No Deducible)</p>
-                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* 4. ARQUEO DE CAJA */}
-            {activeTab === 'arqueo' && (
-              <div className="flex flex-col items-center justify-center min-h-[300px] text-center animate-in fade-in duration-300">
-                <div className="bg-blue-50 dark:bg-blue-500/10 p-6 rounded-full mb-4">
-                  <Scale className="h-10 w-10 text-blue-500" />
-                </div>
-                <h2 className="text-xl font-black text-neutral-900 dark:text-white mb-2">Arqueo Digital</h2>
-                <p className="text-neutral-500 text-sm max-w-md mb-6">
-                  Compara el saldo físico que tienes en los cajones contra el saldo de {formatoMoneda(resumenCaja.saldoActual)} registrado en el ERP para detectar faltantes o sobrantes.
-                </p>
-                <button className="px-6 py-3 bg-neutral-900 hover:bg-black dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-bold rounded-xl text-sm transition-colors shadow-lg">
-                  Iniciar Arqueo de Hoy
+        </div>
+
+        {/* ── MODAL FONDO ── */}
+        {showFundModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl w-full max-w-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-black text-lg text-neutral-900 dark:text-white">Ajustar Fondo Fijo</h3>
+                <button onClick={() => setShowFundModal(false)} className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors">
+                  <X className="h-5 w-5" />
                 </button>
               </div>
-            )}
-
+              <form onSubmit={handleUpdateFund} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-1">Nuevo monto del fondo</label>
+                  <input
+                    type="number"
+                    value={newFundAmount}
+                    onChange={(e) => setNewFundAmount(e.target.value)}
+                    required min={1} step={1}
+                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl text-sm text-neutral-900 dark:text-white focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button type="button" onClick={() => setShowFundModal(false)} className="px-4 py-2 text-sm font-bold text-neutral-600 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 rounded-xl transition-colors">Cancelar</button>
+                  <button type="submit" disabled={isPending} className="px-5 py-2 text-sm font-black text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors disabled:opacity-50">
+                    {isPending ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </div>
