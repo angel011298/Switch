@@ -17,10 +17,17 @@ enum Role {
 }
 
 enum SubscriptionStatus {
+  TRIAL
   ACTIVE
   PAST_DUE
+  SUSPENDED
   CANCELED
-  TRIAL
+}
+
+enum PaymentProofStatus {
+  PENDING   // Comprobante subido, esperando revision
+  APPROVED  // Super Admin aprobo, +30 dias sumados
+  REJECTED  // Super Admin rechazo, con motivo
 }
 
 enum ModuleKey {
@@ -134,6 +141,7 @@ model Tenant {
   logoUrl          String?
 
   subscription     Subscription?
+  paymentProofs    PaymentProof[]
   modules          TenantModule[]
   users            User[]
   projects         Project[]
@@ -167,11 +175,46 @@ model Subscription {
   id        String             @id @default(uuid())
   tenantId  String             @unique
   tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  planId    String
+  planId    String             @default("standard")
   status    SubscriptionStatus @default(TRIAL)
-  endDate   DateTime?
+  validUntil DateTime?         // Fecha de vencimiento de la suscripcion activa
+  trialEnds  DateTime?         // Fecha de fin del periodo de prueba
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
+}
+
+// Comprobante de pago SPEI subido por el Tenant
+model PaymentProof {
+  id            String             @id @default(uuid())
+  tenantId      String
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Datos del pago declarados por el Tenant
+  amount        Decimal            @db.Decimal(10, 2)   // Monto transferido
+  transferRef   String?            // Clave de rastreo SPEI (opcional)
+  concept       String?            // Concepto de la transferencia
+  paidAt        DateTime           // Fecha en que realizaron el pago
+
+  // Archivo comprobante (almacenado como base64 en DB o URL si se usa Storage)
+  fileName      String
+  fileType      String             // "application/pdf" | "image/jpeg" | "image/png"
+  fileBase64    String             @db.Text   // Base64 del archivo (max ~2MB)
+
+  // Control de revision por Super Admin
+  status        PaymentProofStatus @default(PENDING)
+  reviewedBy    String?            // Email del Super Admin que reviso
+  reviewedAt    DateTime?
+  rejectionNote String?            // Motivo de rechazo (si aplica)
+
+  // Resultado de la aprobacion
+  daysGranted   Int?               // Dias sumados al validUntil al aprobar
+  newValidUntil DateTime?          // Nuevo validUntil calculado al aprobar
+
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([tenantId, status])
+  @@index([status, createdAt])
 }
 
 model User {
@@ -601,95 +644,80 @@ model InvoiceItem {
   @@index([invoiceId])
 }
 
-// ─── CONTABILIDAD (Partida Doble) ────────────────────
+// ─── CONTABILIDAD: PARTIDA DOBLE (LEDGER) ──────────────
 
+/// Tipo de cuenta contable (NIF / SAT)
 enum AccountType {
-  ASSET            // Activo
-  LIABILITY        // Pasivo
-  EQUITY           // Capital
-  REVENUE          // Ingreso
-  EXPENSE          // Gasto
-  CONTRA_ASSET     // Contra-activo (depreciacion, estimaciones)
-  CONTRA_REVENUE   // Contra-ingreso (devoluciones, descuentos)
+  ASSET          // Activo
+  LIABILITY      // Pasivo
+  EQUITY         // Capital
+  REVENUE        // Ingreso
+  EXPENSE        // Gasto
+  CONTRA_ASSET   // Contra-activo (depreciacion acumulada)
+  CONTRA_REVENUE // Contra-ingreso (devoluciones)
 }
 
-enum JournalEntryType {
-  DIARIO
-  INGRESO
-  EGRESO
-  AJUSTE
-}
-
-enum JournalSourceType {
-  XML_IMPORT
-  POS_SALE
-  MANUAL
-  CFDI_EMITIDO
-}
-
-enum XmlBatchStatus {
-  PROCESSING
-  COMPLETED
-  FAILED
-}
-
-/// Catalogo de cuentas contables.
-/// Ref: CFF Art. 28, Anexo 24 SAT — Catalogo de cuentas.
+/// Catalogo de Cuentas Contables por Tenant.
+/// Basado en el Codigo Agrupador del SAT (Anexo 24 CFF).
+/// Ref: CFF Art. 28 fraccion III, NIF A-1 y NIF A-2.
 model Account {
-  id              String      @id @default(uuid())
-  tenantId        String
-  tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id            String      @id @default(uuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  code            String      // Codigo SAT Anexo 24 (ej. "100", "100.01", "401")
-  name            String      // Nombre de la cuenta
-  accountType     AccountType
-  parentCode      String?     // Codigo de la cuenta padre
-  level           Int         @default(1) // Nivel en el arbol (1=grupo, 2=cuenta, 3=subcuenta)
-  isActive        Boolean     @default(true)
+  code          String      // Codigo contable SAT (ej. "102.01", "401.01", "208.01")
+  name          String      // Nombre de la cuenta (ej. "Bancos", "Ventas", "IVA Trasladado")
+  accountType   AccountType // Naturaleza de la cuenta
+  parentCode    String?     // Codigo de la cuenta padre (para arbol jerarquico)
+  level         Int         @default(1) // Nivel en el arbol (1=mayor, 2=sub, 3=detalle)
+  isActive      Boolean     @default(true)
 
-  debitBalance    Decimal     @default(0) @db.Decimal(14, 2) // Saldo deudor acumulado
-  creditBalance   Decimal     @default(0) @db.Decimal(14, 2) // Saldo acreedor acumulado
+  // Saldos acumulados (se actualizan con cada poliza)
+  debitBalance  Decimal     @default(0) @db.Decimal(14, 2)  // Total cargos historico
+  creditBalance Decimal     @default(0) @db.Decimal(14, 2)  // Total abonos historico
 
-  journalLines    JournalLine[]
-
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  journalLines  JournalLine[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   @@unique([tenantId, code])
   @@index([tenantId, accountType])
+  @@index([tenantId, parentCode])
 }
 
-/// Poliza contable (asiento de diario).
-/// Ref: CFF Art. 28, Anexo 24 — Polizas del periodo.
+/// Poliza contable (Journal Entry).
+/// Cada poliza tiene N lineas donde sum(cargos) == sum(abonos).
+/// Ref: CFF Art. 28, NIF A-2 — Postulado de Dualidad Economica.
 model JournalEntry {
-  id              String            @id @default(uuid())
-  tenantId        String
-  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  entryNumber     Int               // Numero secuencial de poliza
-  date            DateTime          // Fecha de la poliza
-  concept         String            // Concepto descriptivo
-  reference       String?           // Referencia (UUID CFDI, ticket POS, etc.)
+  entryNumber   Int      // Consecutivo por tenant
+  date          DateTime // Fecha de la operacion
+  concept       String   // Descripcion de la poliza
+  reference     String?  // Referencia externa (UUID CFDI, num factura, etc.)
+  entryType     String   @default("DIARIO") // DIARIO, INGRESO, EGRESO, AJUSTE
 
-  entryType       JournalEntryType  @default(DIARIO)
-  sourceType      JournalSourceType @default(MANUAL)
-  sourceId        String?           // ID del origen (invoiceId, orderId, batchId)
+  // Origen automatico
+  sourceType    String?  // XML_IMPORT, POS_SALE, MANUAL, CFDI_EMITIDO
+  sourceId      String?  // ID del documento origen (xmlBatchId, posOrderId, invoiceId)
 
-  totalDebit      Decimal           @db.Decimal(14, 2) // Suma cargos
-  totalCredit     Decimal           @db.Decimal(14, 2) // Suma abonos
-  isBalanced      Boolean           @default(true) // totalDebit == totalCredit
+  // Totales (para validacion rapida)
+  totalDebit    Decimal  @db.Decimal(14, 2)
+  totalCredit   Decimal  @db.Decimal(14, 2)
+  isBalanced    Boolean  @default(true) // sum(cargos) == sum(abonos)
 
-  lines           JournalLine[]
+  lines         JournalLine[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-
-  @@unique([tenantId, entryNumber])
   @@index([tenantId, date])
   @@index([tenantId, entryType])
+  @@index([tenantId, sourceType])
 }
 
-/// Linea de poliza (cargo o abono individual).
+/// Linea de poliza (cargo o abono a una cuenta).
 model JournalLine {
   id              String       @id @default(uuid())
   journalEntryId  String
@@ -698,9 +726,9 @@ model JournalLine {
   accountId       String
   account         Account      @relation(fields: [accountId], references: [id])
 
-  description     String?
-  debit           Decimal      @default(0) @db.Decimal(14, 2)
-  credit          Decimal      @default(0) @db.Decimal(14, 2)
+  description     String?      // Detalle de la linea
+  debit           Decimal      @default(0) @db.Decimal(14, 2) // Cargo
+  credit          Decimal      @default(0) @db.Decimal(14, 2) // Abono
 
   createdAt       DateTime     @default(now())
 
@@ -708,29 +736,26 @@ model JournalLine {
   @@index([accountId])
 }
 
-/// Lote de importacion de XMLs (ZIP).
+/// Lote de XMLs importados (para trazabilidad del Drag & Drop).
 model XmlBatch {
-  id              String         @id @default(uuid())
+  id              String   @id @default(uuid())
   tenantId        String
-  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  fileName        String         // Nombre del archivo ZIP
-  totalFiles      Int            @default(0) // XMLs totales en el ZIP
-  processed       Int            @default(0) // XMLs procesados exitosamente
-  errors          Int            @default(0) // XMLs con error
-  status          XmlBatchStatus @default(PROCESSING)
+  fileName        String   // Nombre del archivo ZIP original
+  totalFiles      Int      // Total de XMLs en el ZIP
+  processed       Int      @default(0) // XMLs procesados exitosamente
+  errors          Int      @default(0) // XMLs con error
+  status          String   @default("PROCESSING") // PROCESSING, COMPLETED, ERROR
 
-  // Contadores por tipo de comprobante
-  ingresos        Int            @default(0)
-  egresos         Int            @default(0)
-  pagos           Int            @default(0)
-  nominas         Int            @default(0)
-  traslados       Int            @default(0)
+  // Resumen de lo importado
+  totalIngresos   Int      @default(0)
+  totalEgresos    Int      @default(0)
+  totalPagos      Int      @default(0)
+  totalNominas    Int      @default(0)
 
-  errorLog        String?        @db.Text // JSON array de errores
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
 }

@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation';
 import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
-import { ShieldAlert, Building2, Users, Blocks, Activity } from 'lucide-react';
+import { ShieldAlert, Building2, Users, Blocks, Activity, Banknote } from 'lucide-react';
 import TenantModuleManager from '@/components/admin/TenantModuleManager';
+import PendingPaymentsPanel from '@/components/admin/PendingPaymentsPanel';
 
 export const metadata = { title: 'Admin Maestro | Switch OS' };
 
@@ -18,19 +19,22 @@ export default async function AdminPage() {
     redirect('/dashboard');
   }
 
-  // Traer todos los tenants con sus modulos activos y conteo de usuarios
-  const tenants = await prisma.tenant.findMany({
-    include: {
-      modules: {
-        orderBy: { moduleKey: 'asc' },
+  // Traer todos los tenants + comprobantes pendientes en paralelo
+  const [tenants, pendingProofs] = await Promise.all([
+    prisma.tenant.findMany({
+      include: {
+        modules: { orderBy: { moduleKey: 'asc' } },
+        users: { select: { id: true, email: true, name: true, role: true } },
+        subscription: true,
       },
-      users: {
-        select: { id: true, email: true, name: true, role: true },
-      },
-      subscription: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.paymentProof.findMany({
+      where: { status: 'PENDING' },
+      include: { tenant: { select: { id: true, name: true, rfc: true } } },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ]);
 
   const totalUsers = tenants.reduce((acc, t) => acc + t.users.length, 0);
   const totalModulesActive = tenants.reduce(
@@ -54,7 +58,7 @@ export default async function AdminPage() {
       </header>
 
       {/* Metricas globales */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <MetricCard
           icon={Building2}
           label="Tenants"
@@ -75,11 +79,45 @@ export default async function AdminPage() {
         />
         <MetricCard
           icon={Activity}
-          label="Suscripciones"
-          value={String(tenants.filter((t) => t.subscription).length)}
+          label="Suscripciones Activas"
+          value={String(tenants.filter((t) => t.subscription?.status === 'ACTIVE').length)}
           accent="amber"
         />
+        <MetricCard
+          icon={Banknote}
+          label="Pagos Pendientes"
+          value={String(pendingProofs.length)}
+          accent={pendingProofs.length > 0 ? 'red' : 'emerald'}
+        />
       </div>
+
+      {/* ─── Pagos Pendientes ─────────────────────────────────── */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-black text-neutral-900 dark:text-white flex items-center gap-2">
+            <Banknote className="h-5 w-5 text-amber-500" />
+            Pagos Pendientes de Revisión
+            {pendingProofs.length > 0 && (
+              <span className="bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full">
+                {pendingProofs.length}
+              </span>
+            )}
+          </h2>
+        </div>
+        <PendingPaymentsPanel
+          proofs={pendingProofs.map((p) => ({
+            id: p.id,
+            amount: Number(p.amount),
+            transferRef: p.transferRef,
+            paidAt: p.paidAt,
+            createdAt: p.createdAt,
+            fileName: p.fileName,
+            fileType: p.fileType,
+            fileBase64: p.fileBase64,
+            tenant: p.tenant,
+          }))}
+        />
+      </section>
 
       {/* Lista de Tenants con Manager de modulos */}
       <section>
@@ -139,10 +177,11 @@ function MetricCard({
   accent: string;
 }) {
   const colors: Record<string, { bg: string; text: string }> = {
-    blue: { bg: 'bg-blue-50 dark:bg-blue-500/10', text: 'text-blue-600' },
+    blue:    { bg: 'bg-blue-50 dark:bg-blue-500/10',    text: 'text-blue-600' },
     emerald: { bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-600' },
-    purple: { bg: 'bg-purple-50 dark:bg-purple-500/10', text: 'text-purple-600' },
-    amber: { bg: 'bg-amber-50 dark:bg-amber-500/10', text: 'text-amber-600' },
+    purple:  { bg: 'bg-purple-50 dark:bg-purple-500/10',  text: 'text-purple-600' },
+    amber:   { bg: 'bg-amber-50 dark:bg-amber-500/10',   text: 'text-amber-600' },
+    red:     { bg: 'bg-red-50 dark:bg-red-500/10',       text: 'text-red-600' },
   };
   const c = colors[accent] || colors.blue;
 
