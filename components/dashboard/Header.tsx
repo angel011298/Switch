@@ -2,16 +2,26 @@
 
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { LogOut, Bell, Search } from 'lucide-react';
+import { LogOut, Bell, Search, AlertCircle, Clock } from 'lucide-react';
 import { useState } from 'react';
+import Link from 'next/link';
 
 interface HeaderProps {
   userName: string;
   userEmail: string;
   isSuperAdmin: boolean;
+  // FASE 12: Paywall badge
+  subscriptionStatus?: string | null;
+  daysLeft?: number | null;
 }
 
-export default function Header({ userName, userEmail, isSuperAdmin }: HeaderProps) {
+export default function Header({
+  userName,
+  userEmail,
+  isSuperAdmin,
+  subscriptionStatus,
+  daysLeft,
+}: HeaderProps) {
   const router = useRouter();
   const supabase = createClient();
   const [signingOut, setSigningOut] = useState(false);
@@ -31,9 +41,17 @@ export default function Header({ userName, userEmail, isSuperAdmin }: HeaderProp
     .toUpperCase()
     .slice(0, 2);
 
+  // Determinar badge de suscripción
+  const showSubscriptionBadge =
+    !isSuperAdmin &&
+    subscriptionStatus !== null &&
+    (daysLeft !== null && daysLeft !== undefined && daysLeft <= 5);
+
+  const isExpired = daysLeft !== null && daysLeft !== undefined && daysLeft <= 0;
+
   return (
     <header className="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-40">
-      {/* Barra de busqueda global */}
+      {/* Barra de búsqueda global */}
       <div className="flex items-center gap-3 flex-1 max-w-md">
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
@@ -49,7 +67,31 @@ export default function Header({ userName, userEmail, isSuperAdmin }: HeaderProp
       </div>
 
       {/* Acciones del usuario */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        {/* FASE 12: Badge de suscripción — solo visible cuando quedan ≤5 días */}
+        {showSubscriptionBadge && (
+          <Link
+            href="/billing/subscription"
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:scale-105 ${
+              isExpired
+                ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-600'
+                : 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 border border-orange-300 dark:border-orange-600'
+            }`}
+          >
+            {isExpired ? (
+              <>
+                <AlertCircle size={14} />
+                <span>Suscripción vencida</span>
+              </>
+            ) : (
+              <>
+                <Clock size={14} />
+                <span>{daysLeft} día{daysLeft !== 1 ? 's' : ''} restante{daysLeft !== 1 ? 's' : ''}</span>
+              </>
+            )}
+          </Link>
+        )}
+
         {/* Notificaciones */}
         <button className="relative p-2 rounded-xl text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors">
           <Bell className="h-5 w-5" />
@@ -72,11 +114,11 @@ export default function Header({ userName, userEmail, isSuperAdmin }: HeaderProp
             {initials}
           </div>
 
-          {/* Cerrar sesion */}
+          {/* Cerrar sesión */}
           <button
             onClick={handleSignOut}
             disabled={signingOut}
-            title="Cerrar Sesion"
+            title="Cerrar Sesión"
             className="p-2 rounded-xl text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50"
           >
             <LogOut className="h-4 w-4" />

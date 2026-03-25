@@ -140,6 +140,9 @@ model Tenant {
   csdKeyUploaded   Boolean        @default(false)
   logoUrl          String?
 
+  // FASE 12: Onboarding
+  onboardingComplete Boolean      @default(false) // true = RFC/nombre/CP capturados
+
   subscription     Subscription?
   paymentProofs    PaymentProof[]
   modules          TenantModule[]
@@ -153,6 +156,7 @@ model Tenant {
   accounts         Account[]
   journalEntries   JournalEntry[]
   xmlBatches       XmlBatch[]
+  employees        Employee[]     // FASE 12: Capital humano
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -758,4 +762,67 @@ model XmlBatch {
   updatedAt       DateTime @updatedAt
 
   @@index([tenantId, createdAt])
+}
+
+// ─── FASE 12: CAPITAL HUMANO ─────────────────────────────
+
+// Empleados del Tenant
+model Employee {
+  id              String       @id @default(cuid())
+  tenantId        String
+  tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Identificacion legal
+  curp            String       // 18 caracteres — CURP unica
+  rfc             String?      // RFC personal del empleado (puede diferir del tenant)
+  name            String
+  email           String?
+  phone           String?
+
+  // Datos laborales
+  position        String       // Puesto / titulo
+  department      String?      // Departamento / area
+
+  // Nomina
+  salary          Decimal      @db.Decimal(12, 2)   // Salario mensual o quincenal
+  salaryType      String       @default("MENSUAL")  // MENSUAL | QUINCENAL
+  imssNumber      String?      // Numero de seguridad social IMSS
+  bankAccount     String?      // CLABE interbancaria para pago de nomina
+
+  // Control
+  hireDate        DateTime     // Fecha de contratacion
+  terminationDate DateTime?    // Fecha de baja (null = activo)
+  active          Boolean      @default(true)
+
+  // Relaciones
+  attendances     Attendance[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([tenantId, curp])
+  @@index([tenantId])
+  @@index([tenantId, active])
+}
+
+// Registro de asistencias diarias
+model Attendance {
+  id              String     @id @default(cuid())
+  employeeId      String
+  employee        Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  date            DateTime   @db.Date       // Solo la fecha (sin hora)
+  clockInTime     DateTime?  // Hora de entrada
+  clockOutTime    DateTime?  // Hora de salida
+
+  // Justificantes
+  absent          Boolean    @default(false)  // Falta
+  justified       Boolean    @default(false)  // Falta justificada
+  notes           String?                     // Observaciones
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([employeeId, date])
+  @@index([employeeId, date])
 }

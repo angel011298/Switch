@@ -4,6 +4,7 @@
  * Extrae datos de sesión del JWT de Supabase para Server Components.
  * Los custom claims (tenant_id, active_modules, etc.) vienen del
  * custom_access_token_hook configurado en FASE 3.
+ * FASE 12: Agrega subscriptionStatus y validUntil del JWT.
  */
 
 import { createClient } from '@/utils/supabase/server';
@@ -16,6 +17,9 @@ export interface SwitchSession {
   isSuperAdmin: boolean;
   userRole: string;
   activeModules: string[];
+  // FASE 12: Paywall claims inyectados por custom_access_token_hook
+  subscriptionStatus: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'SUSPENDED' | 'CANCELED' | null;
+  validUntil: string | null; // ISO date string, ej: "2026-04-08T06:00:00.000Z"
 }
 
 /**
@@ -34,7 +38,6 @@ export async function getSwitchSession(): Promise<SwitchSession | null> {
 
   // Los custom claims vienen del app_metadata inyectados por el hook,
   // pero Supabase también los expone en el JWT decodificado.
-  // Intentamos leerlos desde getSession() que tiene el JWT completo.
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -54,6 +57,10 @@ export async function getSwitchSession(): Promise<SwitchSession | null> {
   const userRole = jwtPayload?.user_role ?? 'OPERATIVE';
   const activeModules: string[] = jwtPayload?.active_modules ?? [];
 
+  // FASE 12: Paywall — sub_status y valid_until inyectados por el hook
+  const subscriptionStatus = jwtPayload?.sub_status ?? null;
+  const validUntil = jwtPayload?.valid_until ?? null;
+
   return {
     userId: user.id,
     email: user.email ?? '',
@@ -66,5 +73,7 @@ export async function getSwitchSession(): Promise<SwitchSession | null> {
     isSuperAdmin,
     userRole,
     activeModules,
+    subscriptionStatus,
+    validUntil,
   };
 }

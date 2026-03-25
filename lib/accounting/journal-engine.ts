@@ -27,10 +27,9 @@
  * Ref: CFF Art. 28, NIF A-2, Anexo 24 SAT
  */
 
-import type {
-  JournalEntryType,
-  JournalSourceType,
-} from '@prisma/client';
+// Tipos usados como string literals (los enums no se exportan del cliente Prisma generado)
+type JournalEntryType = 'DIARIO' | 'INGRESO' | 'EGRESO' | 'AJUSTE' | 'NOMINA';
+type JournalSourceType = 'XML_IMPORT' | 'POS_SALE' | 'MANUAL' | 'CFDI_EMITIDO';
 
 // ─── TIPOS ─────────────────────────────────────────────
 

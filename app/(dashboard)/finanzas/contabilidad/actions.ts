@@ -120,14 +120,12 @@ export async function processXmlZip(formData: FormData) {
       processed: batchResult.processed,
       errors: batchResult.errors,
       status: batchResult.errors === batchResult.totalFiles ? 'FAILED' : 'COMPLETED',
-      ingresos: batchResult.counters.ingresos,
-      egresos: batchResult.counters.egresos,
-      pagos: batchResult.counters.pagos,
-      nominas: batchResult.counters.nominas,
-      traslados: batchResult.counters.traslados,
-      errorLog: batchResult.errorLog.length > 0
-        ? JSON.stringify(batchResult.errorLog)
-        : null,
+      totalIngresos: batchResult.counters.ingresos,
+      totalEgresos: batchResult.counters.egresos,
+      totalPagos: batchResult.counters.pagos,
+      totalNominas: batchResult.counters.nominas,
+      // errorLog no existe en schema (omitido)
+      // Si se necesita, agregar campo String? al modelo XmlBatch
     },
   });
 
