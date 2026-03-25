@@ -142,6 +142,9 @@ model Tenant {
   customers        Customer[]
   products         Product[]
   posOrders        PosOrder[]
+  accounts         Account[]
+  journalEntries   JournalEntry[]
+  xmlBatches       XmlBatch[]
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -596,4 +599,138 @@ model InvoiceItem {
   updatedAt       DateTime @updatedAt
 
   @@index([invoiceId])
+}
+
+// ─── CONTABILIDAD (Partida Doble) ────────────────────
+
+enum AccountType {
+  ASSET            // Activo
+  LIABILITY        // Pasivo
+  EQUITY           // Capital
+  REVENUE          // Ingreso
+  EXPENSE          // Gasto
+  CONTRA_ASSET     // Contra-activo (depreciacion, estimaciones)
+  CONTRA_REVENUE   // Contra-ingreso (devoluciones, descuentos)
+}
+
+enum JournalEntryType {
+  DIARIO
+  INGRESO
+  EGRESO
+  AJUSTE
+}
+
+enum JournalSourceType {
+  XML_IMPORT
+  POS_SALE
+  MANUAL
+  CFDI_EMITIDO
+}
+
+enum XmlBatchStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+/// Catalogo de cuentas contables.
+/// Ref: CFF Art. 28, Anexo 24 SAT — Catalogo de cuentas.
+model Account {
+  id              String      @id @default(uuid())
+  tenantId        String
+  tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  code            String      // Codigo SAT Anexo 24 (ej. "100", "100.01", "401")
+  name            String      // Nombre de la cuenta
+  accountType     AccountType
+  parentCode      String?     // Codigo de la cuenta padre
+  level           Int         @default(1) // Nivel en el arbol (1=grupo, 2=cuenta, 3=subcuenta)
+  isActive        Boolean     @default(true)
+
+  debitBalance    Decimal     @default(0) @db.Decimal(14, 2) // Saldo deudor acumulado
+  creditBalance   Decimal     @default(0) @db.Decimal(14, 2) // Saldo acreedor acumulado
+
+  journalLines    JournalLine[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId, accountType])
+}
+
+/// Poliza contable (asiento de diario).
+/// Ref: CFF Art. 28, Anexo 24 — Polizas del periodo.
+model JournalEntry {
+  id              String            @id @default(uuid())
+  tenantId        String
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  entryNumber     Int               // Numero secuencial de poliza
+  date            DateTime          // Fecha de la poliza
+  concept         String            // Concepto descriptivo
+  reference       String?           // Referencia (UUID CFDI, ticket POS, etc.)
+
+  entryType       JournalEntryType  @default(DIARIO)
+  sourceType      JournalSourceType @default(MANUAL)
+  sourceId        String?           // ID del origen (invoiceId, orderId, batchId)
+
+  totalDebit      Decimal           @db.Decimal(14, 2) // Suma cargos
+  totalCredit     Decimal           @db.Decimal(14, 2) // Suma abonos
+  isBalanced      Boolean           @default(true) // totalDebit == totalCredit
+
+  lines           JournalLine[]
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([tenantId, entryNumber])
+  @@index([tenantId, date])
+  @@index([tenantId, entryType])
+}
+
+/// Linea de poliza (cargo o abono individual).
+model JournalLine {
+  id              String       @id @default(uuid())
+  journalEntryId  String
+  journalEntry    JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  accountId       String
+  account         Account      @relation(fields: [accountId], references: [id])
+
+  description     String?
+  debit           Decimal      @default(0) @db.Decimal(14, 2)
+  credit          Decimal      @default(0) @db.Decimal(14, 2)
+
+  createdAt       DateTime     @default(now())
+
+  @@index([journalEntryId])
+  @@index([accountId])
+}
+
+/// Lote de importacion de XMLs (ZIP).
+model XmlBatch {
+  id              String         @id @default(uuid())
+  tenantId        String
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  fileName        String         // Nombre del archivo ZIP
+  totalFiles      Int            @default(0) // XMLs totales en el ZIP
+  processed       Int            @default(0) // XMLs procesados exitosamente
+  errors          Int            @default(0) // XMLs con error
+  status          XmlBatchStatus @default(PROCESSING)
+
+  // Contadores por tipo de comprobante
+  ingresos        Int            @default(0)
+  egresos         Int            @default(0)
+  pagos           Int            @default(0)
+  nominas         Int            @default(0)
+  traslados       Int            @default(0)
+
+  errorLog        String?        @db.Text // JSON array de errores
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([tenantId, status])
 }
