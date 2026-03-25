@@ -2,10 +2,11 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * Switch OS — Middleware de Autenticacion y Autorizacion de Modulos
+ * Switch OS — Middleware de Autenticacion, Autorizacion y Paywall
  * ==================================================================
  * Capa 1: Autenticacion (sesion Supabase via @supabase/ssr v0.9)
- * Capa 2: Autorizacion de modulos (JWT claim active_modules)
+ * Capa 2: Paywall — verifica que la suscripcion este vigente (validUntil)
+ * Capa 3: Autorizacion de modulos (JWT claim active_modules)
  *
  * NO hace JOINs a la base de datos — toda la info viene del JWT.
  */
@@ -24,6 +25,7 @@ const ROUTE_MODULE_MAP: Record<string, string> = {
   '/finanzas/legal': 'FINANCE',
   '/finanzas/impuestos': 'TAXES',
   '/finanzas/cobranza': 'COLLECTIONS',
+  '/finanzas/contabilidad': 'FINANCE',
   '/billing': 'BILLING_CFDI',
   '/pos': 'POS',
   '/crm': 'CRM',
@@ -41,6 +43,25 @@ const ROUTE_MODULE_MAP: Record<string, string> = {
   '/proyectos/tiempos': 'PROJECTS',
   '/proyectos/rentabilidad': 'PROJECTS',
 };
+
+// Rutas que siempre son accesibles (auth + admin + suscripcion bloqueada)
+const ALWAYS_ALLOWED = [
+  '/admin',
+  '/dashboard',
+  '/settings',
+  '/perfil',
+  '/billing/subscription', // Pagina de pago — accesible aunque este suspendido
+];
+
+// Rutas publicas (sin autenticacion)
+const PUBLIC_ROUTES = [
+  '/login',
+  '/auth',
+  '/recuperar',
+  '/restablecer',
+  '/api/webhooks',
+  '/factura-tu-ticket',
+];
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -66,8 +87,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // IMPORTANTE: No uses getSession() solo — getUser() valida el token contra el server.
-  // En @supabase/ssr v0.9, getUser() es el metodo correcto para SSR.
+  // IMPORTANTE: getUser() valida el token contra el server de Supabase.
   const {
     data: { user },
     error: userError,
@@ -78,33 +98,30 @@ export async function middleware(request: NextRequest) {
   // Debug en desarrollo
   if (process.env.NODE_ENV === 'development') {
     const sbCookies = request.cookies.getAll().filter(c => c.name.includes('sb-'));
-    console.log(`[middleware] ${pathname} | user: ${user?.email ?? 'null'} | error: ${userError?.message ?? 'none'} | sb-cookies: ${sbCookies.length} (${sbCookies.map(c => `${c.name}=${c.value.substring(0, 20)}...`).join(', ')})`);
+    console.log(`[middleware] ${pathname} | user: ${user?.email ?? 'null'} | error: ${userError?.message ?? 'none'} | sb-cookies: ${sbCookies.length}`);
   }
 
   // ─── Rutas publicas ───────────────────────────────────
-  const publicRoutes = ['/login', '/auth', '/recuperar', '/restablecer', '/api/webhooks'];
-  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
-  // Si no hay user y estamos en ruta protegida → redirigir a login
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  // Si hay user y esta en /login → redirigir al dashboard
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
 
-  // ─── Validacion de modulos activos (Capa 2) ──────────
-  // /dashboard siempre accesible (es el landing post-login y destino de module_denied)
-  const alwaysAllowed = ['/admin', '/dashboard', '/settings', '/perfil'];
-  const skipModuleCheck = alwaysAllowed.some((route) => pathname === route || pathname.startsWith(route + '/'));
+  // ─── Validacion JWT (Capa 2 + Capa 3) ───────────────
+  const skipModuleCheck = ALWAYS_ALLOWED.some(
+    (route) => pathname === route || pathname.startsWith(route + '/')
+  );
 
-  if (user && !isPublicRoute && !skipModuleCheck) {
+  if (user && !isPublicRoute) {
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -117,8 +134,27 @@ export async function middleware(request: NextRequest) {
 
         const isSuperAdmin: boolean = payload.is_super_admin === true;
         const activeModules: string[] = payload.active_modules ?? [];
+        const subStatus: string = payload.sub_status ?? 'TRIAL';
+        const validUntilRaw: string | null = payload.valid_until ?? null;
 
-        if (!isSuperAdmin) {
+        // ── Capa 2: Paywall ─────────────────────────────────────────────
+        // Super Admin nunca es bloqueado por el paywall
+        if (!isSuperAdmin && !skipModuleCheck) {
+          const isSuspended = subStatus === 'SUSPENDED';
+          const isExpired =
+            validUntilRaw !== null &&
+            new Date(validUntilRaw) < new Date();
+
+          if (isSuspended || isExpired) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/billing/subscription';
+            url.searchParams.set('reason', isSuspended ? 'suspended' : 'expired');
+            return NextResponse.redirect(url);
+          }
+        }
+
+        // ── Capa 3: Modulos activos ───────────────────────────────────
+        if (!isSuperAdmin && !skipModuleCheck) {
           const requiredModule = findRequiredModule(pathname);
 
           if (requiredModule && !activeModules.includes(requiredModule)) {
@@ -134,8 +170,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // CRITICO: siempre devolver supabaseResponse para que las cookies refrescadas
-  // se propaguen al browser. Si devuelves NextResponse.next() pierdes las cookies.
+  // CRITICO: siempre devolver supabaseResponse para propagar cookies refrescadas.
   return supabaseResponse;
 }
 
