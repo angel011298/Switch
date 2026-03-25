@@ -29,6 +29,7 @@ const ROUTE_MODULE_MAP: Record<string, string> = {
   '/billing': 'BILLING_CFDI',
   '/pos': 'POS',
   '/crm': 'CRM',
+  '/crm/pipeline': 'CRM',     // FASE 18: Pipeline Kanban
   '/crm/marketing': 'MARKETING',
   '/crm/soporte': 'SUPPORT',
   '/scm': 'SCM',

@@ -158,3 +158,113 @@ export async function sendExpiryReminderEmail(
     text: `Tu suscripción vence el ${formatDate(input.validUntil)}. Renueva en /billing/subscription.`,
   });
 }
+
+// ─── Correo: CFDI Timbrado ────────────────────────────────────────────────────
+
+export interface InvoiceStampedInput {
+  toEmail: string;
+  toName: string;          // Nombre del receptor
+  emisorName: string;      // Razón social del emisor
+  uuid: string;            // Folio fiscal
+  serie?: string;
+  folio: number;
+  total: number;
+  fechaEmision: Date;
+  pdfUrl?: string;         // URL del PDF del CFDI (opcional)
+}
+
+export async function sendInvoiceStampedEmail(input: InvoiceStampedInput): Promise<void> {
+  const transporter = createTransporter();
+  if (!transporter) {
+    console.log('[mailer] SMTP no configurado — omitiendo notificación CFDI para:', input.toEmail);
+    return;
+  }
+
+  const folioRef = `${input.serie ?? ''}${String(input.folio).padStart(4, '0')}`;
+  const totalFmt = input.total.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 2 });
+
+  const body = `
+    <span class="badge">📄 Comprobante Fiscal Digital</span>
+    <p>Hola <strong>${input.toName}</strong>,</p>
+    <p><strong>${input.emisorName}</strong> te ha enviado un Comprobante Fiscal Digital por Internet (CFDI 4.0).</p>
+    <div class="info-box">
+      <p><strong>Folio:</strong> ${folioRef}</p>
+      <p><strong>Folio Fiscal (UUID):</strong> ${input.uuid}</p>
+      <p><strong>Total:</strong> ${totalFmt} MXN</p>
+      <p><strong>Fecha de emisión:</strong> ${formatDate(input.fechaEmision)}</p>
+    </div>
+    <p>Este CFDI fue timbrado ante el SAT y tiene plena validez fiscal. Puedes verificarlo en el portal del SAT con el UUID indicado.</p>
+    ${input.pdfUrl ? `<p><a href="${input.pdfUrl}" style="color:#10b981;font-weight:600;">📥 Descargar PDF del CFDI</a></p>` : ''}
+    <p>Conserva este comprobante para efectos fiscales.</p>
+  `;
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM ?? `"Switch OS" <${process.env.SMTP_USER}>`,
+    to: input.toEmail,
+    subject: `📄 CFDI ${folioRef} de ${input.emisorName} — ${totalFmt}`,
+    html: wrapHtml(body),
+    text: `CFDI ${folioRef} de ${input.emisorName}. Total: ${totalFmt}. UUID: ${input.uuid}. Fecha: ${formatDate(input.fechaEmision)}.`,
+  });
+}
+
+// ─── Correo: Alerta de Stock Bajo ─────────────────────────────────────────────
+
+export interface LowStockAlertInput {
+  toEmail: string;
+  toName: string;
+  tenantName: string;
+  products: Array<{
+    name: string;
+    sku: string | null;
+    stock: number;
+    minStock: number;
+  }>;
+}
+
+export async function sendLowStockAlertEmail(input: LowStockAlertInput): Promise<void> {
+  const transporter = createTransporter();
+  if (!transporter) {
+    console.log('[mailer] SMTP no configurado — omitiendo alerta de stock para:', input.toEmail);
+    return;
+  }
+
+  const outOfStock = input.products.filter((p) => p.stock <= 0);
+  const lowStock   = input.products.filter((p) => p.stock > 0 && p.stock <= p.minStock);
+
+  const productRows = input.products.map((p) => `
+    <tr>
+      <td style="padding:8px 12px;font-weight:600;color:#09090b;">${p.name}</td>
+      <td style="padding:8px 12px;color:#71717a;font-family:monospace;font-size:12px;">${p.sku ?? '—'}</td>
+      <td style="padding:8px 12px;text-align:center;font-weight:700;color:${p.stock <= 0 ? '#ef4444' : '#f59e0b'};">
+        ${p.stock <= 0 ? '⚠ Sin stock' : p.stock}
+      </td>
+      <td style="padding:8px 12px;text-align:center;color:#71717a;">${p.minStock}</td>
+    </tr>
+  `).join('');
+
+  const body = `
+    <span class="badge" style="background:#fef3c7;color:#92400e;">📦 Alerta de Inventario — ${input.tenantName}</span>
+    <p>Hola <strong>${input.toName}</strong>,</p>
+    <p>Se detectaron <strong>${outOfStock.length} producto(s) sin stock</strong> y <strong>${lowStock.length} con stock bajo el mínimo</strong> en <strong>${input.tenantName}</strong>.</p>
+    <table style="width:100%;border-collapse:collapse;margin-top:16px;font-size:13px;">
+      <thead>
+        <tr style="background:#f4f4f5;">
+          <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#71717a;letter-spacing:.05em;">Producto</th>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#71717a;letter-spacing:.05em;">SKU</th>
+          <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:#71717a;letter-spacing:.05em;">Stock</th>
+          <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:#71717a;letter-spacing:.05em;">Mínimo</th>
+        </tr>
+      </thead>
+      <tbody>${productRows}</tbody>
+    </table>
+    <p style="margin-top:20px;">Accede a <strong>SCM → Inventarios → Alertas</strong> en Switch OS para gestionar las entradas de stock.</p>
+  `;
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM ?? `"Switch OS" <${process.env.SMTP_USER}>`,
+    to: input.toEmail,
+    subject: `📦 Alerta de inventario: ${input.products.length} producto(s) con stock crítico — ${input.tenantName}`,
+    html: wrapHtml(body),
+    text: `Alerta de inventario para ${input.tenantName}: ${outOfStock.length} sin stock, ${lowStock.length} bajo mínimo.`,
+  });
+}

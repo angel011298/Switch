@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "npx tsx prisma/seed.ts",
-    "seed:tax": "npx tsx prisma/seed-tax-rules.ts"
+    "seed:tax": "npx tsx prisma/seed-tax-rules.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@calcom/embed-react": "^1.5.3",
@@ -44,6 +47,7 @@
     "@types/nodemailer": "^7.0.11",
     "@types/react": "^18.3.2",
     "@types/react-dom": "^18.3.0",
+    "@vitest/coverage-v8": "^4.1.1",
     "autoprefixer": "^10.4.27",
     "dotenv": "^17.3.1",
     "eslint": "8.57.0",
@@ -52,6 +56,7 @@
     "prisma": "5.14.0",
     "tailwindcss": "^3.4.3",
     "tsx": "^4.19.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^4.1.1"
   }
 }
