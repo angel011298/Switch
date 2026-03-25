@@ -174,7 +174,10 @@ export const MODULE_DEFS: Record<ModuleKey, ModuleDef> = {
     label: 'CRM & Ventas',
     icon: Target,
     color: 'text-purple-500',
-    routes: [{ name: 'CRM & Pipeline', href: '/crm' }],
+    routes: [
+      { name: 'CRM & Clientes',  href: '/crm' },
+      { name: 'Pipeline Kanban', href: '/crm/pipeline' },
+    ],
   },
   MARKETING: {
     key: 'MARKETING',
