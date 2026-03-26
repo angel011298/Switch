@@ -157,6 +157,7 @@ model Tenant {
   journalEntries   JournalEntry[]
   xmlBatches       XmlBatch[]
   employees        Employee[]     // FASE 12: Capital humano
+  payrollRuns      PayrollRun[]   // FASE 15: Nómina
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -796,6 +797,7 @@ model Employee {
 
   // Relaciones
   attendances     Attendance[]
+  payrollItems    PayrollItem[]  // FASE 15
 
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -825,4 +827,57 @@ model Attendance {
 
   @@unique([employeeId, date])
   @@index([employeeId, date])
+}
+
+// ─── FASE 15: NÓMINA ─────────────────────────────────────
+
+// Corrida de nómina (quincena o mes)
+model PayrollRun {
+  id          String        @id @default(cuid())
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  period      String        // Ej: "2026-03-Q1" | "2026-03"
+  periodLabel String        // Ej: "Quincena 1 Marzo 2026"
+  startDate   DateTime
+  endDate     DateTime
+  status      String        @default("DRAFT")  // DRAFT | CLOSED
+
+  totalBruto  Decimal       @db.Decimal(14, 2)
+  totalISR    Decimal       @db.Decimal(14, 2)
+  totalIMSS   Decimal       @db.Decimal(14, 2)
+  totalNeto   Decimal       @db.Decimal(14, 2)
+
+  items       PayrollItem[]
+
+  journalEntryId String?    // Póliza contable generada al cerrar
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([tenantId, period])
+  @@index([tenantId])
+}
+
+// Línea de nómina por empleado en una corrida
+model PayrollItem {
+  id            String     @id @default(cuid())
+  payrollRunId  String
+  payrollRun    PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employeeId    String
+  employee      Employee   @relation(fields: [employeeId], references: [id])
+
+  employeeName  String
+  position      String
+  bruto         Decimal    @db.Decimal(12, 2)   // Salario bruto del periodo
+  isr           Decimal    @db.Decimal(12, 2)   // Retención ISR
+  imss          Decimal    @db.Decimal(12, 2)   // Cuota obrera IMSS
+  absenceDays   Int        @default(0)           // Días de falta
+  absenceDeduct Decimal    @db.Decimal(12, 2) @default(0)  // Deducción por faltas
+  neto          Decimal    @db.Decimal(12, 2)   // Neto a pagar
+
+  createdAt     DateTime   @default(now())
+
+  @@index([payrollRunId])
+  @@index([employeeId])
 }
