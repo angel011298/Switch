@@ -12,6 +12,10 @@ import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
 import { generateTicketCode } from '@/lib/pos/calculator';
 import { revalidatePath } from 'next/cache';
+import {
+  generateJournalFromPosOrder,
+} from '@/lib/accounting/journal-engine';
+import { createJournalEntryFromInput } from '@/lib/accounting/create-journal';
 
 // ─── AUTH ──────────────────────────────────────────────
 
@@ -140,6 +144,22 @@ export async function checkout(input: CheckoutInput) {
   const session = await requireAuth();
   const tenantId = session.tenantId!;
 
+  // ── Validación de stock (bloquea ventas con inventario negativo) ──
+  for (const item of input.items) {
+    const product = await prisma.product.findUnique({
+      where: { id: item.productId },
+      select: { trackStock: true, stock: true, name: true },
+    });
+    if (product?.trackStock) {
+      const stockAfter = product.stock - Math.ceil(item.quantity);
+      if (stockAfter < 0) {
+        throw new Error(
+          `Stock insuficiente para "${product.name}": disponible ${product.stock}, solicitado ${Math.ceil(item.quantity)}`
+        );
+      }
+    }
+  }
+
   // Generar código de ticket único
   let ticketCode = generateTicketCode();
   let attempts = 0;
@@ -203,6 +223,28 @@ export async function checkout(input: CheckoutInput) {
     }
   }
 
+  // ── Póliza contable automática (best-effort, no bloquea el cobro) ──
+  try {
+    const journalInput = generateJournalFromPosOrder({
+      orderId: order.id,
+      ticketCode: order.ticketCode,
+      date: order.closedAt ?? new Date(),
+      subtotal: input.subtotal,
+      totalTax: input.totalTax,
+      total: input.total,
+      paymentMethod: input.paymentMethod,
+    });
+    await createJournalEntryFromInput(
+      tenantId,
+      { ...journalInput, tenantId },
+      'POS_SALE',
+      order.id
+    );
+  } catch (journalErr) {
+    // El catálogo puede no estar inicializado — no interrumpir la venta
+    console.warn('[POS→Accounting] Póliza omitida:', journalErr);
+  }
+
   revalidatePath('/pos');
 
   return {
@@ -241,4 +283,54 @@ export async function getTodayOrders() {
     amountPaid: Number(o.amountPaid),
     changeDue: Number(o.changeDue),
   }));
+}
+
+// ─── INTERCONEXIÓN POS → CFDI ──────────────────────────
+
+/**
+ * Retorna los datos de una orden POS listos para pre-llenar
+ * el wizard de Nueva Factura CFDI.
+ * Valida que la orden pertenezca al tenant y no esté ya facturada.
+ */
+export async function getPosOrderForBilling(orderId: string) {
+  const session = await requireAuth();
+  const tenantId = session.tenantId!;
+
+  const order = await prisma.posOrder.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  });
+
+  if (!order || order.tenantId !== tenantId) throw new Error('Orden no encontrada');
+  if (order.isInvoiced) throw new Error('Esta orden ya fue facturada');
+
+  // Enriquecer ítems con datos SAT del catálogo de productos
+  const productIds = order.items.map((i) => i.productId).filter(Boolean) as string[];
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true, claveProdServ: true, claveUnidad: true, unidad: true },
+  });
+  const productMap = new Map(products.map((p) => [p.id, p]));
+
+  return {
+    id: order.id,
+    ticketCode: order.ticketCode,
+    paymentMethod: order.paymentMethod,
+    subtotal: Number(order.subtotal),
+    totalTax: Number(order.totalTax),
+    total: Number(order.total),
+    items: order.items.map((i) => {
+      const prod = i.productId ? productMap.get(i.productId) : undefined;
+      return {
+        productId: i.productId,
+        productName: i.productName,
+        quantity: Number(i.quantity),
+        unitPrice: Number(i.unitPrice),
+        taxRate: Number(i.taxRate),
+        claveProdServ: prod?.claveProdServ ?? '84111506',
+        claveUnidad: prod?.claveUnidad ?? 'H87',
+        unidad: prod?.unidad ?? 'Pieza',
+      };
+    }),
+  };
 }

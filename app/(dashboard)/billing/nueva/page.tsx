@@ -6,8 +6,8 @@
  * FASE 13: 4 pasos — Receptor → Conceptos → Datos → Preview + Emitir
  */
 
-import { useState, useCallback, useTransition, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useTransition, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, ArrowRight, Check, Loader2, AlertCircle,
   Plus, Trash2, Search, User, Package, FileText, Send,
@@ -17,6 +17,7 @@ import {
   searchCustomers,
   getTenantProfile,
   createInvoiceAction,
+  getPosOrderForBilling,
 } from '../actions';
 import { FORMA_PAGO, USO_CFDI } from '@/lib/cfdi/catalogs/sat-catalogs';
 import type { CfdiInput, CfdiConceptoInput } from '@/lib/cfdi/types';
@@ -127,6 +128,8 @@ const STEPS = [
 
 export default function NuevaFacturaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const posOrderId = searchParams.get('posOrderId');
   const [step, setStep] = useState(1);
   const [isPending, startTransition] = useTransition();
 
@@ -179,6 +182,40 @@ export default function NuevaFacturaPage() {
       if (t?.rfc) setEmisorRfc(t.rfc);
     });
   }, []);
+
+  // ── Pre-llenado desde ticket POS ──────────────────────
+  useEffect(() => {
+    if (!posOrderId) return;
+    getPosOrderForBilling(posOrderId)
+      .then((order) => {
+        // Pre-llenar conceptos con los productos del ticket
+        setConceptos(
+          order.items.map((item) => ({
+            _id: uid(),
+            claveProdServ: item.claveProdServ,
+            noIdentificacion: '',
+            cantidad: item.quantity,
+            claveUnidad: item.claveUnidad,
+            unidad: item.unidad,
+            descripcion: item.productName,
+            valorUnitario: item.unitPrice,
+            descuento: 0,
+            // Inferir tasa de IVA desde taxRate
+            ivaRate: (
+              item.taxRate >= 0.155 ? '16' :
+              item.taxRate >= 0.075 ? '8' :
+              item.taxRate > 0 ? '0' :
+              'exento'
+            ) as '16' | '8' | '0' | 'exento',
+          }))
+        );
+        // Pre-llenar forma de pago desde el método del POS
+        setDatos((prev) => ({ ...prev, formaPago: order.paymentMethod }));
+      })
+      .catch((err) => {
+        console.error('[Nueva factura] Error cargando orden POS:', err);
+      });
+  }, [posOrderId]);
 
   // Buscar clientes con debounce
   useEffect(() => {
@@ -287,7 +324,7 @@ export default function NuevaFacturaPage() {
           conceptos: cfdiConceptos,
         };
 
-        const res = await createInvoiceAction(input);
+        const res = await createInvoiceAction(input, posOrderId ?? undefined);
         setResult(res);
       } catch (err: any) {
         setSubmitError(err.message || 'Error al emitir la factura');
@@ -317,6 +354,14 @@ export default function NuevaFacturaPage() {
           </p>
         </div>
       </div>
+
+      {/* Banner origen POS */}
+      {posOrderId && (
+        <div className="flex items-center gap-3 p-3 bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 rounded-xl text-sm text-pink-700 dark:text-pink-400">
+          <span className="text-base">🧾</span>
+          <span>Facturando ticket <strong className="font-mono">{posOrderId.slice(-8).toUpperCase()}</strong> — Los conceptos se pre-llenaron desde la venta del POS.</span>
+        </div>
+      )}
 
       {/* Stepper */}
       <div className="flex items-center gap-0">
