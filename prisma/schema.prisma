@@ -160,6 +160,8 @@ model Tenant {
   payrollRuns      PayrollRun[]   // FASE 15: Nómina
   pettyCashFunds   PettyCashFund[] // FASE 16: Caja chica
   warehouses       Warehouse[]     // FASE 17: SCM almacenes
+  pipelineColumns  PipelineColumn[] // FASE 18: CRM Pipeline
+  deals            Deal[]           // FASE 18: CRM Deals
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -437,6 +439,7 @@ model Customer {
   source            String      @default("MANUAL") // MANUAL, QR_SCAN, CSV_IMPORT, API
 
   isActive          Boolean     @default(true)
+  deals             Deal[]      // FASE 18: CRM pipeline
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -979,4 +982,59 @@ enum StockMovementType {
   AJUSTE_NEG   // Ajuste negativo a la baja
   TRANSFERENCIA // Movimiento entre almacenes
   DEVOLUCION   // Devolución de cliente
+}
+
+// ─── FASE 18: CRM PIPELINE ───────────────────────────────────────────────────
+
+/// Columna/etapa del pipeline de ventas.
+/// Se crean 5 columnas por defecto al primer uso.
+model PipelineColumn {
+  id       String  @id @default(cuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name     String               // "Prospecto", "Calificado", "Propuesta"…
+  position Int                  // Orden de izquierda a derecha
+  color    String @default("#6366f1")
+  isWon    Boolean @default(false)  // Columna "Ganado"
+  isLost   Boolean @default(false)  // Columna "Perdido"
+
+  deals    Deal[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, position])
+}
+
+/// Oportunidad / Deal del pipeline CRM.
+model Deal {
+  id         String         @id @default(cuid())
+  tenantId   String
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  columnId   String
+  column     PipelineColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  customerId String?
+  customer   Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  title       String               // Nombre de la oportunidad
+  value       Decimal @db.Decimal(12, 2) @default(0) // Valor estimado
+  probability Int     @default(50)  // % de cierre
+
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  notes        String?
+
+  expectedCloseDate DateTime?
+  wonAt             DateTime?  // Fecha real de cierre (ganado)
+  lostAt            DateTime?  // Fecha de cierre (perdido)
+
+  position   Int     @default(0)    // Orden dentro de la columna
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, columnId])
+  @@index([tenantId, createdAt])
 }
