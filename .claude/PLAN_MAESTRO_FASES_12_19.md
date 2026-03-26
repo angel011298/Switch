@@ -1,10 +1,10 @@
-# 🎯 SWITCH OS — PLAN MAESTRO FASES 12-19
-## De Infraestructura a MVP Producción
+# 🎯 SWITCH OS — PLAN MAESTRO FASES 12-25
+## De Infraestructura a Producto SaaS Lanzado
 
-**Generado:** 2026-03-25
-**Última FASE completada:** FASE 11 (Paywall SPEI)
-**Siguiente:** FASE 12 (Infraestructura Base)
-**Decisiones confirmadas:** MVP cliente único → mini-MVPs graduales, sin prisa, completitud
+**Generado:** 2026-03-25 | **Actualizado:** 2026-03-25
+**Última FASE completada:** FASE 19 (Production Readiness — PR #15)
+**Siguiente:** FASE 20 (Deploy a Producción)
+**Objetivo actualizado:** Conseguir primeros clientes · Operaciones completas · Sin prisa, sin atajos
 
 ---
 
@@ -18,8 +18,14 @@
 7. [FASE 17: SCM Inventarios](#fase-17-scm-inventarios)
 8. [FASE 18: CRM + BI](#fase-18-crm--bi)
 9. [FASE 19: Production Readiness](#fase-19-production-readiness)
-10. [Decisiones Arquitectónicas](#decisiones-arquitectónicas)
-11. [Checklist Final](#checklist-final)
+10. [FASE 20: Deploy a Producción](#fase-20-deploy-a-producción)
+11. [FASE 21: Onboarding Público + Registro de Tenant](#fase-21-onboarding-público--registro-de-tenant)
+12. [FASE 22: Stripe Billing](#fase-22-stripe-billing)
+13. [FASE 23: Landing Page](#fase-23-landing-page)
+14. [FASE 24: Reportes PDF / Excel](#fase-24-reportes-pdf--excel)
+15. [FASE 25: RBAC — Roles y Permisos](#fase-25-rbac--roles-y-permisos)
+16. [Decisiones Arquitectónicas](#decisiones-arquitectónicas)
+17. [Timeline y Pull Requests](#timeline-y-pull-requests)
 
 ---
 
@@ -28,55 +34,70 @@
 ### Commits completados
 ```
 ✅ FASE 10: Contabilidad Base (PR #6 merged)
-✅ FASE 11: Paywall SPEI (commit 02048b7, esperando PR #7)
-🚀 FASE 12-19: Pendiente
+✅ FASE 11: Paywall SPEI (PR #7 merged)
+✅ FASE 12: Infraestructura Base — Employee + Onboarding + Dashboard Prisma (PR #8 merged)
+✅ FASE 13: Motor Facturación CFDI UI — Billing list + CSD config + Wizard (PR #9 merged)
+✅ FASE 14: Interconexiones POS↔CFDI↔Contabilidad + Validación stock (PR #10 merged)
+✅ FASE 15: RRHH Completo — Nómina ISR/IMSS 2026 + Catálogo Empleados (PR #11 merged)
+✅ FASE 16: Finanzas Módulos — Impuestos, Cobranza, Caja Chica desde Prisma (PR #12 merged)
+✅ FASE 17: SCM Inventarios — Warehouse + StockMovement + Catálogo real (PR #13 merged)
+✅ FASE 18: CRM Pipeline Kanban + BI Dashboard con datos Prisma (PR #14 merged)
+✅ FASE 19: Production Readiness — Error Boundaries, Security Headers, 63 Tests (PR #15 abierto)
+🚀 FASE 20-25: Pendiente
 ```
 
-### Base de datos actual (post-FASE 11)
+### Base de datos actual (post-FASE 19)
 ```
-Models Prisma: 26 modelos
-- Tenant ✅ (con subscription)
+Models Prisma: 36+ modelos
+- Tenant ✅ (con subscription, onboardingComplete)
 - User ✅ (con role)
-- Customer ✅ (con RFC/régimen)
-- Product ✅ (con precio/tax)
-- PosOrder ✅ (con ticket code)
-- Invoice ✅ (CFDI completo)
+- Customer ✅ (con RFC/régimen, deals CRM)
+- Product ✅ (minStock, stockMovements)
+- PosOrder ✅ (con ticket code, items)
+- Invoice ✅ (CFDI 4.0 completo)
 - Account ✅ (catálogo SAT)
-- JournalEntry ✅ (pólizas)
+- JournalEntry ✅ (pólizas, partida doble)
 - PaymentProof ✅ (SPEI proof)
-- ⚠️ Employee ❌ NO EXISTE (FASE 12)
-- ⚠️ Attendance ❌ NO EXISTE (FASE 12)
+- Employee ✅ (con CURP, IMSS, salary)
+- Attendance ✅ (clock in/out por día)
+- PayrollRun / PayrollLine ✅ (nómina ISR/IMSS)
+- PettyCashFund / PettyCashExpense ✅ (caja chica)
+- Warehouse ✅ (almacenes con lock para inventario físico)
+- StockMovement ✅ (auditoría de movimientos)
+- PipelineColumn ✅ (kanban etapas)
+- Deal ✅ (CRM deals con probabilidad)
+- ⚠️ Subscription (Stripe) ❌ NO EXISTE (FASE 22)
+- ⚠️ UserRole / Permission ❌ NO EXISTE (FASE 25)
 ```
 
-### Módulos implementados
+### Módulos implementados (post-FASE 19)
 ```
-✅ REAL (7 rutas):
-  - /dashboard (KPIs, pero usa tablas legacy Supabase)
-  - /admin (tenant manager, module control, payments)
-  - /pos (POS terminal, checkout)
+✅ REAL — Prisma-only, datos reales (16 rutas):
+  - /dashboard (KPIs: ingresos, gastos, clientes, utilidad)
+  - /admin (tenant manager, module control)
+  - /pos (POS terminal, checkout, ticket)
+  - /billing (CFDI 4.0 emisión + lista + CSD upload)
   - /finanzas/gastos (XML drag-drop)
-  - /finanzas/contabilidad (XML batch, polizas)
-  - /rrhh (asistencias, pero usa tablas legacy Supabase)
+  - /finanzas/contabilidad (XML batch, pólizas)
+  - /finanzas/impuestos (IVA/ISR proyección + aging)
+  - /finanzas/cobranza (aging CxC 4 buckets)
+  - /finanzas/caja-chica (petty cash LISR)
+  - /rrhh (asistencias Prisma)
+  - /rrhh/empleados (catálogo + CRUD)
+  - /rrhh/nomina (cálculo ISR/IMSS 2026)
+  - /scm/inventarios (catálogo + almacenes + movimientos)
+  - /crm/pipeline (Kanban 6 etapas + deals)
+  - /bi (BI dashboard: tendencia, top productos, funnel)
   - /factura-tu-ticket (public auto-invoice)
 
-🟡 STUB (2 rutas):
-  - /crm (QR scanner + customer form, backend partial)
-  - /proyectos (WBS UI only)
-
-❌ PLACEHOLDER (30 rutas):
-  - /billing (CFDI UI falta, motor existe)
-  - /rrhh/nomina, /talento, etc
-  - /finanzas/impuestos, /cobranza, /caja-chica
-  - /scm/*, /mrp/*, /bi, /citas, etc.
+⚠️ FALTA (bloqueadores para primeros clientes):
+  1. Sistema no tiene URL pública — solo corre en localhost (FASE 20)
+  2. No hay registro público de tenants (FASE 21)
+  3. No hay cobro — tenants no pueden pagar (FASE 22)
+  4. No hay landing page para adquirir clientes (FASE 23)
+  5. No hay exportación PDF/Excel para contador (FASE 24)
+  6. No hay roles — cualquier usuario ve todo (FASE 25)
 ```
-
-### Bugs bloqueantes pendientes (FASE 12)
-1. Dashboard usa `ingresos_cfdi`, `gastos_xml` tables (legacy Supabase)
-2. RRHH usa `empleados`, `asistencias` tables (legacy Supabase)
-3. Nuevo tenant sin módulos activos → sidebar vacío
-4. Sin pantalla de onboarding (RFC/nombre legal)
-5. `getSwitchSession()` no expone `sub_status`, `valid_until`
-6. `/billing` es placeholder puro
 
 ---
 
@@ -2014,15 +2035,24 @@ FASE 14: 1.5h  ✅ (Interconexiones, data flow)
 ─────────────────────────────────
      Total: 5h = **Cliente MVP funcional aquí**
 ─────────────────────────────────
-FASE 15: 1.5h  (RRHH completo)
-FASE 16: 2h    (Finanzas)
-FASE 17: 1.5h  (Inventarios)
-FASE 18: 2h    (CRM + BI)
-FASE 19: 2h    (Production)
+FASE 15: 1.5h  ✅ (RRHH completo)
+FASE 16: 2h    ✅ (Finanzas)
+FASE 17: 1.5h  ✅ (Inventarios)
+FASE 18: 2h    ✅ (CRM + BI)
+FASE 19: 2h    ✅ (Production Readiness)
 ─────────────────────────────────
-     Total: 10h = **Sistema MVP completo**
+     Total: 10h ✅ = **Sistema MVP completo**
+─────────────────────────────────
+FASE 20: 2h    (Deploy a Producción — URL pública)
+FASE 21: 2h    (Onboarding público + Registro tenant)
+FASE 22: 2.5h  (Stripe Billing — planes + webhooks)
+FASE 23: 1.5h  (Landing Page — adquisición clientes)
+FASE 24: 2h    (Reportes PDF / Excel)
+FASE 25: 2h    (RBAC — Roles y Permisos)
+─────────────────────────────────
+     Total: 12h = **Producto SaaS lanzable**
 
-Grand Total: **15 horas ≈ 5-7 sesiones de 2-3 horas c/u**
+Grand Total acumulado: **27 horas ≈ 9-13 sesiones de 2-3 horas c/u**
 ```
 
 ---
@@ -2078,16 +2108,1962 @@ tenantId: TODOS los modelos
 ## PULL REQUEST SEQUENCE
 
 ```
-PR #7: FASE 12 (infraestructura base)
-PR #8: FASE 13 (CFDI UI)
-PR #9: FASE 14 (interconexiones)
-PR #10: FASE 15 (RRHH)
-PR #11: FASE 16 (Finanzas)
-PR #12: FASE 17 (SCM)
-PR #13: FASE 18 (CRM + BI)
-PR #14: FASE 19 (Production)
+PR #7:  FASE 12 — Infraestructura Base            ✅ merged
+PR #8:  FASE 13 — CFDI Billing UI                 ✅ merged
+PR #9:  FASE 14 — Interconexiones POS↔CFDI        ✅ merged
+PR #10: FASE 15 — RRHH + Nómina ISR/IMSS          ✅ merged
+PR #11: FASE 16 — Finanzas Módulos                ✅ merged
+PR #12: FASE 17 — SCM Inventarios                 ✅ merged
+PR #13: FASE 18 — CRM Pipeline + BI               ✅ merged
+PR #14: FASE 19 — Production Readiness            ✅ merged
+PR #15: FASE 19 — [abierto, pendiente merge]      🔄 open
+────────────────────────────────────────────────────
+PR #16: FASE 20 — Deploy a Producción             ⏳ próximo
+PR #17: FASE 21 — Onboarding Público              ⏳ pendiente
+PR #18: FASE 22 — Stripe Billing                  ⏳ pendiente
+PR #19: FASE 23 — Landing Page                    ⏳ pendiente
+PR #20: FASE 24 — Reportes PDF / Excel            ⏳ pendiente
+PR #21: FASE 25 — RBAC Roles y Permisos           ⏳ pendiente
 ```
 
 ---
 
-**Documento finalizado.** Listo para iniciarsesión FASE 12. ¿Empezamos?
+**FASEs 12-19 completadas.** Continuando con FASEs 20-25 para lanzamiento SaaS.
+
+---
+
+# FASE 20: DEPLOY A PRODUCCIÓN
+## *(Sin URL pública no hay producto)*
+
+**Duración:** ~2 horas
+**Rama:** `fase20/deploy-produccion`
+**Dependencias:** FASE 19 merged a main
+**Objetivo:** Switch OS accesible en internet con dominio real, CI/CD automatizado y Prisma migrate en deploy
+
+---
+
+## 20.1 VARIABLES DE ENTORNO — Checklist completo
+
+### Archivo: `.env.production` (referencia, NO commitear)
+
+```bash
+# ─── BASE DE DATOS ──────────────────────────────────
+DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.[ref]:[password]@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+
+# ─── AUTENTICACIÓN (Supabase) ───────────────────────
+NEXT_PUBLIC_SUPABASE_URL="https://[ref].supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJ..."
+SUPABASE_SERVICE_ROLE_KEY="eyJ..."
+
+# ─── EMAIL (nodemailer) ─────────────────────────────
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_USER="noreply@switchos.mx"
+SMTP_PASS="[app-password]"
+SMTP_FROM="Switch OS <noreply@switchos.mx>"
+
+# ─── STRIPE ─────────────────────────────────────────
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_..."
+STRIPE_SECRET_KEY="sk_live_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+
+# ─── APP ─────────────────────────────────────────────
+NEXT_PUBLIC_APP_URL="https://app.switchos.mx"
+NODE_ENV="production"
+
+# ─── CSD VAULT (encriptación) ───────────────────────
+CSD_ENCRYPTION_KEY="[32-byte-hex]"
+```
+
+**Decisión:** Prisma requiere dos URLs en producción con Supabase:
+- `DATABASE_URL` → pgBouncer (connection pooling) para queries normales
+- `DIRECT_URL` → conexión directa para migraciones
+
+---
+
+## 20.2 VERCEL — Configuración del proyecto
+
+### Pasos de setup en vercel.com
+
+```bash
+# 1. Instalar Vercel CLI
+npm i -g vercel
+
+# 2. Login y vincular proyecto
+vercel login
+vercel link   # Seleccionar org → crear nuevo proyecto "switch-os"
+
+# 3. Subir variables de entorno (una por una o masivo)
+vercel env add DATABASE_URL production
+vercel env add DIRECT_URL production
+vercel env add NEXT_PUBLIC_SUPABASE_URL production
+# ... resto de variables ...
+
+# 4. Verificar build local con variables de producción
+vercel build --prod
+```
+
+### Archivo: `vercel.json` (NUEVO)
+
+```json
+{
+  "framework": "nextjs",
+  "buildCommand": "npx prisma generate && next build",
+  "installCommand": "npm ci",
+  "regions": ["iad1"],
+  "functions": {
+    "app/**": {
+      "maxDuration": 30
+    }
+  }
+}
+```
+
+**Decisión:** `npx prisma generate` en `buildCommand` asegura que el Prisma Client se regenere en cada deploy con el schema correcto. No se usa `prisma migrate deploy` aquí — se corre manualmente o en CI antes del deploy.
+
+---
+
+## 20.3 GITHUB ACTIONS — CI/CD Pipeline
+
+### Archivo: `.github/workflows/deploy.yml` (NUEVO)
+
+```yaml
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # ─── CI: Tests + TypeScript ──────────────────────────
+  ci:
+    name: Tests & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+
+  # ─── Migrate DB (solo en push a main) ────────────────
+  migrate:
+    name: Prisma Migrate
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    env:
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+  # ─── Deploy a Vercel ─────────────────────────────────
+  deploy:
+    name: Deploy Production
+    needs: migrate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm install -g vercel@latest
+
+      - name: Pull Vercel env
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+```
+
+### Secrets requeridos en GitHub repo → Settings → Secrets
+
+```
+VERCEL_TOKEN          (desde vercel.com → Account Settings → Tokens)
+VERCEL_ORG_ID         (desde vercel.json o vercel.com)
+VERCEL_PROJECT_ID     (desde vercel.json o vercel.com)
+DATABASE_URL          (para prisma migrate deploy)
+DIRECT_URL            (para prisma migrate deploy)
+```
+
+---
+
+## 20.4 PRISMA SCHEMA — Configuración dual-URL
+
+### Modificar `prisma/schema.prisma`
+
+```prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")   // 🆕 Para migraciones en producción
+}
+```
+
+**Decisión:** `directUrl` bypassa pgBouncer solo para migraciones DDL. Queries normales siguen usando el pool.
+
+---
+
+## 20.5 DOMINIO Y DNS
+
+### Configuración en Vercel
+
+```
+1. Vercel Dashboard → proyecto → Settings → Domains
+2. Agregar: app.switchos.mx
+3. En proveedor DNS (Cloudflare / GoDaddy / etc.):
+   CNAME app → cname.vercel-dns.com.
+4. Verificar SSL automático (Let's Encrypt por Vercel)
+```
+
+### Subdominios recomendados
+
+| Subdominio | Propósito |
+|---|---|
+| `app.switchos.mx` | Aplicación principal |
+| `switchos.mx` | Landing page (FASE 23) |
+| `api.switchos.mx` | Futuro: API pública |
+
+---
+
+## 20.6 HEALTH CHECK — Endpoint de monitoreo
+
+### Archivo: `app/api/health/route.ts` (NUEVO)
+
+```typescript
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  const start = Date.now();
+
+  try {
+    // Ping a la base de datos
+    await prisma.$queryRaw`SELECT 1`;
+    const dbLatency = Date.now() - start;
+
+    return NextResponse.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      db: { status: 'ok', latencyMs: dbLatency },
+      version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local',
+    });
+  } catch (err) {
+    return NextResponse.json(
+      {
+        status: 'error',
+        db: { status: 'error', error: String(err) },
+      },
+      { status: 503 }
+    );
+  }
+}
+```
+
+**Uso:** Vercel puede hacer ping a `https://app.switchos.mx/api/health` para uptime monitoring.
+
+---
+
+## CHECKLIST FASE 20
+
+```
+🌐 VERCEL
+  [ ] Crear proyecto en vercel.com → vincular repo GitHub
+  [ ] Agregar todas las env vars de producción
+  [ ] Configurar buildCommand: "npx prisma generate && next build"
+  [ ] Agregar vercel.json al repo
+
+🗄️ BASE DE DATOS
+  [ ] Agregar directUrl a prisma/schema.prisma
+  [ ] Ejecutar npx prisma migrate deploy en Supabase prod
+  [ ] Verificar que tablas existen en Supabase prod (Table Editor)
+
+🔄 CI/CD
+  [ ] Crear .github/workflows/deploy.yml
+  [ ] Agregar secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+  [ ] Agregar secrets: DATABASE_URL, DIRECT_URL
+  [ ] Hacer push a main → verificar que pipeline corre (CI → Migrate → Deploy)
+
+🌍 DOMINIO
+  [ ] Configurar app.switchos.mx en Vercel
+  [ ] Actualizar DNS en proveedor
+  [ ] Verificar HTTPS/SSL activo
+  [ ] Probar redirect / → /dashboard en prod
+
+🔍 MONITOREO
+  [ ] Crear app/api/health/route.ts
+  [ ] Verificar respuesta en https://app.switchos.mx/api/health
+  [ ] Configurar alerta de uptime (UptimeRobot gratis o Vercel Monitoring)
+
+🧪 SMOKE TESTS EN PRODUCCIÓN
+  [ ] Login con cuenta real de Supabase prod
+  [ ] Crear cliente en /crm
+  [ ] Crear venta en /pos
+  [ ] Emitir CFDI en /billing
+  [ ] Ver dashboard con datos reales
+
+✅ DEPLOYMENT
+  [ ] git commit -m "FASE 20: Deploy — vercel.json + CI/CD + health check"
+  [ ] PR #16 → merge a main → deploy automático
+```
+
+**Tiempo estimado:** ~2 horas
+
+---
+
+# FASE 21: ONBOARDING PÚBLICO + REGISTRO DE TENANT
+## *(Primer contacto del cliente con el producto)*
+
+**Duración:** ~2 horas
+**Rama:** `fase21/onboarding-publico`
+**Dependencias:** FASE 20 merged (app en producción)
+**Objetivo:** Cualquier persona puede registrarse, crear su tenant y estar operativo en < 5 minutos
+
+---
+
+## 21.1 FLUJO COMPLETO DE REGISTRO
+
+```
+/register (email + contraseña)
+    │
+    ▼
+Supabase Auth crea user
+    │
+    ▼
+/onboarding/paso-1 (nombre empresa + RFC + CP)
+    │
+    ▼
+/onboarding/paso-2 (régimen fiscal + giro)
+    │
+    ▼
+/onboarding/paso-3 (plan selection → FASE 22)
+    │
+    ▼
+/dashboard (tenant activo con TRIAL 14 días)
+```
+
+---
+
+## 21.2 PÁGINA DE REGISTRO PÚBLICO
+
+### Archivo: `app/(auth)/register/page.tsx` (NUEVO)
+
+```typescript
+'use client';
+
+import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+export default function RegisterPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    const supabase = createClient();
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: { role: 'ADMIN' }, // Primer usuario siempre es Admin del tenant
+      },
+    });
+
+    if (signUpError) {
+      setError(signUpError.message);
+      setLoading(false);
+      return;
+    }
+
+    // Redirigir a onboarding — ensurePrismaUser creará el tenant automáticamente
+    router.push('/onboarding');
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
+            <span className="text-white text-2xl font-bold">S</span>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">Crear cuenta Switch OS</h1>
+          <p className="text-slate-600 mt-1 text-sm">14 días gratis · Sin tarjeta de crédito</p>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">
+              Correo electrónico
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="tu@empresa.mx"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">
+              Contraseña
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              placeholder="Mínimo 8 caracteres"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50 text-sm"
+          >
+            {loading ? 'Creando cuenta...' : 'Comenzar prueba gratis →'}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-slate-500 mt-6">
+          ¿Ya tienes cuenta?{' '}
+          <Link href="/login" className="text-blue-600 font-semibold hover:underline">
+            Iniciar sesión
+          </Link>
+        </p>
+
+        <p className="text-center text-xs text-slate-400 mt-4">
+          Al registrarte aceptas los{' '}
+          <Link href="/terminos" className="underline">Términos de Servicio</Link>
+          {' '}y la{' '}
+          <Link href="/privacidad" className="underline">Política de Privacidad</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## 21.3 WIZARD DE ONBOARDING (3 pasos)
+
+### Archivo: `app/(dashboard)/onboarding/page.tsx` (MEJORAR)
+
+El onboarding existente (FASE 12) tiene 2 pasos. Extender a 3:
+
+```
+Paso 1: Datos básicos (nombre, razón social, RFC, CP)
+Paso 2: Configuración fiscal (régimen, giro SAT, moneda)
+Paso 3: Primer módulo (¿cómo vas a usar Switch OS?)
+         ┌── POS y Facturación  → activa POS + BILLING
+         ├── Operaciones completas → activa todos
+         └── Solo contabilidad → activa solo FINANZAS
+```
+
+### Archivo: `app/(dashboard)/onboarding/actions.ts` (EXTENDER)
+
+```typescript
+'use server';
+
+import { getSwitchSession } from '@/lib/auth/session';
+import { validateRfc } from '@/lib/crm/rfc-validator';
+import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
+import { sendWelcomeEmail } from '@/lib/email/mailer';
+
+// Módulos según perfil de uso seleccionado en paso 3
+const MODULE_PRESETS: Record<string, string[]> = {
+  POS_BILLING: ['DASHBOARD', 'POS', 'BILLING', 'CRM', 'SCM'],
+  FULL_OPS: ['DASHBOARD', 'POS', 'BILLING', 'CRM', 'SCM', 'RRHH', 'FINANZAS', 'BI'],
+  ACCOUNTING_ONLY: ['DASHBOARD', 'BILLING', 'FINANZAS'],
+};
+
+export async function completeOnboarding(data: {
+  // Paso 1
+  name: string;
+  legalName: string;
+  rfc: string;
+  zipCode: string;
+  // Paso 2
+  taxRegimeKey: string;
+  giro: string;
+  currency: string;
+  // Paso 3
+  useProfile: 'POS_BILLING' | 'FULL_OPS' | 'ACCOUNTING_ONLY';
+}) {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) throw new Error('No hay sesión activa');
+
+  if (!validateRfc(data.rfc)) {
+    throw new Error('RFC inválido');
+  }
+
+  const modules = MODULE_PRESETS[data.useProfile] ?? MODULE_PRESETS.FULL_OPS;
+
+  await prisma.$transaction(async (tx) => {
+    // Actualizar tenant con todos los datos del wizard
+    await tx.tenant.update({
+      where: { id: session.tenantId! },
+      data: {
+        name: data.name.trim(),
+        legalName: data.legalName.trim().toUpperCase(),
+        rfc: data.rfc.toUpperCase(),
+        zipCode: data.zipCode,
+        onboardingComplete: true,
+      },
+    });
+
+    // Activar módulos según perfil
+    for (const moduleName of modules) {
+      await tx.moduleAccess.upsert({
+        where: { tenantId_module: { tenantId: session.tenantId!, module: moduleName } },
+        create: { tenantId: session.tenantId!, module: moduleName, active: true },
+        update: { active: true },
+      });
+    }
+  });
+
+  // Enviar email de bienvenida (best-effort)
+  try {
+    await sendWelcomeEmail({
+      to: session.email,
+      tenantName: data.name,
+      trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+    });
+  } catch {
+    // No bloquear si falla el email
+  }
+
+  revalidatePath('/dashboard');
+}
+```
+
+---
+
+## 21.4 EMAIL DE BIENVENIDA
+
+### Agregar a `lib/email/mailer.ts`
+
+```typescript
+export interface WelcomeEmailInput {
+  to: string;
+  tenantName: string;
+  trialEndsAt: Date;
+}
+
+export async function sendWelcomeEmail(input: WelcomeEmailInput) {
+  const transporter = createTransporter();
+  const daysLeft = Math.ceil(
+    (input.trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  );
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM,
+    to: input.to,
+    subject: `¡Bienvenido a Switch OS, ${input.tenantName}! 🎉`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+        <div style="background:#2563eb;padding:32px;text-align:center;border-radius:8px 8px 0 0">
+          <h1 style="color:white;margin:0;font-size:24px">¡Tu cuenta está lista!</h1>
+        </div>
+        <div style="padding:32px;background:white;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+          <p>Hola,</p>
+          <p>
+            <strong>${input.tenantName}</strong> ya está configurado en Switch OS.
+            Tienes <strong>${daysLeft} días de prueba gratuita</strong> para explorar
+            todos los módulos.
+          </p>
+          <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin:24px 0">
+            <p style="margin:0;font-weight:600;color:#0369a1">¿Por dónde empezar?</p>
+            <ul style="margin:8px 0 0;padding-left:20px;color:#0c4a6e">
+              <li>Registra tu primer cliente en <strong>/crm</strong></li>
+              <li>Haz tu primera venta en <strong>/pos</strong></li>
+              <li>Emite tu primera factura CFDI en <strong>/billing</strong></li>
+            </ul>
+          </div>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard"
+             style="display:inline-block;background:#2563eb;color:white;padding:12px 24px;
+                    border-radius:8px;text-decoration:none;font-weight:600">
+            Ir al Dashboard →
+          </a>
+        </div>
+      </div>
+    `,
+  });
+}
+```
+
+---
+
+## CHECKLIST FASE 21
+
+```
+📝 PÁGINAS
+  [ ] app/(auth)/register/page.tsx (registro público)
+  [ ] Mejorar app/(dashboard)/onboarding/page.tsx (3 pasos)
+  [ ] Paso 3: selección de perfil de uso (POS/Full/Contable)
+
+⚙️ ACTIONS
+  [ ] completeOnboarding() con MODULE_PRESETS
+  [ ] Prisma transaction: update tenant + upsert módulos
+  [ ] sendWelcomeEmail() (best-effort)
+
+📧 EMAIL
+  [ ] Agregar sendWelcomeEmail() a mailer.ts
+  [ ] Probar plantilla HTML
+
+🔀 RUTAS
+  [ ] /register → redirige a /onboarding tras signup
+  [ ] /login → link a /register para nuevos usuarios
+  [ ] next.config.ts: agregar /register a rutas públicas (no requiere auth)
+
+🧪 TESTING
+  [ ] Registrar nuevo usuario desde /register
+  [ ] Completar wizard de 3 pasos
+  [ ] Verificar módulos activos según perfil seleccionado
+  [ ] Recibir email de bienvenida
+  [ ] Verificar que llega a /dashboard operativo
+
+✅ DEPLOYMENT
+  [ ] git commit -m "FASE 21: Onboarding público — registro + wizard 3 pasos + welcome email"
+  [ ] PR #17
+```
+
+**Tiempo estimado:** ~2 horas
+
+---
+
+# FASE 22: STRIPE BILLING
+## *(Sin cobro no hay negocio)*
+
+**Duración:** ~2.5 horas
+**Rama:** `fase22/stripe-billing`
+**Dependencias:** FASE 21 merged
+**Objetivo:** Tenants pueden suscribirse, pagar con tarjeta, y sus módulos se activan/desactivan automáticamente según el plan
+
+---
+
+## 22.1 PLANES DE SUSCRIPCIÓN
+
+| Plan | Precio MXN/mes | Módulos incluidos | Límites |
+|---|---|---|---|
+| **Starter** | $599 | Dashboard, POS, Billing, CRM | 1 usuario, 100 CFDI/mes |
+| **Pro** | $1,299 | Todos (+ RRHH, Finanzas, SCM, BI) | 5 usuarios, ilimitado CFDI |
+| **Enterprise** | $2,999 | Todos + soporte prioritario | Ilimitado usuarios |
+
+---
+
+## 22.2 MODELOS PRISMA — Suscripción Stripe
+
+### Agregar a `prisma/schema.prisma`
+
+```prisma
+model StripeSubscription {
+  id                   String   @id @default(cuid())
+  tenantId             String   @unique
+  tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  stripeCustomerId     String   @unique
+  stripeSubscriptionId String?  @unique
+  stripePriceId        String?
+  plan                 String   @default("TRIAL")  // TRIAL | STARTER | PRO | ENTERPRISE
+  status               String   @default("trialing") // trialing | active | past_due | canceled
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean  @default(false)
+  trialEnd             DateTime?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([stripeCustomerId])
+}
+
+// Agregar a Tenant:
+model Tenant {
+  // ... campos existentes ...
+  stripeSubscription StripeSubscription?
+}
+```
+
+### Migración
+
+```bash
+npx prisma migrate dev --name fase22_stripe_subscription
+```
+
+---
+
+## 22.3 CONSTANTES DE PRECIOS
+
+### Archivo: `lib/billing/stripe-plans.ts` (NUEVO)
+
+```typescript
+export const STRIPE_PLANS = {
+  STARTER: {
+    name: 'Starter',
+    priceId: process.env.STRIPE_PRICE_STARTER!,
+    priceMxn: 599,
+    modules: ['DASHBOARD', 'POS', 'BILLING', 'CRM'],
+    maxUsers: 1,
+    maxCfdiPerMonth: 100,
+  },
+  PRO: {
+    name: 'Pro',
+    priceId: process.env.STRIPE_PRICE_PRO!,
+    priceMxn: 1299,
+    modules: ['DASHBOARD', 'POS', 'BILLING', 'CRM', 'SCM', 'RRHH', 'FINANZAS', 'BI'],
+    maxUsers: 5,
+    maxCfdiPerMonth: null, // ilimitado
+  },
+  ENTERPRISE: {
+    name: 'Enterprise',
+    priceId: process.env.STRIPE_PRICE_ENTERPRISE!,
+    priceMxn: 2999,
+    modules: ['DASHBOARD', 'POS', 'BILLING', 'CRM', 'SCM', 'RRHH', 'FINANZAS', 'BI'],
+    maxUsers: null, // ilimitado
+    maxCfdiPerMonth: null,
+  },
+} as const;
+
+export type PlanKey = keyof typeof STRIPE_PLANS;
+```
+
+---
+
+## 22.4 CHECKOUT — Server Action
+
+### Archivo: `app/(dashboard)/billing/subscription/actions.ts` (NUEVO)
+
+```typescript
+'use server';
+
+import Stripe from 'stripe';
+import { getSwitchSession } from '@/lib/auth/session';
+import prisma from '@/lib/prisma';
+import { STRIPE_PLANS, type PlanKey } from '@/lib/billing/stripe-plans';
+import { redirect } from 'next/navigation';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-04-10',
+});
+
+export async function createCheckoutSession(planKey: PlanKey) {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) throw new Error('No session');
+
+  const plan = STRIPE_PLANS[planKey];
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    include: { stripeSubscription: true },
+  });
+
+  if (!tenant) throw new Error('Tenant no encontrado');
+
+  // Obtener o crear customer en Stripe
+  let customerId = tenant.stripeSubscription?.stripeCustomerId;
+
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: session.email,
+      name: tenant.legalName ?? tenant.name,
+      metadata: { tenantId: tenant.id },
+    });
+    customerId = customer.id;
+
+    // Guardar customer ID
+    await prisma.stripeSubscription.upsert({
+      where: { tenantId: tenant.id },
+      create: {
+        tenantId: tenant.id,
+        stripeCustomerId: customerId,
+        plan: 'TRIAL',
+        status: 'trialing',
+      },
+      update: { stripeCustomerId: customerId },
+    });
+  }
+
+  // Crear sesión de checkout
+  const checkoutSession = await stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: 'subscription',
+    payment_method_types: ['card'],
+    line_items: [{ price: plan.priceId, quantity: 1 }],
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing/subscription?success=1`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing/subscription`,
+    subscription_data: {
+      metadata: { tenantId: tenant.id, plan: planKey },
+    },
+    locale: 'es',
+  });
+
+  redirect(checkoutSession.url!);
+}
+
+export async function createPortalSession() {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) throw new Error('No session');
+
+  const sub = await prisma.stripeSubscription.findUnique({
+    where: { tenantId: session.tenantId },
+  });
+
+  if (!sub?.stripeCustomerId) throw new Error('Sin suscripción activa');
+
+  const portalSession = await stripe.billingPortal.sessions.create({
+    customer: sub.stripeCustomerId,
+    return_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing/subscription`,
+  });
+
+  redirect(portalSession.url);
+}
+```
+
+---
+
+## 22.5 WEBHOOK — Stripe Events
+
+### Archivo: `app/api/stripe/webhook/route.ts` (NUEVO)
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import prisma from '@/lib/prisma';
+import { STRIPE_PLANS } from '@/lib/billing/stripe-plans';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-04-10',
+});
+
+export async function POST(req: NextRequest) {
+  const body = await req.text();
+  const sig = req.headers.get('stripe-signature')!;
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+  } catch {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  }
+
+  switch (event.type) {
+    case 'customer.subscription.created':
+    case 'customer.subscription.updated': {
+      const sub = event.data.object as Stripe.Subscription;
+      const tenantId = sub.metadata.tenantId;
+      const planKey = sub.metadata.plan as string;
+
+      if (!tenantId) break;
+
+      // Actualizar estado de suscripción
+      await prisma.stripeSubscription.update({
+        where: { tenantId },
+        data: {
+          stripeSubscriptionId: sub.id,
+          status: sub.status,
+          plan: planKey,
+          currentPeriodStart: new Date(sub.current_period_start * 1000),
+          currentPeriodEnd: new Date(sub.current_period_end * 1000),
+          cancelAtPeriodEnd: sub.cancel_at_period_end,
+        },
+      });
+
+      // Activar módulos del plan
+      const planModules = STRIPE_PLANS[planKey as keyof typeof STRIPE_PLANS]?.modules ?? [];
+      for (const moduleName of planModules) {
+        await prisma.moduleAccess.upsert({
+          where: { tenantId_module: { tenantId, module: moduleName } },
+          create: { tenantId, module: moduleName, active: true },
+          update: { active: true },
+        });
+      }
+      break;
+    }
+
+    case 'customer.subscription.deleted': {
+      const sub = event.data.object as Stripe.Subscription;
+      const tenantId = sub.metadata.tenantId;
+      if (!tenantId) break;
+
+      // Desactivar todos los módulos del tenant (excepto DASHBOARD)
+      await prisma.moduleAccess.updateMany({
+        where: { tenantId, module: { not: 'DASHBOARD' } },
+        data: { active: false },
+      });
+
+      await prisma.stripeSubscription.update({
+        where: { tenantId },
+        data: { status: 'canceled', plan: 'TRIAL' },
+      });
+      break;
+    }
+  }
+
+  return NextResponse.json({ received: true });
+}
+```
+
+---
+
+## CHECKLIST FASE 22
+
+```
+🗄️ SCHEMA
+  [ ] Agregar StripeSubscription model a prisma/schema.prisma
+  [ ] npx prisma migrate dev --name fase22_stripe_subscription
+
+💳 STRIPE SETUP
+  [ ] Crear productos y precios en stripe.com (Starter/Pro/Enterprise)
+  [ ] Copiar price IDs → .env (STRIPE_PRICE_STARTER, etc.)
+  [ ] Configurar webhook en Stripe Dashboard → URL: /api/stripe/webhook
+  [ ] Copiar STRIPE_WEBHOOK_SECRET → .env
+
+⚙️ CÓDIGO
+  [ ] lib/billing/stripe-plans.ts (constantes de planes)
+  [ ] app/(dashboard)/billing/subscription/actions.ts (checkout + portal)
+  [ ] app/api/stripe/webhook/route.ts (customer.subscription.*)
+  [ ] app/(dashboard)/billing/subscription/page.tsx (pricing UI)
+
+🔒 PAYWALL
+  [ ] Actualizar middleware.ts para verificar plan activo
+  [ ] Bloquear módulos si status = 'canceled' o 'past_due'
+  [ ] Banner de "suscripción vencida" en dashboard
+
+🧪 TESTING
+  [ ] Usar Stripe CLI: stripe listen --forward-to localhost:3000/api/stripe/webhook
+  [ ] Completar checkout con tarjeta de prueba 4242 4242 4242 4242
+  [ ] Verificar que módulos se activan en BD
+  [ ] Cancelar suscripción → verificar módulos desactivados
+  [ ] Probar portal de facturación
+
+✅ DEPLOYMENT
+  [ ] git commit -m "FASE 22: Stripe Billing — checkout, webhook, paywall por plan"
+  [ ] PR #18
+```
+
+**Tiempo estimado:** ~2.5 horas
+
+---
+
+# FASE 23: LANDING PAGE
+## *(La puerta de entrada para nuevos clientes)*
+
+**Duración:** ~1.5 horas
+**Rama:** `fase23/landing-page`
+**Dependencias:** FASE 22 merged (para mostrar precios reales)
+**Objetivo:** Página de marketing en switchos.mx que convierte visitantes en registros
+
+---
+
+## 23.1 ESTRUCTURA DE LA LANDING
+
+```
+/ (root — switchos.mx)
+├── Hero: "El ERP/CRM para empresas mexicanas"
+├── Sección Features: 6 módulos con iconos
+├── Sección Social Proof: métricas / testimonios
+├── Sección Precios: cards Starter / Pro / Enterprise
+├── FAQ: 5 preguntas frecuentes
+└── Footer: legal, redes, contacto
+```
+
+### Archivo: `app/(marketing)/layout.tsx` (NUEVO)
+
+```typescript
+// Layout separado para páginas de marketing (sin sidebar de dashboard)
+export default function MarketingLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-white">
+      <MarketingNav />
+      <main>{children}</main>
+      <MarketingFooter />
+    </div>
+  );
+}
+```
+
+---
+
+## 23.2 HERO SECTION
+
+### Archivo: `app/(marketing)/page.tsx` (NUEVO — fragmento)
+
+```typescript
+export default function LandingPage() {
+  return (
+    <>
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 text-white py-24 px-4">
+        <div className="max-w-5xl mx-auto text-center">
+          <span className="inline-block bg-white/20 text-white text-sm font-semibold
+                           px-4 py-1 rounded-full mb-6">
+            🇲🇽 Cumplimiento SAT · CFDI 4.0 · ISR/IMSS 2026
+          </span>
+          <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
+            El ERP que sí entiende<br />
+            <span className="text-yellow-300">el SAT mexicano</span>
+          </h1>
+          <p className="text-xl text-blue-100 max-w-2xl mx-auto mb-10">
+            Factura CFDI 4.0, calcula nómina ISR/IMSS, controla inventario y
+            gestiona tu pipeline de ventas — todo en una sola plataforma.
+          </p>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <a href="/register"
+               className="bg-white text-blue-700 font-bold px-8 py-4 rounded-xl
+                          hover:bg-blue-50 transition text-lg shadow-lg">
+              Comenzar gratis 14 días →
+            </a>
+            <a href="#precios"
+               className="border border-white/40 text-white font-semibold px-8 py-4
+                          rounded-xl hover:bg-white/10 transition text-lg">
+              Ver precios
+            </a>
+          </div>
+          <p className="mt-4 text-blue-200 text-sm">Sin tarjeta de crédito · Cancela cuando quieras</p>
+        </div>
+      </section>
+
+      <FeaturesSection />
+      <PricingSection />
+      <FaqSection />
+    </>
+  );
+}
+```
+
+---
+
+## 23.3 SECCIÓN DE CARACTERÍSTICAS
+
+```typescript
+const FEATURES = [
+  {
+    icon: '🧾',
+    title: 'Facturación CFDI 4.0',
+    desc: 'Emite y cancela facturas directamente, conectado a tu PAC. Validación RFC automática.',
+  },
+  {
+    icon: '🏪',
+    title: 'Punto de Venta',
+    desc: 'POS táctil con desglose de IVA automático. Ticket imprimible y auto-factura.',
+  },
+  {
+    icon: '👥',
+    title: 'Nómina ISR/IMSS',
+    desc: 'Cálculo automatizado con tablas SAT 2026. Póliza contable automática al timbrar.',
+  },
+  {
+    icon: '📦',
+    title: 'Inventarios SCM',
+    desc: 'Almacenes múltiples, movimientos auditados, alertas de stock mínimo.',
+  },
+  {
+    icon: '📊',
+    title: 'CRM Pipeline',
+    desc: 'Kanban de oportunidades con valor ponderado. Embudo visual para tu equipo de ventas.',
+  },
+  {
+    icon: '📈',
+    title: 'BI y Reportes',
+    desc: 'Dashboard ejecutivo con tendencias, top productos y funnel de conversión.',
+  },
+];
+```
+
+---
+
+## 23.4 SECCIÓN DE PRECIOS
+
+```typescript
+// Importar precios desde las constantes de Stripe (FASE 22)
+import { STRIPE_PLANS } from '@/lib/billing/stripe-plans';
+
+function PricingSection() {
+  return (
+    <section id="precios" className="py-24 bg-slate-50 px-4">
+      <div className="max-w-5xl mx-auto">
+        <h2 className="text-4xl font-bold text-center text-slate-900 mb-4">
+          Precios transparentes
+        </h2>
+        <p className="text-center text-slate-600 mb-12">
+          Sin costos ocultos. Cancela en cualquier momento.
+        </p>
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Cards generados desde STRIPE_PLANS */}
+        </div>
+      </div>
+    </section>
+  );
+}
+```
+
+---
+
+## 23.5 SEO Y METADATA
+
+### Archivo: `app/(marketing)/page.tsx` — metadata
+
+```typescript
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Switch OS — ERP y CRM para empresas mexicanas | CFDI 4.0',
+  description:
+    'ERP completo para México: facturación CFDI 4.0, nómina ISR/IMSS, inventarios, CRM y punto de venta. 14 días gratis.',
+  keywords: ['ERP México', 'CFDI 4.0', 'facturación electrónica', 'nómina IMSS', 'CRM'],
+  openGraph: {
+    title: 'Switch OS — ERP para México',
+    description: 'Factura CFDI, calcula nómina y gestiona tu negocio completo.',
+    url: 'https://switchos.mx',
+    siteName: 'Switch OS',
+    locale: 'es_MX',
+    type: 'website',
+  },
+};
+```
+
+---
+
+## CHECKLIST FASE 23
+
+```
+📄 PÁGINAS
+  [ ] app/(marketing)/layout.tsx (layout sin sidebar)
+  [ ] app/(marketing)/page.tsx (landing completa)
+  [ ] components/marketing/MarketingNav.tsx (logo + CTA "Probar gratis")
+  [ ] components/marketing/FeaturesSection.tsx
+  [ ] components/marketing/PricingSection.tsx (usa STRIPE_PLANS)
+  [ ] components/marketing/FaqSection.tsx
+  [ ] components/marketing/MarketingFooter.tsx
+
+🔗 ROUTING
+  [ ] Configurar switchos.mx → landing (vercel.json domains)
+  [ ] Configurar app.switchos.mx → /dashboard
+  [ ] /register enlaza desde landing CTA
+
+🔍 SEO
+  [ ] metadata en page.tsx (title, description, OG)
+  [ ] app/(marketing)/sitemap.ts
+  [ ] app/(marketing)/robots.ts
+
+🧪 TESTING
+  [ ] Ver landing en móvil y desktop
+  [ ] Clic en "Comenzar gratis" → lleva a /register
+  [ ] Clic en "Ver precios" → scroll a sección precios
+  [ ] Verificar meta tags con og:image
+
+✅ DEPLOYMENT
+  [ ] git commit -m "FASE 23: Landing Page — hero + features + pricing + SEO"
+  [ ] PR #19
+```
+
+**Tiempo estimado:** ~1.5 horas
+
+---
+
+# FASE 24: REPORTES PDF / EXCEL
+## *(El contador necesita papel)*
+
+**Duración:** ~2 horas
+**Rama:** `fase24/reportes-exportacion`
+**Dependencias:** FASE 23 merged
+**Objetivo:** Los 5 reportes más críticos exportables en PDF y Excel, listos para el SAT y el contador
+
+---
+
+## 24.1 LIBRERÍA DE PDF
+
+### Instalación
+
+```bash
+npm install @react-pdf/renderer
+npm install -D @types/react-pdf
+```
+
+**Decisión:** `@react-pdf/renderer` permite diseñar PDFs con componentes React. Corre en el servidor (Server Actions) sin problemas con Next.js 14. Alternativa `puppeteer` requiere Chromium (pesado en Vercel).
+
+---
+
+## 24.2 REPORTES PRIORITARIOS
+
+| Reporte | Formato | Módulo origen | Uso |
+|---|---|---|---|
+| CFDI / Factura | PDF | Billing / Invoice | Enviar al cliente |
+| Recibo de Nómina | PDF | RRHH / PayrollLine | Entregar al empleado |
+| Balanza de Comprobación | Excel | Finanzas / Accounts | Contador / SAT |
+| Estado de Cuenta CxC | PDF | Finanzas / Cobranza | Cliente moroso |
+| Kardex de Inventario | Excel | SCM / StockMovement | Inventario físico |
+
+---
+
+## 24.3 TEMPLATE PDF — CFDI/FACTURA
+
+### Archivo: `lib/pdf/templates/invoice-pdf.tsx` (NUEVO)
+
+```typescript
+import {
+  Document, Page, Text, View, StyleSheet, Font, Image,
+} from '@react-pdf/renderer';
+
+const styles = StyleSheet.create({
+  page: { padding: 40, fontFamily: 'Helvetica', fontSize: 9 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  logo: { fontSize: 18, fontWeight: 'bold', color: '#2563eb' },
+  title: { fontSize: 14, fontWeight: 'bold', color: '#1e293b', marginBottom: 12 },
+  table: { width: '100%', marginTop: 12 },
+  tableHeader: {
+    flexDirection: 'row', backgroundColor: '#1e3a5f',
+    color: 'white', padding: '6 8',
+  },
+  tableRow: { flexDirection: 'row', borderBottom: '1px solid #e2e8f0', padding: '5 8' },
+  totals: { marginTop: 16, alignItems: 'flex-end' },
+  cfdiInfo: {
+    marginTop: 16, padding: 10,
+    border: '1px solid #e2e8f0', borderRadius: 4,
+    backgroundColor: '#f8fafc',
+  },
+});
+
+interface InvoicePdfProps {
+  invoice: {
+    uuid: string;
+    serie: string;
+    folio: string;
+    fecha: string;
+    emisor: { rfc: string; nombre: string; regimenFiscal: string };
+    receptor: { rfc: string; nombre: string; usoCfdi: string };
+    conceptos: Array<{
+      descripcion: string; cantidad: number;
+      valorUnitario: number; importe: number; impuesto: number;
+    }>;
+    subtotal: number;
+    totalIva: number;
+    total: number;
+    metodoPago: string;
+    formaPago: string;
+  };
+}
+
+export function InvoicePdf({ invoice }: InvoicePdfProps) {
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.logo}>Switch OS</Text>
+            <Text style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
+              {invoice.emisor.nombre}
+            </Text>
+            <Text style={{ fontSize: 8, color: '#64748b' }}>
+              RFC: {invoice.emisor.rfc}
+            </Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1e3a5f' }}>
+              FACTURA
+            </Text>
+            <Text style={{ fontSize: 11, color: '#2563eb' }}>
+              {invoice.serie}-{invoice.folio}
+            </Text>
+            <Text style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
+              Fecha: {invoice.fecha}
+            </Text>
+          </View>
+        </View>
+
+        {/* Receptor */}
+        <View style={{ marginBottom: 12, padding: 8, backgroundColor: '#f1f5f9', borderRadius: 4 }}>
+          <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>RECEPTOR</Text>
+          <Text>{invoice.receptor.nombre}</Text>
+          <Text style={{ color: '#475569' }}>RFC: {invoice.receptor.rfc}</Text>
+          <Text style={{ color: '#475569' }}>Uso CFDI: {invoice.receptor.usoCfdi}</Text>
+        </View>
+
+        {/* Tabla de conceptos */}
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <Text style={{ flex: 3 }}>Descripción</Text>
+            <Text style={{ flex: 1, textAlign: 'right' }}>Cant.</Text>
+            <Text style={{ flex: 1, textAlign: 'right' }}>Precio U.</Text>
+            <Text style={{ flex: 1, textAlign: 'right' }}>Importe</Text>
+          </View>
+          {invoice.conceptos.map((c, i) => (
+            <View key={i} style={styles.tableRow}>
+              <Text style={{ flex: 3 }}>{c.descripcion}</Text>
+              <Text style={{ flex: 1, textAlign: 'right' }}>{c.cantidad}</Text>
+              <Text style={{ flex: 1, textAlign: 'right' }}>
+                ${c.valorUnitario.toFixed(2)}
+              </Text>
+              <Text style={{ flex: 1, textAlign: 'right' }}>
+                ${c.importe.toFixed(2)}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Totales */}
+        <View style={styles.totals}>
+          <View style={{ flexDirection: 'row', gap: 20 }}>
+            <Text style={{ color: '#475569' }}>Subtotal:</Text>
+            <Text style={{ fontWeight: 'bold' }}>${invoice.subtotal.toFixed(2)}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 20 }}>
+            <Text style={{ color: '#475569' }}>IVA 16%:</Text>
+            <Text>${invoice.totalIva.toFixed(2)}</Text>
+          </View>
+          <View style={{
+            flexDirection: 'row', gap: 20, marginTop: 4,
+            borderTop: '2px solid #1e3a5f', paddingTop: 4,
+          }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 11 }}>TOTAL:</Text>
+            <Text style={{ fontWeight: 'bold', fontSize: 11, color: '#2563eb' }}>
+              ${invoice.total.toFixed(2)} MXN
+            </Text>
+          </View>
+        </View>
+
+        {/* CFDI Info */}
+        <View style={styles.cfdiInfo}>
+          <Text style={{ fontWeight: 'bold', marginBottom: 4, fontSize: 8 }}>
+            INFORMACIÓN FISCAL CFDI 4.0
+          </Text>
+          <Text style={{ fontSize: 7, color: '#475569' }}>UUID: {invoice.uuid}</Text>
+          <Text style={{ fontSize: 7, color: '#475569' }}>
+            Método de pago: {invoice.metodoPago} | Forma: {invoice.formaPago}
+          </Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+```
+
+---
+
+## 24.4 API ROUTE — Descargar PDF
+
+### Archivo: `app/api/pdf/invoice/[id]/route.ts` (NUEVO)
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { renderToBuffer } from '@react-pdf/renderer';
+import { InvoicePdf } from '@/lib/pdf/templates/invoice-pdf';
+import { getSwitchSession } from '@/lib/auth/session';
+import prisma from '@/lib/prisma';
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: params.id },
+    include: {
+      tenant: true,
+      customer: true,
+      items: { include: { product: true } },
+    },
+  });
+
+  if (!invoice || invoice.tenantId !== session.tenantId) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  // Construir input para el template PDF
+  const pdfInput = {
+    uuid: invoice.uuid ?? 'DRAFT',
+    serie: invoice.serie ?? 'A',
+    folio: invoice.folio ?? '1',
+    fecha: invoice.createdAt.toLocaleDateString('es-MX'),
+    emisor: {
+      rfc: invoice.tenant.rfc ?? '',
+      nombre: invoice.tenant.legalName ?? invoice.tenant.name,
+      regimenFiscal: '601',
+    },
+    receptor: {
+      rfc: invoice.customer?.rfc ?? 'XAXX010101000',
+      nombre: invoice.customer?.name ?? 'Público en General',
+      usoCfdi: 'G03',
+    },
+    conceptos: invoice.items.map((item) => ({
+      descripcion: item.description,
+      cantidad: item.quantity,
+      valorUnitario: parseFloat(String(item.unitPrice)),
+      importe: parseFloat(String(item.amount)),
+      impuesto: parseFloat(String(item.taxAmount ?? 0)),
+    })),
+    subtotal: parseFloat(String(invoice.subtotal)),
+    totalIva: parseFloat(String(invoice.totalTax ?? 0)),
+    total: parseFloat(String(invoice.total)),
+    metodoPago: invoice.paymentMethod ?? 'PUE',
+    formaPago: invoice.paymentForm ?? '03',
+  };
+
+  const buffer = await renderToBuffer(<InvoicePdf invoice={pdfInput} />);
+
+  return new NextResponse(buffer, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="CFDI-${invoice.serie}-${invoice.folio}.pdf"`,
+    },
+  });
+}
+```
+
+---
+
+## 24.5 EXCEL — Balanza de Comprobación
+
+### Instalación
+
+```bash
+npm install exceljs
+```
+
+### Archivo: `app/api/excel/balanza/route.ts` (NUEVO)
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import ExcelJS from 'exceljs';
+import { getSwitchSession } from '@/lib/auth/session';
+import prisma from '@/lib/prisma';
+
+export async function GET(req: NextRequest) {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const accounts = await prisma.account.findMany({
+    where: { tenantId: session.tenantId },
+    include: {
+      journalLines: {
+        select: { debit: true, credit: true },
+      },
+    },
+    orderBy: { code: 'asc' },
+  });
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Switch OS';
+  const sheet = workbook.addWorksheet('Balanza de Comprobación');
+
+  // Encabezados
+  sheet.columns = [
+    { header: 'Código', key: 'code', width: 12 },
+    { header: 'Nombre', key: 'name', width: 35 },
+    { header: 'Tipo', key: 'type', width: 14 },
+    { header: 'Débito', key: 'debit', width: 16, style: { numFmt: '$#,##0.00' } },
+    { header: 'Crédito', key: 'credit', width: 16, style: { numFmt: '$#,##0.00' } },
+    { header: 'Saldo', key: 'balance', width: 16, style: { numFmt: '$#,##0.00' } },
+  ];
+
+  // Estilo encabezado
+  sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  sheet.getRow(1).fill = {
+    type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' },
+  };
+
+  // Datos
+  for (const account of accounts) {
+    const totalDebit = account.journalLines.reduce(
+      (s, l) => s + parseFloat(String(l.debit ?? 0)), 0
+    );
+    const totalCredit = account.journalLines.reduce(
+      (s, l) => s + parseFloat(String(l.credit ?? 0)), 0
+    );
+    const balance = totalDebit - totalCredit;
+
+    sheet.addRow({
+      code: account.code,
+      name: account.name,
+      type: account.accountType,
+      debit: totalDebit,
+      credit: totalCredit,
+      balance: Math.abs(balance),
+    });
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  return new NextResponse(buffer as ArrayBuffer, {
+    headers: {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="Balanza-${new Date().toISOString().slice(0, 7)}.xlsx"`,
+    },
+  });
+}
+```
+
+---
+
+## CHECKLIST FASE 24
+
+```
+📦 INSTALACIÓN
+  [ ] npm install @react-pdf/renderer exceljs
+  [ ] npm install -D @types/react-pdf
+
+📄 TEMPLATES PDF
+  [ ] lib/pdf/templates/invoice-pdf.tsx (factura CFDI)
+  [ ] lib/pdf/templates/payslip-pdf.tsx (recibo de nómina)
+  [ ] lib/pdf/templates/aging-pdf.tsx (estado CxC)
+
+📊 EXCEL
+  [ ] app/api/excel/balanza/route.ts
+  [ ] app/api/excel/kardex/route.ts
+
+🔗 API ROUTES PDF
+  [ ] app/api/pdf/invoice/[id]/route.ts
+  [ ] app/api/pdf/payslip/[id]/route.ts
+
+🎯 BOTONES EN UI
+  [ ] billing/page.tsx → botón "PDF" en cada fila de factura
+  [ ] rrhh/nomina → botón "Recibo PDF" por empleado
+  [ ] finanzas/contabilidad → botón "Exportar Balanza XLSX"
+  [ ] scm/inventarios → botón "Kardex XLSX"
+
+🧪 TESTING
+  [ ] Descargar PDF de factura → abre correctamente en Acrobat
+  [ ] Descargar recibo de nómina → datos correctos de ISR/IMSS
+  [ ] Exportar balanza Excel → abre en Excel/Sheets con formato
+  [ ] Verificar que las rutas API retornan 401 sin sesión
+
+✅ DEPLOYMENT
+  [ ] git commit -m "FASE 24: Reportes PDF/Excel — factura, nómina, balanza, kardex"
+  [ ] PR #20
+```
+
+**Tiempo estimado:** ~2 horas
+
+---
+
+# FASE 25: RBAC — ROLES Y PERMISOS
+## *(Seguridad multi-usuario dentro del tenant)*
+
+**Duración:** ~2 horas
+**Rama:** `fase25/rbac-roles`
+**Dependencias:** FASE 24 merged
+**Objetivo:** Cada usuario dentro del tenant tiene un rol con permisos específicos por módulo
+
+---
+
+## 25.1 MODELO DE ROLES
+
+| Rol | Módulos | Permisos |
+|---|---|---|
+| **ADMIN** | Todos | Leer, escribir, eliminar, configurar |
+| **CONTADOR** | Finanzas, Billing, BI | Leer, exportar; no puede vender |
+| **VENDEDOR** | CRM, POS, Billing | Crear ventas + facturas; no ve nómina |
+| **CAJERO** | POS solamente | Solo checkout; no ve precios de costo |
+| **VISOR** | Todos (read-only) | Solo lectura, sin crear ni eliminar |
+
+---
+
+## 25.2 MODELOS PRISMA
+
+### Agregar a `prisma/schema.prisma`
+
+```prisma
+enum UserRole {
+  ADMIN
+  CONTADOR
+  VENDEDOR
+  CAJERO
+  VISOR
+}
+
+model TenantUser {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId     String
+  // user    User     @relation(...)  // Supabase auth user
+  role       UserRole @default(VISOR)
+  active     Boolean  @default(true)
+  invitedAt  DateTime @default(now())
+  acceptedAt DateTime?
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+}
+
+// Agregar a Tenant:
+model Tenant {
+  // ...
+  tenantUsers TenantUser[]
+}
+```
+
+### Migración
+
+```bash
+npx prisma migrate dev --name fase25_rbac_roles
+```
+
+---
+
+## 25.3 DEFINICIÓN DE PERMISOS
+
+### Archivo: `lib/auth/permissions.ts` (NUEVO)
+
+```typescript
+export type Action = 'read' | 'create' | 'update' | 'delete' | 'export';
+export type Resource =
+  | 'invoices' | 'customers' | 'products' | 'pos_orders'
+  | 'employees' | 'payroll' | 'journal_entries' | 'reports'
+  | 'pipeline' | 'warehouses' | 'settings' | 'users';
+
+type PermissionMatrix = Record<string, Record<Resource, Action[]>>;
+
+export const PERMISSIONS: PermissionMatrix = {
+  ADMIN: {
+    invoices:        ['read', 'create', 'update', 'delete', 'export'],
+    customers:       ['read', 'create', 'update', 'delete'],
+    products:        ['read', 'create', 'update', 'delete'],
+    pos_orders:      ['read', 'create', 'update', 'delete'],
+    employees:       ['read', 'create', 'update', 'delete'],
+    payroll:         ['read', 'create', 'update', 'delete', 'export'],
+    journal_entries: ['read', 'create', 'update', 'delete', 'export'],
+    reports:         ['read', 'export'],
+    pipeline:        ['read', 'create', 'update', 'delete'],
+    warehouses:      ['read', 'create', 'update', 'delete'],
+    settings:        ['read', 'update'],
+    users:           ['read', 'create', 'update', 'delete'],
+  },
+  CONTADOR: {
+    invoices:        ['read', 'export'],
+    customers:       ['read'],
+    products:        ['read'],
+    pos_orders:      ['read', 'export'],
+    employees:       ['read'],
+    payroll:         ['read', 'export'],
+    journal_entries: ['read', 'create', 'update', 'export'],
+    reports:         ['read', 'export'],
+    pipeline:        ['read'],
+    warehouses:      ['read'],
+    settings:        [],
+    users:           [],
+  },
+  VENDEDOR: {
+    invoices:        ['read', 'create'],
+    customers:       ['read', 'create', 'update'],
+    products:        ['read'],
+    pos_orders:      ['read', 'create'],
+    employees:       [],
+    payroll:         [],
+    journal_entries: [],
+    reports:         ['read'],
+    pipeline:        ['read', 'create', 'update'],
+    warehouses:      ['read'],
+    settings:        [],
+    users:           [],
+  },
+  CAJERO: {
+    invoices:        [],
+    customers:       ['read', 'create'],
+    products:        ['read'],
+    pos_orders:      ['read', 'create'],
+    employees:       [],
+    payroll:         [],
+    journal_entries: [],
+    reports:         [],
+    pipeline:        [],
+    warehouses:      ['read'],
+    settings:        [],
+    users:           [],
+  },
+  VISOR: {
+    invoices:        ['read'],
+    customers:       ['read'],
+    products:        ['read'],
+    pos_orders:      ['read'],
+    employees:       ['read'],
+    payroll:         ['read'],
+    journal_entries: ['read'],
+    reports:         ['read'],
+    pipeline:        ['read'],
+    warehouses:      ['read'],
+    settings:        [],
+    users:           [],
+  },
+};
+
+/**
+ * Verifica si un rol tiene permiso para una acción sobre un recurso.
+ */
+export function can(
+  role: string,
+  resource: Resource,
+  action: Action
+): boolean {
+  const rolePerms = PERMISSIONS[role];
+  if (!rolePerms) return false;
+  return rolePerms[resource]?.includes(action) ?? false;
+}
+```
+
+---
+
+## 25.4 GUARD EN SERVER ACTIONS
+
+### Archivo: `lib/auth/require-permission.ts` (NUEVO)
+
+```typescript
+import { getSwitchSession } from './session';
+import prisma from '@/lib/prisma';
+import { can, type Action, type Resource } from './permissions';
+
+/**
+ * Lanza error si el usuario no tiene permiso.
+ * Usar al inicio de cualquier Server Action sensible.
+ *
+ * @example
+ * await requirePermission('invoices', 'create');
+ */
+export async function requirePermission(
+  resource: Resource,
+  action: Action
+): Promise<void> {
+  const session = await getSwitchSession();
+  if (!session?.tenantId || !session?.userId) {
+    throw new Error('No autenticado');
+  }
+
+  const tenantUser = await prisma.tenantUser.findUnique({
+    where: {
+      tenantId_userId: {
+        tenantId: session.tenantId,
+        userId: session.userId,
+      },
+    },
+    select: { role: true },
+  });
+
+  const role = tenantUser?.role ?? 'VISOR';
+
+  if (!can(role, resource, action)) {
+    throw new Error(
+      `No tienes permiso para ${action} en ${resource}. Rol actual: ${role}`
+    );
+  }
+}
+```
+
+### Uso en Server Actions existentes
+
+```typescript
+// Ejemplo: proteger createDeal() en CRM
+export async function createDeal(input: DealInput) {
+  await requirePermission('pipeline', 'create'); // 🆕 Guard
+  // ... resto del código ...
+}
+
+// Ejemplo: proteger stampInvoice()
+export async function stampInvoice(invoiceId: string) {
+  await requirePermission('invoices', 'create'); // 🆕 Guard
+  // ... resto del código ...
+}
+```
+
+---
+
+## 25.5 INVITACIÓN DE USUARIOS
+
+### Archivo: `app/(dashboard)/admin/users/actions.ts` (NUEVO)
+
+```typescript
+'use server';
+
+import { getSwitchSession } from '@/lib/auth/session';
+import { requirePermission } from '@/lib/auth/require-permission';
+import prisma from '@/lib/prisma';
+import { sendInviteEmail } from '@/lib/email/mailer';
+import { randomBytes } from 'crypto';
+
+export async function inviteUser(data: { email: string; role: string }) {
+  await requirePermission('users', 'create');
+  const session = await getSwitchSession();
+
+  const token = randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
+
+  // Guardar invitación pendiente (se acepta al hacer login/register)
+  await prisma.userInvitation.create({
+    data: {
+      tenantId: session!.tenantId!,
+      email: data.email,
+      role: data.role,
+      token,
+      expiresAt,
+    },
+  });
+
+  await sendInviteEmail({
+    to: data.email,
+    tenantName: session!.tenantName ?? 'tu empresa',
+    role: data.role,
+    inviteUrl: `${process.env.NEXT_PUBLIC_APP_URL}/register?invite=${token}`,
+  });
+}
+```
+
+---
+
+## CHECKLIST FASE 25
+
+```
+🗄️ SCHEMA
+  [ ] Agregar enum UserRole (ADMIN/CONTADOR/VENDEDOR/CAJERO/VISOR)
+  [ ] Agregar modelo TenantUser (tenantId, userId, role)
+  [ ] Agregar modelo UserInvitation (token, email, role, expiresAt)
+  [ ] npx prisma migrate dev --name fase25_rbac_roles
+
+🔐 LÓGICA DE PERMISOS
+  [ ] lib/auth/permissions.ts (matriz PERMISSIONS + can())
+  [ ] lib/auth/require-permission.ts (guard para Server Actions)
+  [ ] Aplicar requirePermission() en 10+ Server Actions críticas:
+      - createDeal(), stampInvoice(), addExpense(), adjustStock()
+      - calculatePayroll(), deleteCustomer(), createWarehouse()
+
+👥 UI GESTIÓN DE USUARIOS
+  [ ] app/(dashboard)/admin/users/page.tsx
+      - Lista de usuarios del tenant con rol actual
+      - Botón "Invitar usuario" → modal con email + rol
+      - Botón "Cambiar rol" → dropdown in-line
+  [ ] app/(dashboard)/admin/users/actions.ts (inviteUser, changeRole)
+
+📧 EMAIL
+  [ ] sendInviteEmail() en mailer.ts
+  [ ] Plantilla HTML con enlace de invitación
+
+🔗 FLOW DE ACEPTACIÓN
+  [ ] app/(auth)/register/page.tsx detectar ?invite=TOKEN
+  [ ] Al registrar, vincular userId con TenantUser del token
+  [ ] Invalidar token después de usar
+
+🧪 TESTING
+  [ ] Admin invita a un contador → recibe email
+  [ ] Contador acepta invitación → puede ver finanzas pero no nómina
+  [ ] Cajero intenta acceder a /rrhh → error 403
+  [ ] Vendedor intenta eliminar factura → error de permiso
+  [ ] Admin cambia rol de contador a vendedor → permisos cambian en tiempo real
+
+✅ DEPLOYMENT
+  [ ] git commit -m "FASE 25: RBAC — roles, permisos, invitaciones multi-usuario"
+  [ ] PR #21
+```
+
+**Tiempo estimado:** ~2 horas
+
+---
+
+## DECISIONES ARQUITECTÓNICAS — FASES 20-25
+
+| Decisión | Implementación | Impacto |
+|---|---|---|
+| **Dual URL Prisma** | `DATABASE_URL` (pgBouncer) + `DIRECT_URL` (migraciones) | Migrations seguras en prod sin romper pool |
+| **CI antes de migrate** | GitHub Actions: tests → migrate → deploy (en orden) | Nunca se despliega código roto |
+| **Health check endpoint** | `/api/health` con latencia de BD | Monitoreo uptime desde Vercel |
+| **Stripe metadata** | `tenantId` + `plan` en `subscription.metadata` | Webhook sabe a qué tenant actualizar |
+| **Módulos como paywall** | `ModuleAccess` activo/inactivo según plan Stripe | Un webhook activa o desactiva módulos |
+| **PDF en servidor** | `@react-pdf/renderer` en API Routes | Sin Chromium, compatible con Vercel Edge |
+| **Excel con ExcelJS** | Generado en servidor, streamed como buffer | Sin dependencias nativas, funciona serverless |
+| **RBAC en Server Actions** | `requirePermission()` al inicio de cada action | Seguridad en la capa de datos, no solo UI |
+| **Invitaciones por token** | `UserInvitation` con token + expiry 7 días | Flujo seguro sin exponer userId |
+| **Roles en BD, no JWT** | `TenantUser.role` leído en cada request | Cambiar rol tiene efecto inmediato sin re-login |
+
+---
+
+## ROADMAP VISUAL COMPLETO
+
+```
+FASES 12-19 ✅ ─────── MVP Sistema Completo
+                              │
+                              ▼
+FASE 20: Deploy           URL Pública
+         (2h)              en Vercel
+                              │
+                              ▼
+FASE 21: Onboarding       Nuevos clientes
+         (2h)              pueden registrarse
+                              │
+                              ▼
+FASE 22: Stripe           Clientes pueden
+         (2.5h)            pagar y suscribirse
+                              │
+                              ▼
+FASE 23: Landing          Canal de adquisición
+         (1.5h)            orgánica + SEO
+                              │
+                              ▼
+FASE 24: PDFs/Excel       Contadores y clientes
+         (2h)              reciben documentos
+                              │
+                              ▼
+FASE 25: RBAC             Equipos completos
+         (2h)              con roles seguros
+                              │
+                              ▼
+                     🚀 PRODUCTO SAAS LANZADO
+```
