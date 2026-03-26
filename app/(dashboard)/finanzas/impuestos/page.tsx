@@ -1,443 +1,271 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+/**
+ * Switch OS — Centro de Impuestos
+ * =================================
+ * FASE 16: IVA/ISR desde Prisma (Invoice + Account).
+ * Migrado de tablas legacy Supabase → Prisma puro.
+ */
+
+import { useState, useEffect, useTransition } from 'react';
 import {
   AlertTriangle, BarChart2, PiggyBank, TrendingUp,
-  Loader2, Landmark, RefreshCw, ShieldX, ServerCog,
-  Activity, ShieldAlert, FileSpreadsheet, Database,
-  FileKey, Lock, CheckCircle2, Calendar, FileCode2, Archive
+  Loader2, Landmark, RefreshCw, ShieldAlert,
+  CheckCircle2, Calendar, FileSpreadsheet, Archive,
 } from 'lucide-react';
 import {
-  ResponsiveContainer, AreaChart as RAreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, AreaChart, Area,
+  XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
-import { createClient } from '@/utils/supabase/client';
+import { getImpuestosData, type ImpuestosData } from '../actions';
 
-// --- Utilidades ---
-function formatoMoneda(valor: number): string {
-  return valor.toLocaleString('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    maximumFractionDigits: 2
-  });
+// ─── helpers ──────────────────────────────────────────────────────────────────
+function fmt(n: number) {
+  return n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 2 });
 }
 
+const EMPTY: ImpuestosData = {
+  ivaTrasladado: 0, ivaAcreditable: 0, ivaAPagar: 0,
+  ingresosMes: 0, gastosMes: 0, utilidadBruta: 0, isrProvisional: 0,
+  historico: [],
+};
+
+// ─── Componente ───────────────────────────────────────────────────────────────
+
 export default function ImpuestosCompliancePage() {
-  const [activeTab, setActiveTab] = useState<'proyeccion' | 'infraestructura' | 'compliance' | 'reportes'>('proyeccion');
-  const [isSyncing, setIsSyncing] = useState(false);
-  
-  // Estados de datos (Tu lógica)
-  const [ingresos, setIngresos] = useState<any[]>([]);
-  const [gastos, setGastos] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'proyeccion' | 'compliance' | 'reportes'>('proyeccion');
+  const [data, setData] = useState<ImpuestosData>(EMPTY);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [isPending, startTransition] = useTransition();
 
-  // 1. Carga de Datos Reales desde Supabase
-  useEffect(() => {
-    async function cargarDatosFiscales() {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user) {
-        const [resIngresos, resGastos] = await Promise.all([
-          supabase.from('ingresos_cfdi').select('*').eq('user_id', user.id),
-          supabase.from('gastos_xml').select('*').eq('user_id', user.id)
-        ]);
-
-        if (resIngresos.data) setIngresos(resIngresos.data);
-        if (resGastos.data) setGastos(resGastos.data);
-      }
-      setLoading(false);
-    }
-    cargarDatosFiscales();
-  }, [supabase]);
-
-  // 2. Cálculos Fiscales Reales en Tiempo Real
-  const totales = useMemo(() => {
-    const ingBase = ingresos.reduce((acc, cur) => acc + (Number(cur.subtotal) || 0), 0);
-    const ingIva = ingresos.reduce((acc, cur) => acc + (Number(cur.iva) || 0), 0);
-    
-    const gastBase = gastos.reduce((acc, cur) => acc + (Number(cur.subtotal) || 0), 0);
-    const gastIva = gastos.reduce((acc, cur) => acc + (Number(cur.iva) || 0), 0);
-
-    const utilidad = ingBase - gastBase;
-    const isr = utilidad > 0 ? utilidad * 0.30 : 0; // Cálculo provisional al 30%
-    const ivaPagar = ingIva - gastIva;
-
-    return { ingBase, ingIva, gastBase, gastIva, utilidad, isr, ivaPagar };
-  }, [ingresos, gastos]);
-
-  // 3. Preparación de Gráfica
-  const datosComparativa = useMemo(() => {
-    const dias: Record<string, { fecha: string; ingresos: number; gastos: number }> = {};
-
-    ingresos.forEach((ing) => {
-      const f = ing.fecha_emision || ing.fecha_expedicion || ing.created_at?.split('T')[0];
-      if (f) {
-        if (!dias[f]) dias[f] = { fecha: f, ingresos: 0, gastos: 0 };
-        dias[f].ingresos += (Number(ing.total) || 0);
+  function cargar() {
+    setLoading(true);
+    startTransition(async () => {
+      try {
+        const result = await getImpuestosData();
+        setData(result);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
       }
     });
-
-    gastos.forEach((gast) => {
-      const f = gast.fecha_expedicion || gast.created_at?.split('T')[0];
-      if (f) {
-        if (!dias[f]) dias[f] = { fecha: f, ingresos: 0, gastos: 0 };
-        dias[f].gastos += (Number(gast.total) || 0);
-      }
-    });
-
-    return Object.values(dias).sort((a, b) => a.fecha.localeCompare(b.fecha));
-  }, [ingresos, gastos]);
-
-  const razonGastos = totales.ingBase > 0 ? totales.gastBase / totales.ingBase : 0;
-  const alertaBajoGasto = razonGastos < 0.3 && totales.ingBase > 0;
-
-  const handleSync = () => {
-    setIsSyncing(true);
-    setTimeout(() => setIsSyncing(false), 2000); // Simulación de Sync con SAT
-  };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-neutral-50 dark:bg-black">
-        <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
-      </div>
-    );
   }
 
+  useEffect(() => { cargar(); }, []);
+
+  const mesActual = new Date().toLocaleString('es-MX', { month: 'long', year: 'numeric' });
+
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-black p-4 md:p-8 transition-colors duration-300">
+    <div className="min-h-screen bg-neutral-50 dark:bg-black p-4 md:p-8 transition-colors">
       <div className="max-w-[1400px] mx-auto space-y-6">
-        
-        {/* HEADER ERP */}
+
+        {/* ── HEADER ── */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-3xl shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20">
-              <Landmark className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+            <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20">
+              <Landmark className="h-8 w-8 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
               <h1 className="text-3xl font-black text-neutral-950 dark:text-white tracking-tight">Centro de Impuestos</h1>
-              <p className="text-neutral-500 font-medium text-sm mt-1">
-                Proyecciones en tiempo real, Compliance y Sincronización SAT.
+              <p className="text-neutral-500 font-medium text-sm mt-1 capitalize">
+                Proyección fiscal — {mesActual}
               </p>
             </div>
           </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={handleSync}
-              className="flex items-center gap-2 px-6 py-3 bg-neutral-950 dark:bg-white text-white dark:text-black font-black rounded-2xl hover:scale-[1.02] transition-all shadow-xl text-sm"
-            >
-              <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} /> 
-              {isSyncing ? 'Sincronizando...' : 'Sincronizar con SAT'}
-            </button>
-          </div>
+          <button
+            onClick={cargar}
+            disabled={loading || isPending}
+            className="flex items-center gap-2 px-4 py-2 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold rounded-xl hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all text-sm disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${(loading || isPending) ? 'animate-spin' : ''}`} />
+            Actualizar
+          </button>
         </header>
 
-        {/* ALERTA GLOBAL (Art. 69-B) */}
-        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-4 rounded-2xl flex items-start gap-3 animate-in slide-in-from-top-2">
-          <ShieldX className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-sm text-red-700 dark:text-red-400 font-bold">Monitor LCO Activo (Art. 69-B)</p>
-            <p className="text-xs text-red-600 dark:text-red-400/80 mt-1">Tu base de datos de proveedores está limpia. No se detectaron EFOS en los XML cargados recientemente.</p>
+        {/* ── KPI CARDS ── */}
+        {loading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* IVA Trasladado */}
+              <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 border-l-4 border-l-blue-500">
+                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">IVA Trasladado</p>
+                <p className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">{fmt(data.ivaTrasladado)}</p>
+                <p className="text-[10px] text-neutral-400 mt-1">Facturas emitidas del mes</p>
+              </div>
+              {/* IVA Acreditable */}
+              <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 border-l-4 border-l-emerald-500">
+                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">IVA Acreditable</p>
+                <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{fmt(data.ivaAcreditable)}</p>
+                <p className="text-[10px] text-neutral-400 mt-1">Gastos deducibles (cta. 110.xx)</p>
+              </div>
+              {/* IVA a Pagar */}
+              <div className={`p-5 rounded-2xl border border-l-4 ${
+                data.ivaAPagar > 0
+                  ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 border-l-red-500'
+                  : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 border-l-emerald-500'
+              }`}>
+                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">IVA a Enterar</p>
+                <p className={`text-2xl font-black mt-1 ${data.ivaAPagar > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                  {fmt(data.ivaAPagar)}
+                </p>
+                <p className="text-[10px] text-neutral-400 mt-1">Trasladado − Acreditable</p>
+              </div>
+              {/* ISR Provisional */}
+              <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 border-l-4 border-l-amber-500">
+                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">ISR Provisional</p>
+                <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{fmt(data.isrProvisional)}</p>
+                <p className="text-[10px] text-neutral-400 mt-1">Utilidad × 30% ÷ 12</p>
+              </div>
+            </div>
 
-        {/* CONTENEDOR PRINCIPAL */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          
-          {/* Menú Lateral */}
-          <aside className="lg:w-64 flex-shrink-0 space-y-2">
-            {[
-              { id: 'proyeccion', label: 'Proyección Mensual', icon: Activity },
-              { id: 'infraestructura', label: 'Infraestructura PAC/CSD', icon: ServerCog },
-              { id: 'compliance', label: 'Compliance y LCO', icon: ShieldAlert },
-              { id: 'reportes', label: 'Reportes Legales (DIOT)', icon: FileSpreadsheet },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all ${
-                  activeTab === tab.id 
-                    ? 'bg-white dark:bg-neutral-900 text-emerald-600 dark:text-emerald-400 shadow-sm border border-neutral-200 dark:border-neutral-800' 
-                    : 'text-neutral-500 hover:bg-neutral-200 dark:hover:bg-neutral-900 border border-transparent'
-                }`}
-              >
-                <tab.icon className="h-5 w-5" />
-                {tab.label}
-              </button>
-            ))}
-          </aside>
+            {/* ── TABS ── */}
+            <div className="flex overflow-x-auto border-b border-neutral-200 dark:border-neutral-800 pb-2 gap-2">
+              {[
+                { id: 'proyeccion', label: 'Proyección Fiscal', icon: BarChart2 },
+                { id: 'compliance', label: 'Semáforo Fiscal',   icon: ShieldAlert },
+                { id: 'reportes',  label: 'Reportes SAT',       icon: FileSpreadsheet },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20'
+                      : 'bg-white dark:bg-neutral-900 text-neutral-500 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                  }`}
+                >
+                  <tab.icon className="h-4 w-4" /> {tab.label}
+                </button>
+              ))}
+            </div>
 
-          {/* ÁREA DE CONTENIDO */}
-          <main className="flex-1 min-h-[600px]">
-            
-            {/* 1. PROYECCIÓN FISCAL (Tu código mejorado) */}
-            {activeTab === 'proyeccion' && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                
-                {/* Métricas Dinámicas */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  <div className="flex items-center gap-4 rounded-3xl p-6 shadow-sm border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <div className="flex-shrink-0 bg-amber-50 dark:bg-amber-500/10 rounded-2xl p-4">
-                      <BarChart2 className="h-8 w-8 text-amber-500" />
-                    </div>
-                    <div>
-                      <div className="text-2xl font-black text-neutral-900 dark:text-white">{formatoMoneda(totales.ivaPagar)}</div>
-                      <div className="text-neutral-500 font-bold text-xs uppercase tracking-wider mt-1">IVA a Pagar</div>
-                    </div>
-                  </div>
+            {/* ── CONTENIDO ── */}
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-sm p-6">
 
-                  <div className="flex items-center gap-4 rounded-3xl p-6 shadow-sm border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <div className="flex-shrink-0 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl p-4">
-                      <TrendingUp className="h-8 w-8 text-emerald-500" />
+              {/* PROYECCIÓN */}
+              {activeTab === 'proyeccion' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-neutral-50 dark:bg-black rounded-2xl p-4 border border-neutral-100 dark:border-neutral-800">
+                      <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Ingresos Netos</p>
+                      <p className="text-2xl font-black text-neutral-900 dark:text-white mt-1">{fmt(data.ingresosMes)}</p>
                     </div>
-                    <div>
-                      <div className="text-2xl font-black text-neutral-900 dark:text-white">{formatoMoneda(totales.utilidad)}</div>
-                      <div className="text-neutral-500 font-bold text-xs uppercase tracking-wider mt-1">Utilidad Bruta</div>
+                    <div className="bg-neutral-50 dark:bg-black rounded-2xl p-4 border border-neutral-100 dark:border-neutral-800">
+                      <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Gastos Deducibles</p>
+                      <p className="text-2xl font-black text-neutral-900 dark:text-white mt-1">{fmt(data.gastosMes)}</p>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 rounded-3xl p-6 shadow-sm border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-                    <div className="flex-shrink-0 bg-rose-50 dark:bg-rose-500/10 rounded-2xl p-4">
-                      <PiggyBank className="h-8 w-8 text-rose-500" />
-                    </div>
-                    <div>
-                      <div className="text-2xl font-black text-neutral-900 dark:text-white">{formatoMoneda(totales.isr)}</div>
-                      <div className="text-neutral-500 font-bold text-xs uppercase tracking-wider mt-1">ISR Provisional</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Estrategia Fiscal */}
-                <div className={`rounded-2xl border-l-8 p-5 shadow-sm flex gap-3 items-start ${
-                  alertaBajoGasto ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10'
-                }`}>
-                  <AlertTriangle className={`h-6 w-6 mt-0.5 flex-shrink-0 ${alertaBajoGasto ? 'text-amber-500 animate-pulse' : 'text-emerald-500'}`} />
-                  <div>
-                    <div className={`text-sm font-black uppercase tracking-widest mb-1 ${alertaBajoGasto ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>
-                      Estrategia Fiscal Inteligente
-                    </div>
-                    {alertaBajoGasto ? (
-                      <p className="text-amber-800 dark:text-amber-200/80 text-sm font-medium">
-                        Tu nivel de deducción es bajo (<span className="font-bold">{(razonGastos * 100).toFixed(1)}%</span>). Considera documentar gastos operativos (compras, servicios) antes de fin de mes para optimizar tu carga de ISR.
+                    <div className="bg-neutral-50 dark:bg-black rounded-2xl p-4 border border-neutral-100 dark:border-neutral-800">
+                      <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Utilidad Bruta</p>
+                      <p className={`text-2xl font-black mt-1 ${data.utilidadBruta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {fmt(data.utilidadBruta)}
                       </p>
-                    ) : (
-                      <p className="text-emerald-800 dark:text-emerald-200/80 text-sm font-medium">
-                        Excelente balance. Mantienes una relación sana entre ingresos facturados y gastos deducibles.
-                      </p>
-                    )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Gráfica Recharts */}
-                <div className="rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm p-6">
-                  <h2 className="text-lg font-black text-neutral-900 dark:text-white mb-6">Flujo de Efectivo Real (XML)</h2>
-                  <div className="h-[300px]">
-                    {datosComparativa.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RAreaChart data={datosComparativa}>
+                  {/* Gráfica histórico */}
+                  {data.historico.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-black text-neutral-700 dark:text-neutral-300 mb-4">Tendencia últimos 6 meses</h3>
+                      <ResponsiveContainer width="100%" height={240}>
+                        <AreaChart data={data.historico}>
                           <defs>
-                            <linearGradient id="colorIng" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            <linearGradient id="gIngresos" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                             </linearGradient>
-                            <linearGradient id="colorGast" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4}/>
-                              <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                            <linearGradient id="gGastos" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                             </linearGradient>
                           </defs>
-                          <CartesianGrid stroke="#3f3f46" strokeDasharray="4 4" strokeOpacity={0.2}/>
-                          <XAxis dataKey="fecha" stroke="#71717a" fontSize={11} tickMargin={10} />
-                          <YAxis stroke="#71717a" fontSize={11} tickFormatter={(v) => `$${v >= 1000 ? (v/1000) + 'k' : v}`} />
-                          <Tooltip contentStyle={{ background: "#18181b", border: "1px solid #27272a", color: 'white', borderRadius: '12px', fontSize: '12px' }} />
-                          <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}/>
-                          <Area type="monotone" dataKey="ingresos" name="Ingresos (Facturados)" stroke="#10b981" fill="url(#colorIng)" strokeWidth={3} />
-                          <Area type="monotone" dataKey="gastos" name="Gastos (Deducibles)" stroke="#f43f5e" fill="url(#colorGast)" strokeWidth={3} />
-                        </RAreaChart>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                          <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#71717a' }} />
+                          <YAxis tick={{ fontSize: 11, fill: '#71717a' }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                          <Tooltip formatter={(v: number) => fmt(v)} />
+                          <Area type="monotone" dataKey="ingresos" name="Ingresos" stroke="#10b981" fill="url(#gIngresos)" strokeWidth={2} />
+                          <Area type="monotone" dataKey="gastos"   name="Gastos"   stroke="#f59e0b" fill="url(#gGastos)"   strokeWidth={2} />
+                        </AreaChart>
                       </ResponsiveContainer>
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-neutral-400 text-sm font-medium border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl">
-                        Aún no hay suficientes CFDI cargados para generar la proyección.
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
+
+                  {data.historico.length === 0 && (
+                    <div className="text-center py-12">
+                      <BarChart2 className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
+                      <p className="text-neutral-500 font-medium">Sin datos históricos aún</p>
+                      <p className="text-neutral-400 text-sm mt-1">Emite facturas o registra gastos para ver la proyección</p>
+                    </div>
+                  )}
                 </div>
+              )}
 
-              </div>
-            )}
-
-            {/* 2. INFRAESTRUCTURA PAC Y CSD */}
-            {activeTab === 'infraestructura' && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  
-                  {/* Gestión de Folios */}
-                  <div className="p-6 border border-neutral-200 dark:border-neutral-800 rounded-3xl bg-white dark:bg-neutral-900 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-                        <Database className="h-5 w-5 text-blue-500" /> Folios de Timbrado PAC
-                      </h3>
-                      <button className="text-xs font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors">
-                        Comprar Folios
-                      </button>
-                    </div>
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-neutral-500">
-                        <span>Consumidos: 8,950</span>
-                        <span>Restantes: 1,050 / 10,000</span>
-                      </div>
-                      <div className="w-full bg-neutral-100 dark:bg-black rounded-full h-3 overflow-hidden border border-neutral-200 dark:border-neutral-800">
-                        <div className="bg-amber-400 h-full rounded-full" style={{ width: '89.5%' }}></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Administrador de CSD */}
-                  <div className="p-6 border border-neutral-200 dark:border-neutral-800 rounded-3xl bg-white dark:bg-neutral-900 shadow-sm">
-                    <h3 className="font-bold text-neutral-900 dark:text-white flex items-center gap-2 mb-6">
-                      <FileKey className="h-5 w-5 text-emerald-500" /> Certificado de Sello Digital (CSD)
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl">
-                        <div>
-                          <p className="font-bold text-emerald-900 dark:text-emerald-100 text-sm">CSD_Matriz_Activo.cer</p>
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-mono mt-1">Válido por 845 días más</p>
-                        </div>
-                        <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Configuración PAC */}
-                  <div className="xl:col-span-2 p-6 border border-neutral-200 dark:border-neutral-800 rounded-3xl bg-white dark:bg-neutral-900 shadow-sm">
-                    <h3 className="font-bold text-neutral-900 dark:text-white flex items-center gap-2 mb-4">
-                      <ServerCog className="h-5 w-5 text-neutral-500" /> Credenciales PAC (Proveedor Autorizado)
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* SEMÁFORO FISCAL */}
+              {activeTab === 'compliance' && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-black text-neutral-900 dark:text-white">Semáforo de Cumplimiento Fiscal</h2>
+                  {[
+                    {
+                      label: 'IVA — Saldo a favor / cargo',
+                      ok: data.ivaAPagar <= 0,
+                      detail: data.ivaAPagar > 0
+                        ? `Debes enterar ${fmt(data.ivaAPagar)} al SAT este mes`
+                        : 'Sin saldo a cargo este período',
+                    },
+                    {
+                      label: 'ISR — Pago provisional estimado',
+                      ok: data.isrProvisional < data.ingresosMes * 0.1,
+                      detail: `ISR provisional estimado: ${fmt(data.isrProvisional)}`,
+                    },
+                    {
+                      label: 'Margen fiscal',
+                      ok: data.utilidadBruta > 0,
+                      detail: data.utilidadBruta > 0 ? `Utilidad bruta positiva: ${fmt(data.utilidadBruta)}` : 'Pérdida del período',
+                    },
+                  ].map((item, i) => (
+                    <div key={i} className={`flex items-center gap-4 p-4 rounded-2xl border ${
+                      item.ok
+                        ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-800'
+                        : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-800'
+                    }`}>
+                      {item.ok
+                        ? <CheckCircle2 className="h-6 w-6 text-emerald-500 flex-shrink-0" />
+                        : <AlertTriangle className="h-6 w-6 text-red-500 flex-shrink-0" />
+                      }
                       <div>
-                        <label className="block text-xs font-bold text-neutral-500 uppercase mb-2">Endpoint</label>
-                        <select className="w-full p-3 bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-neutral-900 dark:text-white outline-none">
-                          <option>SW Sapien (Recomendado)</option>
-                          <option>Finkok</option>
-                        </select>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-bold text-neutral-500 uppercase mb-2">API Secret Key</label>
-                        <div className="flex bg-neutral-50 dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl p-3">
-                          <input type="password" value="sk_live_847294729837492" readOnly className="flex-1 bg-transparent font-mono text-sm outline-none text-neutral-500" />
-                          <Lock className="h-4 w-4 text-neutral-400" />
-                        </div>
+                        <p className={`font-bold text-sm ${item.ok ? 'text-emerald-900 dark:text-emerald-100' : 'text-red-900 dark:text-red-100'}`}>{item.label}</p>
+                        <p className={`text-xs mt-0.5 ${item.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{item.detail}</p>
                       </div>
                     </div>
-                  </div>
-
+                  ))}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* 3. COMPLIANCE Y LCO */}
-            {activeTab === 'compliance' && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  
-                  {/* Motor LCO */}
-                  <div className="p-6 border border-neutral-200 dark:border-neutral-800 rounded-3xl bg-white dark:bg-neutral-900 shadow-sm">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex items-center gap-2">
-                        <Database className="h-5 w-5 text-emerald-500" />
-                        <h3 className="font-bold text-neutral-900 dark:text-white">Motor LCO (Redis)</h3>
-                      </div>
-                      <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">O(1) Activo</span>
-                    </div>
-                    <p className="text-sm text-neutral-500 leading-relaxed mb-6">
-                      El Cron Job (ETL) indexa los registros del SAT diariamente, permitiendo validar proveedores en milisegundos.
-                    </p>
-                    <div className="bg-neutral-50 dark:bg-black p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800 space-y-3">
-                      <div className="flex justify-between text-xs font-mono">
-                        <span className="text-neutral-500">Última ingesta:</span>
-                        <span className="text-neutral-900 dark:text-white">Hoy, 04:00 AM CST</span>
-                      </div>
-                      <div className="flex justify-between text-xs font-mono">
-                        <span className="text-neutral-500">Registros indexados:</span>
-                        <span className="text-emerald-600 dark:text-emerald-400">28,542,109 RFCs</span>
-                      </div>
-                    </div>
+              {/* REPORTES SAT */}
+              {activeTab === 'reportes' && (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="bg-amber-50 dark:bg-amber-500/10 p-6 rounded-full mb-4 border border-amber-100 dark:border-amber-500/20">
+                    <Archive className="h-12 w-12 text-amber-500" />
                   </div>
-
-                  {/* Calendario Fiscal */}
-                  <div className="p-6 border border-neutral-200 dark:border-neutral-800 rounded-3xl bg-white dark:bg-neutral-900 shadow-sm">
-                    <h3 className="font-bold text-neutral-900 dark:text-white flex items-center gap-2 mb-6">
-                      <Calendar className="h-5 w-5 text-blue-500" /> Calendario de Obligaciones
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center bg-neutral-50 dark:bg-black p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800">
-                        <div>
-                          <p className="text-sm font-bold text-neutral-900 dark:text-white">Pago Provisional ISR / IVA</p>
-                          <p className="text-xs text-neutral-500 mt-1">Marzo 2026</p>
-                        </div>
-                        <span className="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 px-3 py-1 rounded-lg text-xs font-bold">Vence el día 17</span>
-                      </div>
-                      <div className="flex justify-between items-center bg-neutral-50 dark:bg-black p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800 opacity-60">
-                        <div>
-                          <p className="text-sm font-bold text-neutral-900 dark:text-white line-through">Declaración Anual (PM)</p>
-                        </div>
-                        <span className="bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 px-3 py-1 rounded-lg text-xs font-bold">Completado</span>
-                      </div>
-                    </div>
+                  <h2 className="text-2xl font-black text-neutral-900 dark:text-white mb-2">Reportes SAT</h2>
+                  <p className="text-neutral-500 text-sm max-w-md mb-8">
+                    Generación de DIOT, Balanza XML Anexo 24 y Declaración Anual.
+                    Disponible en FASE 19 (Production Readiness).
+                  </p>
+                  <div className="flex gap-3">
+                    <button disabled className="px-5 py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-400 font-bold rounded-xl text-sm cursor-not-allowed">DIOT</button>
+                    <button disabled className="px-5 py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-400 font-bold rounded-xl text-sm cursor-not-allowed">Balanza XML</button>
                   </div>
-
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* 4. REPORTES LEGALES */}
-            {activeTab === 'reportes' && (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  
-                  {/* DIOT */}
-                  <div className="border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 text-center bg-white dark:bg-neutral-900 shadow-sm hover:border-blue-500/50 transition-colors group">
-                    <div className="bg-blue-50 dark:bg-blue-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform border border-blue-200 dark:border-blue-500/20">
-                      <FileSpreadsheet className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <h3 className="font-black text-neutral-900 dark:text-white mb-2">Reporte DIOT</h3>
-                    <p className="text-xs text-neutral-500 mb-6">Archivo TXT (batch) estructurado para el portal del SAT (A-29).</p>
-                    <button className="w-full py-3 bg-neutral-100 dark:bg-black text-neutral-900 dark:text-white font-bold rounded-xl text-sm border border-neutral-200 dark:border-neutral-800">
-                      Generar TXT
-                    </button>
-                  </div>
-
-                  {/* Contabilidad Electrónica */}
-                  <div className="border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 text-center bg-white dark:bg-neutral-900 shadow-sm hover:border-emerald-500/50 transition-colors group">
-                    <div className="bg-emerald-50 dark:bg-emerald-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform border border-emerald-200 dark:border-emerald-500/20">
-                      <FileCode2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <h3 className="font-black text-neutral-900 dark:text-white mb-2">Balanza XML</h3>
-                    <p className="text-xs text-neutral-500 mb-6">Genera la Balanza de Comprobación y Catálogo para Contabilidad Electrónica.</p>
-                    <button className="w-full py-3 bg-neutral-100 dark:bg-black text-neutral-900 dark:text-white font-bold rounded-xl text-sm border border-neutral-200 dark:border-neutral-800">
-                      Exportar XML
-                    </button>
-                  </div>
-
-                  {/* Expediente Fiscal */}
-                  <div className="border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 text-center bg-white dark:bg-neutral-900 shadow-sm hover:border-amber-500/50 transition-colors group">
-                    <div className="bg-amber-50 dark:bg-amber-500/10 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform border border-amber-200 dark:border-amber-500/20">
-                      <Archive className="h-8 w-8 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <h3 className="font-black text-neutral-900 dark:text-white mb-2">Bóveda (Auditoría)</h3>
-                    <p className="text-xs text-neutral-500 mb-6">Descarga un ZIP empaquetado con todos los PDF y XML de un periodo.</p>
-                    <button className="w-full py-3 bg-neutral-100 dark:bg-black text-neutral-900 dark:text-white font-bold rounded-xl text-sm border border-neutral-200 dark:border-neutral-800">
-                      Empaquetar ZIP
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-            )}
-
-          </main>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -158,6 +158,7 @@ model Tenant {
   xmlBatches       XmlBatch[]
   employees        Employee[]     // FASE 12: Capital humano
   payrollRuns      PayrollRun[]   // FASE 15: Nómina
+  pettyCashFunds   PettyCashFund[] // FASE 16: Caja chica
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -880,4 +881,42 @@ model PayrollItem {
 
   @@index([payrollRunId])
   @@index([employeeId])
+}
+
+// ─── FASE 16: CAJA CHICA ─────────────────────────────────
+
+// Fondo fijo de caja chica
+model PettyCashFund {
+  id          String            @id @default(cuid())
+  tenantId    String
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name        String            @default("Caja Chica")
+  fundAmount  Decimal           @db.Decimal(12, 2)  // Monto del fondo fijo autorizado
+  active      Boolean           @default(true)
+
+  expenses    PettyCashExpense[]
+
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([tenantId])
+}
+
+// Movimiento / gasto de caja chica
+model PettyCashExpense {
+  id          String        @id @default(cuid())
+  fundId      String
+  fund        PettyCashFund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  date        DateTime
+  concept     String
+  amount      Decimal       @db.Decimal(10, 2)
+  category    String        @default("General")  // Papelería, Transporte, Viáticos, etc.
+  receiptRef  String?       // Folio del comprobante físico
+
+  createdAt   DateTime      @default(now())
+
+  @@index([fundId])
+  @@index([fundId, date])
 }
