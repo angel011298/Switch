@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npx prisma generate && next build",
+  "installCommand": "npm ci",
+  "regions": ["iad1"],
+  "functions": {
+    "app/api/**": {
+      "maxDuration": 30
+    }
+  }
+}
