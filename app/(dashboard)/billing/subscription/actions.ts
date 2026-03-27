@@ -1,220 +1,191 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import prisma from '@/lib/prisma';
+/**
+ * Switch OS — Stripe Billing Actions (FASE 22)
+ * ==============================================
+ * createCheckoutSession : genera URL de pago en Stripe Checkout
+ * createPortalSession   : abre el Stripe Customer Portal para gestionar sub.
+ * getCurrentSubscription: estado actual del plan del tenant
+ */
+
+import { redirect } from 'next/navigation';
 import { getSwitchSession } from '@/lib/auth/session';
-import { DAYS_PER_MONTHLY_PAYMENT } from '@/lib/billing/constants';
-import { sendSubscriptionConfirmationEmail } from '@/lib/email/mailer';
+import stripe from '@/lib/billing/stripe';
+import { PLANS, getPlanBySlug, type PlanSlug } from '@/lib/billing/plans';
+import prisma from '@/lib/prisma';
 
-// ─── Tipos ────────────────────────────────────────────────────────────────────
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.switchos.mx';
 
-export interface SubmitPaymentProofInput {
-  amount: number;
-  transferRef?: string;
-  concept?: string;
-  paidAt: string;       // ISO date string
-  fileName: string;
-  fileType: string;
-  fileBase64: string;   // base64 del comprobante (max 2MB)
-}
+// ─── Crear sesión de Checkout ─────────────────────────────────────────────────
 
-export interface SubmitPaymentProofResult {
-  ok: boolean;
-  error?: string;
-  proofId?: string;
-}
-
-// ─── Tenant: Subir comprobante de pago ────────────────────────────────────────
-
-export async function submitPaymentProof(
-  input: SubmitPaymentProofInput
-): Promise<SubmitPaymentProofResult> {
+export async function createCheckoutSession(
+  planSlug: PlanSlug,
+  billing: 'monthly' | 'annual'
+): Promise<{ url: string }> {
   const session = await getSwitchSession();
-  if (!session) return { ok: false, error: 'No autenticado' };
-  if (!session.tenantId) return { ok: false, error: 'Sin tenant asignado' };
+  if (!session?.tenantId) redirect('/login');
 
-  // Validaciones
-  if (!input.amount || input.amount <= 0) {
-    return { ok: false, error: 'El monto debe ser mayor a 0' };
-  }
-  if (!input.fileName || !input.fileBase64) {
-    return { ok: false, error: 'El comprobante es obligatorio' };
-  }
-  // Validar tamaño: base64 ~4/3 del binario, limitar a ~2.5MB base64
-  if (input.fileBase64.length > 3_400_000) {
-    return { ok: false, error: 'El archivo no debe exceder 2.5 MB' };
-  }
-  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-  if (!allowedTypes.includes(input.fileType)) {
-    return { ok: false, error: 'Solo se aceptan PDF, JPG o PNG' };
+  const plan = getPlanBySlug(planSlug);
+  if (!plan) throw new Error('Plan no encontrado');
+
+  const priceId = billing === 'annual'
+    ? plan.stripePriceAnnual
+    : plan.stripePriceMonthly;
+
+  if (!priceId) {
+    throw new Error(`Price ID no configurado para el plan ${planSlug}/${billing}. Configura STRIPE_PRICE_* en variables de entorno.`);
   }
 
-  // Verificar que no tenga un comprobante PENDING ya enviado
-  const existing = await prisma.paymentProof.findFirst({
-    where: { tenantId: session.tenantId, status: 'PENDING' },
+  // Obtener o crear el stripeCustomerId del tenant
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { stripeCustomerId: true, name: true, rfc: true },
   });
-  if (existing) {
-    return {
-      ok: false,
-      error: 'Ya tienes un comprobante en revisión. Espera la respuesta del equipo de Switch.',
-    };
+
+  let customerId = tenant?.stripeCustomerId ?? undefined;
+
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email:    session.email,
+      name:     tenant?.name ?? session.name,
+      metadata: { tenantId: session.tenantId, rfc: tenant?.rfc ?? '' },
+    });
+    customerId = customer.id;
+
+    await prisma.tenant.update({
+      where: { id: session.tenantId },
+      data:  { stripeCustomerId: customerId },
+    });
   }
 
-  const proof = await prisma.paymentProof.create({
-    data: {
-      tenantId: session.tenantId,
-      amount: input.amount,
-      transferRef: input.transferRef || null,
-      concept: input.concept || null,
-      paidAt: new Date(input.paidAt),
-      fileName: input.fileName,
-      fileType: input.fileType,
-      fileBase64: input.fileBase64,
-      status: 'PENDING',
+  const checkoutSession = await stripe.checkout.sessions.create({
+    customer:             customerId,
+    mode:                 'subscription',
+    payment_method_types: ['card'],
+    line_items:           [{ price: priceId, quantity: 1 }],
+    metadata:             { tenantId: session.tenantId, planSlug, billing },
+    success_url:          `${APP_URL}/billing/subscription?success=1&plan=${planSlug}`,
+    cancel_url:           `${APP_URL}/billing/subscription?canceled=1`,
+    subscription_data: {
+      trial_period_days: 14,
+      metadata:          { tenantId: session.tenantId },
     },
+    locale: 'es',
   });
 
-  revalidatePath('/billing/subscription');
-  return { ok: true, proofId: proof.id };
+  if (!checkoutSession.url) throw new Error('No se pudo crear la sesión de checkout');
+  return { url: checkoutSession.url };
 }
 
-// ─── Tenant: Obtener estado de suscripción ────────────────────────────────────
+// ─── Abrir Stripe Customer Portal ────────────────────────────────────────────
 
-export async function getSubscriptionStatus() {
+export async function createPortalSession(): Promise<{ url: string }> {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) redirect('/login');
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: session.tenantId },
+    select: { stripeCustomerId: true },
+  });
+
+  if (!tenant?.stripeCustomerId) {
+    throw new Error('No tienes una suscripción activa. Elige un plan primero.');
+  }
+
+  const portalSession = await stripe.billingPortal.sessions.create({
+    customer:   tenant.stripeCustomerId,
+    return_url: `${APP_URL}/billing/subscription`,
+  });
+
+  return { url: portalSession.url };
+}
+
+// ─── Obtener suscripción actual ───────────────────────────────────────────────
+
+export async function getCurrentSubscription() {
   const session = await getSwitchSession();
   if (!session?.tenantId) return null;
 
-  const [sub, pendingProof] = await Promise.all([
+  const [sub, tenant] = await Promise.all([
     prisma.subscription.findUnique({
       where: { tenantId: session.tenantId },
+      select: {
+        planId:                 true,
+        status:                 true,
+        validUntil:             true,
+        trialEnds:              true,
+        stripeSubscriptionId:   true,
+        stripeCurrentPeriodEnd: true,
+      },
     }),
-    prisma.paymentProof.findFirst({
-      where: { tenantId: session.tenantId, status: 'PENDING' },
-      orderBy: { createdAt: 'desc' },
+    prisma.tenant.findUnique({
+      where: { id: session.tenantId },
+      select: { stripeCustomerId: true },
     }),
   ]);
 
-  return { sub, pendingProof };
+  return {
+    planId:                 sub?.planId ?? null,
+    status:                 sub?.status ?? 'TRIAL',
+    validUntil:             sub?.validUntil ?? null,
+    trialEnds:              sub?.trialEnds ?? null,
+    stripeSubscriptionId:   sub?.stripeSubscriptionId ?? null,
+    stripeCurrentPeriodEnd: sub?.stripeCurrentPeriodEnd ?? null,
+    hasStripe:              !!tenant?.stripeCustomerId,
+    planDetails:            getPlanBySlug(sub?.planId ?? '') ?? null,
+    allPlans:               PLANS,
+  };
 }
 
-// ─── Super Admin: Listar comprobantes pendientes ──────────────────────────────
+// ─── Legacy SPEI (compatibilidad con PendingPaymentsPanel) ───────────────────
 
-export async function getPendingProofs() {
-  const session = await getSwitchSession();
-  if (!session?.isSuperAdmin) return [];
-
-  return prisma.paymentProof.findMany({
-    where: { status: 'PENDING' },
-    include: {
-      tenant: { select: { id: true, name: true, rfc: true } },
-    },
-    orderBy: { createdAt: 'asc' }, // FIFO: primero el mas antiguo
-  });
-}
-
-// ─── Super Admin: Aprobar comprobante (+30 días) ──────────────────────────────
+import { revalidatePath } from 'next/cache';
 
 export async function approvePaymentProof(
   proofId: string,
-  daysToGrant: number = DAYS_PER_MONTHLY_PAYMENT
+  days: number
 ): Promise<{ ok: boolean; error?: string }> {
-  const session = await getSwitchSession();
-  if (!session?.isSuperAdmin) return { ok: false, error: 'No autorizado' };
-
-  const proof = await prisma.paymentProof.findUnique({
-    where: { id: proofId },
-    include: { tenant: { include: { subscription: true } } },
-  });
-  if (!proof) return { ok: false, error: 'Comprobante no encontrado' };
-  if (proof.status !== 'PENDING') return { ok: false, error: 'El comprobante ya fue procesado' };
-
-  // Calcular nuevo validUntil
-  const currentValid = proof.tenant.subscription?.validUntil;
-  const baseDate =
-    currentValid && new Date(currentValid) > new Date()
-      ? new Date(currentValid)  // Extender desde el vencimiento actual
-      : new Date();             // Si ya venció, empezar desde hoy
-
-  const newValidUntil = new Date(baseDate);
-  newValidUntil.setDate(newValidUntil.getDate() + daysToGrant);
-
-  await prisma.$transaction(async (tx) => {
-    // 1. Actualizar la suscripcion del tenant
-    await tx.subscription.upsert({
-      where: { tenantId: proof.tenantId },
-      create: {
-        tenantId: proof.tenantId,
-        planId: 'standard',
-        status: 'ACTIVE',
-        validUntil: newValidUntil,
-      },
-      update: {
-        status: 'ACTIVE',
-        validUntil: newValidUntil,
-      },
-    });
-
-    // 2. Marcar el comprobante como aprobado
-    await tx.paymentProof.update({
+  try {
+    const proof = await prisma.paymentProof.findUnique({
       where: { id: proofId },
-      data: {
-        status: 'APPROVED',
-        reviewedBy: session.email,
-        reviewedAt: new Date(),
-        daysGranted: daysToGrant,
-        newValidUntil,
-      },
+      select: { tenantId: true },
     });
-  });
+    if (!proof) return { ok: false, error: 'Comprobante no encontrado' };
 
-  // 3. Enviar correo de confirmacion (best-effort, no bloquea)
-  const tenantUsers = await prisma.user.findMany({
-    where: { tenantId: proof.tenantId, role: 'ADMIN' },
-    select: { email: true, name: true },
-  });
+    const newValidUntil = new Date();
+    newValidUntil.setDate(newValidUntil.getDate() + days);
 
-  for (const u of tenantUsers) {
-    await sendSubscriptionConfirmationEmail({
-      toEmail: u.email,
-      toName: u.name,
-      tenantName: proof.tenant.name,
-      daysGranted: daysToGrant,
-      newValidUntil,
-      amount: Number(proof.amount),
-    }).catch((err) =>
-      console.error('[billing] Error enviando correo de confirmacion:', err)
-    );
+    await prisma.$transaction([
+      prisma.paymentProof.update({
+        where: { id: proofId },
+        data:  { status: 'APPROVED' },
+      }),
+      prisma.subscription.upsert({
+        where:  { tenantId: proof.tenantId },
+        create: { tenantId: proof.tenantId, status: 'ACTIVE', validUntil: newValidUntil },
+        update: { status: 'ACTIVE', validUntil: newValidUntil },
+      }),
+    ]);
+
+    revalidatePath('/admin');
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'Error al aprobar el pago' };
   }
-
-  revalidatePath('/admin');
-  revalidatePath('/billing/subscription');
-  return { ok: true };
 }
-
-// ─── Super Admin: Rechazar comprobante ───────────────────────────────────────
 
 export async function rejectPaymentProof(
   proofId: string,
-  rejectionNote: string
+  note: string
 ): Promise<{ ok: boolean; error?: string }> {
-  const session = await getSwitchSession();
-  if (!session?.isSuperAdmin) return { ok: false, error: 'No autorizado' };
-
-  const proof = await prisma.paymentProof.findUnique({ where: { id: proofId } });
-  if (!proof) return { ok: false, error: 'No encontrado' };
-  if (proof.status !== 'PENDING') return { ok: false, error: 'Ya fue procesado' };
-
-  await prisma.paymentProof.update({
-    where: { id: proofId },
-    data: {
-      status: 'REJECTED',
-      reviewedBy: session.email,
-      reviewedAt: new Date(),
-      rejectionNote: rejectionNote || 'Sin motivo especificado',
-    },
-  });
-
-  revalidatePath('/admin');
-  revalidatePath('/billing/subscription');
-  return { ok: true };
+  try {
+    await prisma.paymentProof.update({
+      where: { id: proofId },
+      data:  { status: 'REJECTED', rejectionNote: note },
+    });
+    revalidatePath('/admin');
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'Error al rechazar el pago' };
+  }
 }
