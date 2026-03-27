@@ -1,12 +1,11 @@
-import type { NextConfig } from 'next';
-
 /**
  * Switch OS — Next.js Configuration
  * ====================================
  * FASE 19: Security headers, image optimization, strict mode.
+ * @type {import('next').NextConfig}
  */
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   // ── Rendering ──────────────────────────────────────────────────────────────
   reactStrictMode: true,
 
@@ -58,19 +57,12 @@ const nextConfig: NextConfig = {
         key: 'Content-Security-Policy',
         value: [
           "default-src 'self'",
-          // Scripts: self + supabase + inline para Next.js
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co",
-          // Estilos: self + inline para Tailwind
           "style-src 'self' 'unsafe-inline'",
-          // Imágenes: self + supabase + data URIs
           "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com",
-          // Conexiones: self + supabase + API PAC
           "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-          // Fuentes: self
           "font-src 'self'",
-          // Frames: ninguno
           "frame-src 'none'",
-          // Workers
           "worker-src 'self' blob:",
         ].join('; '),
       },
@@ -78,7 +70,6 @@ const nextConfig: NextConfig = {
 
     return [
       {
-        // Aplicar a todas las rutas
         source: '/(.*)',
         headers: securityHeaders,
       },
@@ -88,7 +79,6 @@ const nextConfig: NextConfig = {
   // ── Redirects ─────────────────────────────────────────────────────────────
   async redirects() {
     return [
-      // Redirigir raíz al dashboard
       {
         source: '/',
         destination: '/dashboard',
