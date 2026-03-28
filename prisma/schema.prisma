@@ -1044,3 +1044,35 @@ model Deal {
   @@index([tenantId, columnId])
   @@index([tenantId, createdAt])
 }
+
+// ─── FASE 25: RBAC — Audit Log ────────────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+
+  // Actor (null = system/webhook)
+  actorId     String?
+  actorName   String?
+  actorEmail  String?
+
+  // Qué pasó
+  action      String   // ROLE_CHANGE | ACCESS_DENIED | USER_INVITED | USER_REMOVED | LOGIN | etc.
+  resource    String   // User | Invoice | Employee | Route | etc.
+  resourceId  String?  // ID del recurso afectado
+
+  // Datos del cambio (antes/después)
+  oldData     Json?
+  newData     Json?
+
+  // Metadatos de la solicitud
+  ip          String?
+  userAgent   String?
+  severity    String   @default("info") // info | warning | critical
+
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, action])
+  @@index([tenantId, severity])
+}
