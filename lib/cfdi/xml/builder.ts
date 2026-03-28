@@ -1,5 +1,5 @@
 /**
- * Switch OS — Constructor de XML CFDI 4.0
+ * CIFRA — Constructor de XML CFDI 4.0
  * =========================================
  * Genera el XML estructurado del comprobante fiscal digital
  * conforme al Anexo 20 del SAT, usando fast-xml-parser.

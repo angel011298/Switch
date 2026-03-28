@@ -1,5 +1,5 @@
 /**
- * Switch OS — Namespaces XML para CFDI 4.0
+ * CIFRA — Namespaces XML para CFDI 4.0
  * ==========================================
  * Constantes de namespace y schema location según Anexo 20.
  */

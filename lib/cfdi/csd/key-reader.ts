@@ -1,5 +1,5 @@
 /**
- * Switch OS — Lector de Llave Privada CSD (.key)
+ * CIFRA — Lector de Llave Privada CSD (.key)
  * ================================================
  * Convierte el archivo .key del SAT (PKCS#8 DER cifrado)
  * a un KeyObject de Node.js para firmar la cadena original.

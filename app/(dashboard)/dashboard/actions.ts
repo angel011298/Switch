@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Dashboard Server Actions
+ * CIFRA — Dashboard Server Actions
  * ========================================
  * FASE 12: KPIs desde Prisma (Invoice, PosOrder, Customer, Employee).
  * Reemplaza las queries legacy de Supabase (ingresos_cfdi, gastos_xml, empleados).

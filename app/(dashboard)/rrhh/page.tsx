@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Recursos Humanos (HXM)
+ * CIFRA — Recursos Humanos (HXM)
  * =====================================
  * FASE 12: Migrado de tablas legacy Supabase a Prisma (Employee + Attendance).
  * Clock-in/out via Server Actions en ./actions.ts

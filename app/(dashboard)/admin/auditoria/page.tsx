@@ -42,7 +42,7 @@ export default function AuditLogsPage() {
     {
       id: 'log-9981', created_at: '2026-03-12T09:12:05.000Z', actor_name: 'Sistema Automático', actor_email: 'system@switch.com',
       action: 'DELETE_INVOICE', module: 'Facturación', resource_id: 'cfdi-8821', ip_address: 'Internal', severity: 'critical',
-      old_data: { folio: 'F-102', total: 15000.00, status: 'vigente' }, new_data: null, user_agent: 'Switch/Backend-Worker'
+      old_data: { folio: 'F-102', total: 15000.00, status: 'vigente' }, new_data: null, user_agent: 'CIFRA/Backend-Worker'
     },
     {
       id: 'log-9980', created_at: '2026-03-11T16:30:00.000Z', actor_name: 'Carlos Ruiz', actor_email: 'carlos@cliente.com',

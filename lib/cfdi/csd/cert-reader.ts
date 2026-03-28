@@ -1,5 +1,5 @@
 /**
- * Switch OS — Lector de Certificados CSD (.cer)
+ * CIFRA — Lector de Certificados CSD (.cer)
  * ===============================================
  * Extrae información del certificado X.509 del SAT:
  * - Número de certificado (20 dígitos)

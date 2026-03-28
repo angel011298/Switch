@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Catálogo de Empleados
+ * CIFRA — Catálogo de Empleados
  * ====================================
  * FASE 15: CRUD completo de empleados del tenant.
  * Alta, edición de datos laborales y baja (soft-delete via active=false).

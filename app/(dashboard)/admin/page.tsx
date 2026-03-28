@@ -5,7 +5,7 @@ import { ShieldAlert, Building2, Users, Blocks, Activity, Banknote } from 'lucid
 import TenantModuleManager from '@/components/admin/TenantModuleManager';
 import PendingPaymentsPanel from '@/components/admin/PendingPaymentsPanel';
 
-export const metadata = { title: 'Admin Maestro | Switch OS' };
+export const metadata = { title: 'Admin Maestro | CIFRA' };
 
 /**
  * Panel de Super Admin — Server Component.

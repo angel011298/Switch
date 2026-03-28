@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Wizard Nueva Factura CFDI 4.0
+ * CIFRA — Wizard Nueva Factura CFDI 4.0
  * ==========================================
  * FASE 13: 4 pasos — Receptor → Conceptos → Datos → Preview + Emitir
  */

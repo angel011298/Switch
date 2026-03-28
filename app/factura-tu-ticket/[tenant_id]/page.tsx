@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Auto-Factura Pública
+ * CIFRA — Auto-Factura Pública
  * ==================================
  * Vista pública donde el cliente final ingresa su código de ticket
  * y sus datos fiscales para generar su CFDI automáticamente.
@@ -241,7 +241,7 @@ export default function SelfInvoicePage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-zinc-600 mt-6">
-          Powered by Switch OS — Facturacion CFDI 4.0
+          Powered by CIFRA — Facturacion CFDI 4.0
         </p>
       </div>
     </div>

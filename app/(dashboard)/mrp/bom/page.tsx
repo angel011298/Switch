@@ -167,7 +167,7 @@ export default function PlanificacionProduccionPage() {
               <div className="space-y-4 font-mono">
                 {[
                   { label: 'Corte Láser (SRV-ADASTRA)', start: '0%', width: '40%', color: 'bg-rose-500' },
-                  { label: 'Ensamble PCB AllSafe', start: '35%', width: '30%', color: 'bg-rose-500' },
+                  { label: 'Ensamble PCB CIFRA', start: '35%', width: '30%', color: 'bg-rose-500' },
                   { label: 'Control de Calidad Final', start: '65%', width: '20%', color: 'bg-emerald-500' },
                   { label: 'Empaque y Logística', start: '85%', width: '15%', color: 'bg-neutral-400' },
                 ].map((task, i) => (
@@ -246,7 +246,7 @@ export default function PlanificacionProduccionPage() {
                     <ShieldAlert className="h-5 w-5" /> Análisis de Riesgo Contractual
                   </h4>
                   <p className="text-sm text-neutral-600 dark:text-zinc-400 leading-relaxed">
-                    El sistema detectó que la Orden <strong>#SO-2026-X</strong> tiene una fecha de entrega límite según contrato con <strong>Ad Astra Corp</strong>. El plan actual tiene un retraso de 3.2 días.
+                    El sistema detectó que la Orden <strong>#SO-2026-X</strong> tiene una fecha de entrega límite según contrato con <strong>CIFRA Demo Corp</strong>. El plan actual tiene un retraso de 3.2 días.
                   </p>
                   <div className="mt-6 grid grid-cols-2 gap-4">
                     <div className="p-4 bg-neutral-50 dark:bg-black rounded-2xl">

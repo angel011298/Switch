@@ -1,5 +1,5 @@
 /**
- * Switch OS — Tests: Aritmética CFDI
+ * CIFRA — Tests: Aritmética CFDI
  * =====================================
  * Valida las funciones de redondeo y cálculo fiscal conforme
  * a la Matriz de Errores del Anexo 20 del SAT.

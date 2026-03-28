@@ -1,5 +1,5 @@
 /**
- * Switch OS — Motor de Pólizas (Partida Doble)
+ * CIFRA — Motor de Pólizas (Partida Doble)
  * ==============================================
  * Valida y genera asientos contables balanceados.
  *

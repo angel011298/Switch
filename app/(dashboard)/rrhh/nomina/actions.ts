@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Nómina Server Actions
+ * CIFRA — Nómina Server Actions
  * ===================================
  * FASE 15: Cálculo, almacenamiento y cierre de corridas de nómina.
  * Genera póliza contable automática al cerrar el período.

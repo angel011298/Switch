@@ -1,5 +1,5 @@
 /**
- * Switch OS — Constantes de Facturación y Pagos
+ * CIFRA — Constantes de Facturación y Pagos
  * ===============================================
  * Datos bancarios para recepción de pagos vía SPEI.
  * Actualizar cuando cambien los datos del banco destino.
@@ -8,7 +8,7 @@
 export const SWITCH_BANK_ACCOUNTS = [
   {
     bank: 'BBVA Bancomer',
-    accountHolder: 'Angel Ortiz (Switch OS)',
+    accountHolder: 'Angel Ortiz (CIFRA)',
     clabe: '012180015567890123', // ← Reemplazar con CLABE real
     accountNumber: '0155678901',
     concept: 'SWITCH-[RFC_TENANT]', // RFC del tenant va al final
@@ -18,7 +18,7 @@ export const SWITCH_BANK_ACCOUNTS = [
 
 export const SWITCH_PLANS = {
   standard: {
-    name: 'Switch OS Standard',
+    name: 'CIFRA Standard',
     monthlyPrice: 499,   // MXN / mes
     annualPrice:  4990,  // MXN / año (2 meses gratis)
     currency: 'MXN',

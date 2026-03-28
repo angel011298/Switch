@@ -1,5 +1,5 @@
 /**
- * Switch OS — Aritmética de Alta Precisión para CFDI
+ * CIFRA — Aritmética de Alta Precisión para CFDI
  * ===================================================
  * Funciones de redondeo conformes a la Matriz de Errores del SAT.
  *

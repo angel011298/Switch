@@ -1,5 +1,5 @@
 /**
- * Switch OS — Helper para persistir pólizas contables
+ * CIFRA — Helper para persistir pólizas contables
  * =====================================================
  * Función reutilizable que graba un JournalEntryInput en la BD.
  * Se llama desde cualquier Server Action que genere un asiento

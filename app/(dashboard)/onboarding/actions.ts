@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Onboarding Actions
+ * CIFRA — Onboarding Actions
  * ================================
  * FASE 12: Captura el perfil fiscal del Tenant (RFC, razón social, CP, régimen).
  * Esta información es OBLIGATORIA para emitir CFDI 4.0 (Anexo 20).

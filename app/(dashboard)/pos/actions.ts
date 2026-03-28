@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Server Actions del POS
+ * CIFRA — Server Actions del POS
  * ====================================
  * Operaciones del servidor para el Punto de Venta.
  * Solo se llaman al cargar catálogo y al cerrar venta (checkout).

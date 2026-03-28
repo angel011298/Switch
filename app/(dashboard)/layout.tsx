@@ -9,7 +9,7 @@ import Header from '@/components/dashboard/Header';
 import ModuleDeniedToast from '@/components/dashboard/ModuleDeniedToast';
 
 export const metadata = {
-  title: 'Switch OS',
+  title: 'CIFRA',
   icons: { icon: '/icon.png?v=2' },
 };
 

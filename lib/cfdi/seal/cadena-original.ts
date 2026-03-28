@@ -1,5 +1,5 @@
 /**
- * Switch OS — Generador de Cadena Original CFDI 4.0
+ * CIFRA — Generador de Cadena Original CFDI 4.0
  * ===================================================
  * Construye la cadena original del comprobante según el
  * orden exacto definido por el XSLT del Anexo 20.

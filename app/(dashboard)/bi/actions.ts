@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — BI & Analytics Server Actions
+ * CIFRA — BI & Analytics Server Actions
  * ===========================================
  * FASE 18: KPIs reales desde Prisma.
  *

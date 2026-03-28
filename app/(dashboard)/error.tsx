@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Dashboard Error Boundary
+ * CIFRA — Dashboard Error Boundary
  * =======================================
  * Captura errores en cualquier ruta del dashboard sin romper el shell.
  * El Sidebar y la navegación siguen funcionando.
@@ -18,7 +18,7 @@ export default function DashboardError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[Switch OS] Dashboard error:', error.message, error.digest);
+    console.error('[CIFRA] Dashboard error:', error.message, error.digest);
   }, [error]);
 
   return (
@@ -33,7 +33,7 @@ export default function DashboardError({
           <div>
             <h2 className="text-xl font-black text-neutral-900 dark:text-white">Error en este módulo</h2>
             <p className="text-sm text-neutral-500 mt-0.5">
-              El resto de Switch OS sigue funcionando con normalidad.
+              El resto de CIFRA sigue funcionando con normalidad.
             </p>
           </div>
         </div>

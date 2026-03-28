@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Server Actions de Contabilidad
+ * CIFRA — Server Actions de Contabilidad
  * ============================================
  * Operaciones del servidor para el módulo de contabilidad:
  * - Seed de catálogo de cuentas

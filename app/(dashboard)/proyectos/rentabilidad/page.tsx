@@ -112,7 +112,7 @@ export default function RentabilidadPage() {
               </div>
               <div className="bg-indigo-600 text-white p-8 rounded-3xl relative overflow-hidden flex flex-col justify-center text-center">
                 <BrainCircuit className="absolute -right-8 -top-8 h-48 w-48 text-white/10" />
-                <h4 className="font-black text-xs uppercase tracking-widest text-indigo-200 mb-4">IA Agéntica (Switch AI)</h4>
+                <h4 className="font-black text-xs uppercase tracking-widest text-indigo-200 mb-4">IA Agéntica (CIFRA AI)</h4>
                 <p className="text-lg font-bold">Optimiza el margen del {margenBruto.toFixed(1)}% reasignando tareas de revisión a pasantes.</p>
                 <button className="mt-6 bg-white text-indigo-600 py-3 px-6 rounded-xl font-black text-xs hover:scale-105 transition-all shadow-lg">
                   Aplicar Optimización

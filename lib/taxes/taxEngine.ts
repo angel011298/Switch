@@ -1,5 +1,5 @@
 /**
- * Switch OS — Motor de Reglas Fiscales (Tax Engine)
+ * CIFRA — Motor de Reglas Fiscales (Tax Engine)
  * ==================================================
  * Calcula dinamicamente impuestos, retenciones y deducciones
  * basandose en el perfil fiscal del Tenant, el tipo de operacion

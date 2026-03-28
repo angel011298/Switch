@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Dashboard Hub
+ * CIFRA — Dashboard Hub
  * ===========================
  * FASE 12: Migrado de tablas legacy Supabase a Prisma (Invoice + PosOrder + Customer + Employee).
  * Server Actions en ./actions.ts — sin queries directas al cliente.

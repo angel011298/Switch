@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Centro de Impuestos
+ * CIFRA — Centro de Impuestos
  * =================================
  * FASE 16: IVA/ISR desde Prisma (Invoice + Account).
  * Migrado de tablas legacy Supabase → Prisma puro.

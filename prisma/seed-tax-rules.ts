@@ -1,5 +1,5 @@
 /**
- * Switch OS — Seed: Catalogo de Regimenes Fiscales SAT + Reglas de Impuestos
+ * CIFRA — Seed: Catalogo de Regimenes Fiscales SAT + Reglas de Impuestos
  * ===========================================================================
  * Inserta el catalogo c_RegimenFiscal del Anexo 20 CFDI 4.0
  * y las reglas de impuestos vigentes segun la legislacion 2024-2026.
@@ -261,7 +261,7 @@ const TAX_RULES: TaxRuleSeed[] = [
 
 async function main() {
   console.log('══════════════════════════════════════════');
-  console.log('  Switch OS — Seed de Reglas Fiscales SAT');
+  console.log('  CIFRA — Seed de Reglas Fiscales SAT');
   console.log('══════════════════════════════════════════\n');
 
   // 1. Insertar regimenes fiscales
