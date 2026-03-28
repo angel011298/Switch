@@ -1,5 +1,5 @@
 /**
- * Switch OS — Calculadora POS con Desglose Inverso
+ * CIFRA — Calculadora POS con Desglose Inverso
  * ==================================================
  * Toda la aritmética del POS corre 100% en el cliente.
  * Sin llamadas al servidor en cada click.

@@ -1,51 +1,27 @@
 import { redirect } from 'next/navigation';
 import { getSwitchSession } from '@/lib/auth/session';
-import prisma from '@/lib/prisma';
+import { getCurrentSubscription } from './actions';
 import SubscriptionClient from './SubscriptionClient';
 
-export const metadata = { title: 'Suscripción | Switch OS' };
+export const metadata = { title: 'Suscripción | CIFRA' };
 
 export default async function SubscriptionPage() {
   const session = await getSwitchSession();
-  if (!session) redirect('/login');
+  if (!session)          redirect('/login');
   if (!session.tenantId) redirect('/dashboard');
 
-  const [tenant, sub, pendingProof] = await Promise.all([
-    prisma.tenant.findUnique({
-      where: { id: session.tenantId },
-      select: { name: true, rfc: true },
-    }),
-    prisma.subscription.findUnique({
-      where: { tenantId: session.tenantId },
-    }),
-    prisma.paymentProof.findFirst({
-      where: {
-        tenantId: session.tenantId,
-        status: { in: ['PENDING', 'REJECTED'] },
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
-  ]);
-
-  if (!tenant) redirect('/dashboard');
+  const sub = await getCurrentSubscription();
+  if (!sub) redirect('/dashboard');
 
   return (
-    <SubscriptionClient
-      subStatus={sub?.status ?? 'TRIAL'}
-      validUntil={sub?.validUntil ?? null}
-      pendingProof={
-        pendingProof
-          ? {
-              id: pendingProof.id,
-              status: pendingProof.status,
-              createdAt: pendingProof.createdAt,
-              amount: Number(pendingProof.amount),
-              rejectionNote: pendingProof.rejectionNote,
-            }
-          : null
-      }
-      tenantName={tenant.name}
-      tenantRfc={tenant.rfc}
-    />
+    <div className="max-w-5xl mx-auto p-6 space-y-2">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Suscripción</h1>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          Administra tu plan y método de pago
+        </p>
+      </div>
+      <SubscriptionClient sub={sub} />
+    </div>
   );
 }

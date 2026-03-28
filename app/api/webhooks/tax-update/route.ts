@@ -1,5 +1,5 @@
 /**
- * Switch OS — API Endpoint: Actualización de Reglas Fiscales
+ * CIFRA — API Endpoint: Actualización de Reglas Fiscales
  * ==========================================================
  * Endpoint para consumir actualizaciones fiscales externas o
  * para que el Super Admin suba un CSV con nuevas reglas.

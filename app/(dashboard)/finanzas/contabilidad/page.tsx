@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Contabilidad (Partida Doble)
+ * CIFRA — Contabilidad (Partida Doble)
  * ==========================================
  * Módulo de contabilidad con:
  * - Importación masiva de XMLs (ZIP)

@@ -1,5 +1,5 @@
 /**
- * Switch OS — Zustand Store del POS
+ * CIFRA — Zustand Store del POS
  * ====================================
  * Estado global del Punto de Venta.
  * El catálogo se cachea en el cliente para operación offline-first.

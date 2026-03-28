@@ -1,5 +1,5 @@
 /**
- * Switch OS — Bóveda de CSD (Certificado de Sello Digital)
+ * CIFRA — Bóveda de CSD (Certificado de Sello Digital)
  * =========================================================
  * Cifrado AES-256-GCM para la contraseña del .key.
  * Los archivos .cer y .key se almacenan como bytes en PostgreSQL.

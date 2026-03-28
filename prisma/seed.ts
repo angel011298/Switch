@@ -1,5 +1,5 @@
 /**
- * Switch OS — Seed: Activar TODOS los modulos para el Super Admin
+ * CIFRA — Seed: Activar TODOS los modulos para el Super Admin
  * ================================================================
  * Busca el User con email 553angelortiz@gmail.com, encuentra su Tenant
  * y le activa los 20 modulos del enum ModuleKey.

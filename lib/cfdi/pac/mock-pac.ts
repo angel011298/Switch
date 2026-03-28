@@ -1,5 +1,5 @@
 /**
- * Switch OS — PAC Mock / Sandbox
+ * CIFRA — PAC Mock / Sandbox
  * ===============================
  * Implementación mock del PAC para desarrollo y pruebas.
  * Genera UUIDs ficticios y timbres simulados sin contactar al SAT.

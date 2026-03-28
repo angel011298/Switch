@@ -1,5 +1,5 @@
 /**
- * Switch OS — Procesador Batch de XMLs (ZIP)
+ * CIFRA — Procesador Batch de XMLs (ZIP)
  * ============================================
  * Lee un archivo ZIP con cientos de XMLs CFDI 4.0,
  * extrae datos clave de cada XML, y genera pólizas

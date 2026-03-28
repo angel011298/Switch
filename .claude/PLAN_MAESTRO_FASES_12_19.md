@@ -214,7 +214,7 @@ npx prisma migrate dev --name add_employee_attendance_models
 
 ```typescript
 /**
- * Switch OS — Sincronización Prisma (Server-side only)
+ * CIFRA — Sincronización Prisma (Server-side only)
  * =====================================================
  * FASE 12: Auto-crear tenant, subscription TRIAL, y módulos base.
  *
@@ -344,7 +344,7 @@ model Tenant {
 
 ```typescript
 /**
- * Switch OS — Session helpers (Server-side only)
+ * CIFRA — Session helpers (Server-side only)
  * FASE 12: Agregar sub_status y valid_until del JWT
  */
 
@@ -483,7 +483,7 @@ export default function OnboardingPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">
-            ¡Bienvenido a Switch OS!
+            ¡Bienvenido a CIFRA!
           </h1>
           <p className="text-slate-600 mt-2">
             Completa tu perfil empresarial para empezar a facturar
@@ -2138,7 +2138,7 @@ PR #21: FASE 25 — RBAC Roles y Permisos           ⏳ pendiente
 **Duración:** ~2 horas
 **Rama:** `fase20/deploy-produccion`
 **Dependencias:** FASE 19 merged a main
-**Objetivo:** Switch OS accesible en internet con dominio real, CI/CD automatizado y Prisma migrate en deploy
+**Objetivo:** CIFRA accesible en internet con dominio real, CI/CD automatizado y Prisma migrate en deploy
 
 ---
 
@@ -2159,9 +2159,9 @@ SUPABASE_SERVICE_ROLE_KEY="eyJ..."
 # ─── EMAIL (nodemailer) ─────────────────────────────
 SMTP_HOST="smtp.gmail.com"
 SMTP_PORT="587"
-SMTP_USER="noreply@switchos.mx"
+SMTP_USER="noreply@cifra.mx"
 SMTP_PASS="[app-password]"
-SMTP_FROM="Switch OS <noreply@switchos.mx>"
+SMTP_FROM="CIFRA <noreply@cifra.mx>"
 
 # ─── STRIPE ─────────────────────────────────────────
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_..."
@@ -2169,7 +2169,7 @@ STRIPE_SECRET_KEY="sk_live_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
 
 # ─── APP ─────────────────────────────────────────────
-NEXT_PUBLIC_APP_URL="https://app.switchos.mx"
+NEXT_PUBLIC_APP_URL="https://app.cifra.mx"
 NODE_ENV="production"
 
 # ─── CSD VAULT (encriptación) ───────────────────────
@@ -2340,7 +2340,7 @@ datasource db {
 
 ```
 1. Vercel Dashboard → proyecto → Settings → Domains
-2. Agregar: app.switchos.mx
+2. Agregar: app.cifra.mx
 3. En proveedor DNS (Cloudflare / GoDaddy / etc.):
    CNAME app → cname.vercel-dns.com.
 4. Verificar SSL automático (Let's Encrypt por Vercel)
@@ -2350,9 +2350,9 @@ datasource db {
 
 | Subdominio | Propósito |
 |---|---|
-| `app.switchos.mx` | Aplicación principal |
-| `switchos.mx` | Landing page (FASE 23) |
-| `api.switchos.mx` | Futuro: API pública |
+| `app.cifra.mx` | Aplicación principal |
+| `cifra.mx` | Landing page (FASE 23) |
+| `api.cifra.mx` | Futuro: API pública |
 
 ---
 
@@ -2392,7 +2392,7 @@ export async function GET() {
 }
 ```
 
-**Uso:** Vercel puede hacer ping a `https://app.switchos.mx/api/health` para uptime monitoring.
+**Uso:** Vercel puede hacer ping a `https://app.cifra.mx/api/health` para uptime monitoring.
 
 ---
 
@@ -2417,14 +2417,14 @@ export async function GET() {
   [ ] Hacer push a main → verificar que pipeline corre (CI → Migrate → Deploy)
 
 🌍 DOMINIO
-  [ ] Configurar app.switchos.mx en Vercel
+  [ ] Configurar app.cifra.mx en Vercel
   [ ] Actualizar DNS en proveedor
   [ ] Verificar HTTPS/SSL activo
   [ ] Probar redirect / → /dashboard en prod
 
 🔍 MONITOREO
   [ ] Crear app/api/health/route.ts
-  [ ] Verificar respuesta en https://app.switchos.mx/api/health
+  [ ] Verificar respuesta en https://app.cifra.mx/api/health
   [ ] Configurar alerta de uptime (UptimeRobot gratis o Vercel Monitoring)
 
 🧪 SMOKE TESTS EN PRODUCCIÓN
@@ -2528,7 +2528,7 @@ export default function RegisterPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
             <span className="text-white text-2xl font-bold">S</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Crear cuenta Switch OS</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Crear cuenta CIFRA</h1>
           <p className="text-slate-600 mt-1 text-sm">14 días gratis · Sin tarjeta de crédito</p>
         </div>
 
@@ -2607,7 +2607,7 @@ El onboarding existente (FASE 12) tiene 2 pasos. Extender a 3:
 ```
 Paso 1: Datos básicos (nombre, razón social, RFC, CP)
 Paso 2: Configuración fiscal (régimen, giro SAT, moneda)
-Paso 3: Primer módulo (¿cómo vas a usar Switch OS?)
+Paso 3: Primer módulo (¿cómo vas a usar CIFRA?)
          ┌── POS y Facturación  → activa POS + BILLING
          ├── Operaciones completas → activa todos
          └── Solo contabilidad → activa solo FINANZAS
@@ -2713,7 +2713,7 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput) {
   await transporter.sendMail({
     from: process.env.SMTP_FROM,
     to: input.to,
-    subject: `¡Bienvenido a Switch OS, ${input.tenantName}! 🎉`,
+    subject: `¡Bienvenido a CIFRA, ${input.tenantName}! 🎉`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
         <div style="background:#2563eb;padding:32px;text-align:center;border-radius:8px 8px 0 0">
@@ -2722,7 +2722,7 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput) {
         <div style="padding:32px;background:white;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
           <p>Hola,</p>
           <p>
-            <strong>${input.tenantName}</strong> ya está configurado en Switch OS.
+            <strong>${input.tenantName}</strong> ya está configurado en CIFRA.
             Tienes <strong>${daysLeft} días de prueba gratuita</strong> para explorar
             todos los módulos.
           </p>
@@ -3106,14 +3106,14 @@ export async function POST(req: NextRequest) {
 **Duración:** ~1.5 horas
 **Rama:** `fase23/landing-page`
 **Dependencias:** FASE 22 merged (para mostrar precios reales)
-**Objetivo:** Página de marketing en switchos.mx que convierte visitantes en registros
+**Objetivo:** Página de marketing en cifra.mx que convierte visitantes en registros
 
 ---
 
 ## 23.1 ESTRUCTURA DE LA LANDING
 
 ```
-/ (root — switchos.mx)
+/ (root — cifra.mx)
 ├── Hero: "El ERP/CRM para empresas mexicanas"
 ├── Sección Features: 6 módulos con iconos
 ├── Sección Social Proof: métricas / testimonios
@@ -3262,15 +3262,15 @@ function PricingSection() {
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Switch OS — ERP y CRM para empresas mexicanas | CFDI 4.0',
+  title: 'CIFRA — ERP y CRM para empresas mexicanas | CFDI 4.0',
   description:
     'ERP completo para México: facturación CFDI 4.0, nómina ISR/IMSS, inventarios, CRM y punto de venta. 14 días gratis.',
   keywords: ['ERP México', 'CFDI 4.0', 'facturación electrónica', 'nómina IMSS', 'CRM'],
   openGraph: {
-    title: 'Switch OS — ERP para México',
+    title: 'CIFRA — ERP para México',
     description: 'Factura CFDI, calcula nómina y gestiona tu negocio completo.',
-    url: 'https://switchos.mx',
-    siteName: 'Switch OS',
+    url: 'https://cifra.mx',
+    siteName: 'CIFRA',
     locale: 'es_MX',
     type: 'website',
   },
@@ -3292,8 +3292,8 @@ export const metadata: Metadata = {
   [ ] components/marketing/MarketingFooter.tsx
 
 🔗 ROUTING
-  [ ] Configurar switchos.mx → landing (vercel.json domains)
-  [ ] Configurar app.switchos.mx → /dashboard
+  [ ] Configurar cifra.mx → landing (vercel.json domains)
+  [ ] Configurar app.cifra.mx → /dashboard
   [ ] /register enlaza desde landing CTA
 
 🔍 SEO
@@ -3406,7 +3406,7 @@ export function InvoicePdf({ invoice }: InvoicePdfProps) {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.logo}>Switch OS</Text>
+            <Text style={styles.logo}>CIFRA</Text>
             <Text style={{ fontSize: 8, color: '#64748b', marginTop: 2 }}>
               {invoice.emisor.nombre}
             </Text>
@@ -3605,7 +3605,7 @@ export async function GET(req: NextRequest) {
   });
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Switch OS';
+  workbook.creator = 'CIFRA';
   const sheet = workbook.addWorksheet('Balanza de Comprobación');
 
   // Encabezados

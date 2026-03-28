@@ -15,7 +15,7 @@ export default function ControlCalidadPage() {
 
   // Mock de Lotes en Inspección
   const batches = [
-    { id: 'LOT-2026-001', product: 'Chasis Ad Astra v2', type: 'IQC', status: 'Cuarentena', qty: 500, aql: '1.5%', samples: 50 },
+    { id: 'LOT-2026-001', product: 'Chasis CIFRA Demo v2', type: 'IQC', status: 'Cuarentena', qty: 500, aql: '1.5%', samples: 50 },
     { id: 'LOT-2026-042', product: 'Servidor Industrial X1', type: 'FQC', status: 'En Proceso', qty: 50, aql: '0.65%', samples: 8 },
   ];
 
@@ -33,7 +33,7 @@ export default function ControlCalidadPage() {
               <div className="flex items-center gap-2">
                 <h1 className="text-3xl font-black text-neutral-950 dark:text-white tracking-tight">Control de Calidad (QC)</h1>
                 <span className="bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 text-[10px] font-black px-2 py-1 rounded-full uppercase">
-                  Auditoría Inmutable AllSafe
+                  Auditoría Inmutable CIFRA
                 </span>
               </div>
               <p className="text-neutral-500 font-medium text-sm mt-1 flex items-center gap-2">
@@ -267,7 +267,7 @@ export default function ControlCalidadPage() {
                   <History className="absolute -right-4 -bottom-4 h-32 w-32 text-white/5" />
                   <h4 className="text-lg font-black mb-4">Trazabilidad de Medición</h4>
                   <p className="text-sm text-zinc-400 leading-relaxed">
-                    Cada medición registrada en Switch OS queda vinculada al número de serie del instrumento utilizado. En caso de falla del instrumento, el ERP identifica automáticamente todos los lotes inspeccionados por esa herramienta.
+                    Cada medición registrada en CIFRA queda vinculada al número de serie del instrumento utilizado. En caso de falla del instrumento, el ERP identifica automáticamente todos los lotes inspeccionados por esa herramienta.
                   </p>
                 </div>
               </div>
@@ -302,7 +302,7 @@ export default function ControlCalidadPage() {
                 <div className="flex flex-col justify-center bg-rose-50 dark:bg-rose-900/10 p-8 rounded-3xl border border-rose-200">
                   <BarChart3 className="h-10 w-10 text-rose-600 mb-4" />
                   <h4 className="text-xl font-black text-rose-900 dark:text-rose-100">Certificados de Análisis (CoA)</h4>
-                  <p className="text-sm text-rose-700 mt-2">Genera documentos técnicos para tus clientes con un solo clic, firmados digitalmente por AllSafe.</p>
+                  <p className="text-sm text-rose-700 mt-2">Genera documentos técnicos para tus clientes con un solo clic, firmados digitalmente por CIFRA.</p>
                   <button className="mt-6 bg-rose-600 text-white font-black py-3 rounded-xl text-xs shadow-lg">Descargar CoA Plantilla</button>
                 </div>
               </div>

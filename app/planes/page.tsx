@@ -79,7 +79,7 @@ function PlanesContent() {
         )}
 
         <h1 className="text-5xl font-black text-neutral-950 dark:text-white tracking-tighter">
-          Activa el poder de <span className="text-emerald-500">Switch</span>
+          Activa el poder de <span className="text-emerald-500">CIFRA</span>
         </h1>
         <p className="text-lg text-neutral-500 dark:text-neutral-400 font-medium max-w-2xl mx-auto">
           Elige el nivel de control que tu empresa necesita hoy. Puedes escalar en cualquier momento.

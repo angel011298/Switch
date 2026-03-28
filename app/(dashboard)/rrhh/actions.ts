@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — RRHH Server Actions
+ * CIFRA — RRHH Server Actions
  * ==================================
  * FASE 12: Asistencias y empleados desde Prisma.
  * Reemplaza las queries legacy de Supabase (empleados, asistencias).

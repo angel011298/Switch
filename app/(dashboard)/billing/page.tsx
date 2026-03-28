@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Facturación CFDI 4.0
+ * CIFRA — Facturación CFDI 4.0
  * ===================================
  * FASE 13: Lista de facturas + estado del CSD + acciones rápidas.
  * Motor CFDI completo desde FASE 7 — ahora con UI accesible.

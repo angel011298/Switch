@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — CRM Pipeline Kanban
+ * CIFRA — CRM Pipeline Kanban
  * =================================
  * FASE 18: Tablero Kanban de oportunidades con datos reales de Prisma.
  * Arrastrar deals entre columnas (simulado con menú contextual).

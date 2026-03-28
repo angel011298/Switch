@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Escáner QR de Constancia de Situación Fiscal
+ * CIFRA — Escáner QR de Constancia de Situación Fiscal
  * =========================================================
  * Componente React que usa html5-qrcode para escanear el código QR
  * impreso en la Constancia de Situación Fiscal (CSF) del SAT.

@@ -188,6 +188,12 @@ model Subscription {
   status    SubscriptionStatus @default(TRIAL)
   validUntil DateTime?         // Fecha de vencimiento de la suscripcion activa
   trialEnds  DateTime?         // Fecha de fin del periodo de prueba
+
+  // ── Stripe (FASE 22) ───────────────────────────────────────────────────────
+  stripeSubscriptionId  String?   @unique  // sub_xxxxxx
+  stripePriceId         String?            // price_xxxxxx (plan activo)
+  stripeCurrentPeriodEnd DateTime?          // Fin del periodo de facturación activo
+
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 }
@@ -1037,4 +1043,36 @@ model Deal {
 
   @@index([tenantId, columnId])
   @@index([tenantId, createdAt])
+}
+
+// ─── FASE 25: RBAC — Audit Log ────────────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+
+  // Actor (null = system/webhook)
+  actorId     String?
+  actorName   String?
+  actorEmail  String?
+
+  // Qué pasó
+  action      String   // ROLE_CHANGE | ACCESS_DENIED | USER_INVITED | USER_REMOVED | LOGIN | etc.
+  resource    String   // User | Invoice | Employee | Route | etc.
+  resourceId  String?  // ID del recurso afectado
+
+  // Datos del cambio (antes/después)
+  oldData     Json?
+  newData     Json?
+
+  // Metadatos de la solicitud
+  ip          String?
+  userAgent   String?
+  severity    String   @default("info") // info | warning | critical
+
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, action])
+  @@index([tenantId, severity])
 }

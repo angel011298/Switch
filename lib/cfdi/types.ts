@@ -1,5 +1,5 @@
 /**
- * Switch OS — Tipos del Motor de Facturación CFDI 4.0
+ * CIFRA — Tipos del Motor de Facturación CFDI 4.0
  * ====================================================
  * Interfaces TypeScript que mapean 1:1 con la estructura
  * del Anexo 20 del SAT para CFDI versión 4.0.

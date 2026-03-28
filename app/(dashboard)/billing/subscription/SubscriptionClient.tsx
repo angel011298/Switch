@@ -1,379 +1,250 @@
 'use client';
 
-import { useState, useRef, useTransition } from 'react';
-import {
-  CreditCard, Upload, CheckCircle2, Clock, XCircle,
-  Copy, AlertTriangle, Banknote, FileText, Calendar,
-} from 'lucide-react';
-import { submitPaymentProof, type SubmitPaymentProofInput } from './actions';
-import { SWITCH_BANK_ACCOUNTS, SWITCH_PLANS } from '@/lib/billing/constants';
+/**
+ * CIFRA — Página de Suscripción con Stripe (FASE 22)
+ * ========================================================
+ * Muestra el plan actual + tabla de pricing con los 3 planes.
+ * Acciones: Checkout (nuevo), Portal (gestionar existente).
+ */
 
-interface Props {
-  subStatus: string | null;
+import { useState, useTransition } from 'react';
+import { CheckCircle2, Zap, Crown, Star, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { createCheckoutSession, createPortalSession } from './actions';
+import type { PLANS } from '@/lib/billing/plans';
+import type { PlanSlug } from '@/lib/billing/plans';
+import { formatMXN } from '@/lib/billing/plans';
+
+type SubData = {
+  planId: string | null;
+  status: string;
   validUntil: Date | null;
-  pendingProof: {
-    id: string;
-    status: string;
-    createdAt: Date;
-    amount: number | string;
-    rejectionNote?: string | null;
-  } | null;
-  tenantName: string;
-  tenantRfc: string | null;
+  trialEnds: Date | null;
+  stripeSubscriptionId: string | null;
+  stripeCurrentPeriodEnd: Date | null;
+  hasStripe: boolean;
+  planDetails: (typeof PLANS)[number] | null;
+  allPlans: typeof PLANS;
+};
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  TRIAL:     { label: 'Prueba gratuita',  color: 'text-blue-600 bg-blue-50 dark:bg-blue-500/10 dark:text-blue-400'   },
+  ACTIVE:    { label: 'Activa',           color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400' },
+  PAST_DUE:  { label: 'Pago pendiente',  color: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400'   },
+  SUSPENDED: { label: 'Suspendida',      color: 'text-rose-600 bg-rose-50 dark:bg-rose-500/10 dark:text-rose-400'         },
+  CANCELED:  { label: 'Cancelada',       color: 'text-slate-500 bg-slate-100 dark:bg-neutral-800 dark:text-slate-400'      },
+};
+
+const PLAN_ICONS = {
+  starter:    Zap,
+  pro:        Star,
+  enterprise: Crown,
+};
+
+function formatDate(d: Date | null) {
+  if (!d) return '—';
+  return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium' }).format(new Date(d));
 }
 
-export default function SubscriptionClient({
-  subStatus,
-  validUntil,
-  pendingProof,
-  tenantName,
-  tenantRfc,
-}: Props) {
-  const [isPending, startTransition] = useTransition();
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
-  const [copiedClabe, setCopiedClabe] = useState(false);
+export default function SubscriptionClient({ sub }: { sub: SubData }) {
+  const [billing, setBilling]   = useState<'monthly' | 'annual'>('monthly');
+  const [error, setError]       = useState('');
+  const [isPending, startTrans] = useTransition();
+  const [loadingPlan, setLoadingPlan] = useState<PlanSlug | null>(null);
 
-  // Form state
-  const [amount, setAmount] = useState('499');
-  const [transferRef, setTransferRef] = useState('');
-  const [paidAt, setPaidAt] = useState(new Date().toISOString().split('T')[0]);
-  const [file, setFile] = useState<File | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const statusInfo = STATUS_LABELS[sub.status] ?? STATUS_LABELS['TRIAL'];
 
-  const plan = SWITCH_PLANS.standard;
-  const bank = SWITCH_BANK_ACCOUNTS[0];
-  const isExpired = validUntil && new Date(validUntil) < new Date();
-  const isActive = subStatus === 'ACTIVE' && !isExpired;
-
-  function copyClabe() {
-    navigator.clipboard.writeText(bank.clabe);
-    setCopiedClabe(true);
-    setTimeout(() => setCopiedClabe(false), 2000);
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (f.size > 2_500_000) {
-      setError('El archivo no debe exceder 2.5 MB');
-      return;
-    }
+  async function handleSelectPlan(planSlug: PlanSlug) {
     setError('');
-    setFile(f);
-  }
-
-  async function readFileAsBase64(f: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(',')[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(f);
+    setLoadingPlan(planSlug);
+    startTrans(async () => {
+      try {
+        const { url } = await createCheckoutSession(planSlug, billing);
+        window.location.href = url;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al iniciar el pago');
+        setLoadingPlan(null);
+      }
     });
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!file) { setError('Selecciona tu comprobante de pago'); return; }
-    if (!amount || Number(amount) <= 0) { setError('Ingresa el monto transferido'); return; }
-
-    startTransition(async () => {
+  async function handleManage() {
+    setError('');
+    startTrans(async () => {
       try {
-        const fileBase64 = await readFileAsBase64(file);
-        const input: SubmitPaymentProofInput = {
-          amount: Number(amount),
-          transferRef: transferRef || undefined,
-          concept: `Switch OS - ${tenantName}`,
-          paidAt,
-          fileName: file.name,
-          fileType: file.type,
-          fileBase64,
-        };
-        const result = await submitPaymentProof(input);
-        if (result.ok) {
-          setSuccess(true);
-          setError('');
-        } else {
-          setError(result.error ?? 'Error desconocido');
-        }
-      } catch {
-        setError('Error al procesar el archivo. Intenta de nuevo.');
+        const { url } = await createPortalSession();
+        window.location.href = url;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al abrir el portal');
       }
     });
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-8">
+    <div className="space-y-8">
 
-      {/* Header */}
-      <header className="flex items-center gap-4 bg-neutral-950 text-white p-6 rounded-2xl">
-        <div className="bg-emerald-500 p-3 rounded-xl">
-          <CreditCard className="h-8 w-8 text-neutral-950" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">Suscripción</h1>
-          <p className="text-emerald-400 text-sm font-semibold uppercase tracking-widest mt-1">
-            Switch OS — {tenantName}
-          </p>
-        </div>
-      </header>
-
-      {/* Estado actual */}
-      <div className={`rounded-2xl border-2 p-6 ${
-        isActive
-          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20'
-          : isExpired || subStatus === 'SUSPENDED'
-          ? 'border-red-500 bg-red-50 dark:bg-red-950/20'
-          : 'border-amber-400 bg-amber-50 dark:bg-amber-950/20'
-      }`}>
-        <div className="flex items-center gap-3 mb-3">
-          {isActive ? (
-            <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-          ) : (
-            <AlertTriangle className="h-6 w-6 text-amber-600" />
+      {/* ── Plan actual ─────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Plan actual</p>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white capitalize">
+              {sub.planDetails?.name ?? (sub.planId ?? 'Sin plan')}
+            </h2>
+            <div className="flex items-center gap-3 mt-2">
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusInfo.color}`}>
+                {statusInfo.label}
+              </span>
+              {sub.validUntil && (
+                <span className="text-xs text-slate-400">
+                  Vence: {formatDate(sub.validUntil)}
+                </span>
+              )}
+              {sub.trialEnds && sub.status === 'TRIAL' && (
+                <span className="text-xs text-blue-500">
+                  Trial termina: {formatDate(sub.trialEnds)}
+                </span>
+              )}
+            </div>
+          </div>
+          {sub.hasStripe && (
+            <button
+              onClick={handleManage}
+              disabled={isPending}
+              className="flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-neutral-700 px-4 py-2 rounded-xl transition-all"
+            >
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+              Gestionar suscripción
+            </button>
           )}
-          <span className="font-bold text-lg">
-            {isActive
-              ? '✅ Suscripción activa'
-              : subStatus === 'SUSPENDED'
-              ? '🚫 Cuenta suspendida'
-              : subStatus === 'TRIAL'
-              ? '🎁 Periodo de prueba'
-              : '⚠️ Suscripción vencida'}
-          </span>
         </div>
-        {validUntil && (
-          <p className="text-sm text-neutral-600 dark:text-neutral-400 flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            {isExpired || subStatus === 'SUSPENDED'
-              ? `Venció el ${new Date(validUntil).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}`
-              : `Vigente hasta el ${new Date(validUntil).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}`
-            }
-          </p>
-        )}
-        {subStatus === 'TRIAL' && !validUntil && (
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            Estás en periodo de prueba. Realiza tu primer pago para activar tu cuenta.
-          </p>
+
+        {(sub.status === 'PAST_DUE' || sub.status === 'SUSPENDED') && (
+          <div className="mt-4 flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl text-amber-700 dark:text-amber-400 text-sm">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            Tu suscripción tiene un problema de pago. Usa "Gestionar suscripción" para actualizar tu método de pago.
+          </div>
         )}
       </div>
 
-      {/* Comprobante ya enviado */}
-      {pendingProof && !success && (
-        <div className={`rounded-2xl p-6 border-2 ${
-          pendingProof.status === 'PENDING'
-            ? 'border-blue-400 bg-blue-50 dark:bg-blue-950/20'
-            : pendingProof.status === 'REJECTED'
-            ? 'border-red-400 bg-red-50 dark:bg-red-950/20'
-            : 'border-emerald-400 bg-emerald-50'
-        }`}>
-          <div className="flex items-center gap-3 mb-2">
-            {pendingProof.status === 'PENDING' && <Clock className="h-5 w-5 text-blue-600" />}
-            {pendingProof.status === 'REJECTED' && <XCircle className="h-5 w-5 text-red-600" />}
-            <span className="font-bold">
-              {pendingProof.status === 'PENDING' && '🕐 Comprobante en revisión'}
-              {pendingProof.status === 'REJECTED' && '❌ Comprobante rechazado'}
-            </span>
-          </div>
-          <p className="text-sm text-neutral-600 dark:text-neutral-400">
-            {pendingProof.status === 'PENDING' &&
-              `Enviado el ${new Date(pendingProof.createdAt).toLocaleDateString('es-MX')}. El equipo de Switch lo revisará en menos de 24 horas.`}
-            {pendingProof.status === 'REJECTED' &&
-              `Motivo: ${pendingProof.rejectionNote ?? 'Ver correo de notificación'}`}
-          </p>
+      {/* ── Error ───────────────────────────────────────────────────────── */}
+      {error && (
+        <div className="flex items-start gap-3 p-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl text-rose-600 dark:text-rose-400 text-sm">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          {error}
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-
-        {/* Datos bancarios */}
-        <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-6 space-y-4">
-          <h2 className="font-black text-lg flex items-center gap-2">
-            <Banknote className="h-5 w-5 text-emerald-500" />
-            Datos para Transferencia SPEI
-          </h2>
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="text-neutral-500 text-xs uppercase tracking-wider mb-1">Banco</p>
-              <p className="font-bold">{bank.bank}</p>
-            </div>
-            <div>
-              <p className="text-neutral-500 text-xs uppercase tracking-wider mb-1">Beneficiario</p>
-              <p className="font-bold">{bank.accountHolder}</p>
-            </div>
-            <div>
-              <p className="text-neutral-500 text-xs uppercase tracking-wider mb-1">CLABE Interbancaria</p>
-              <div className="flex items-center gap-2">
-                <code className="font-mono font-bold text-base bg-neutral-100 dark:bg-neutral-800 px-3 py-2 rounded-lg flex-1">
-                  {bank.clabe}
-                </code>
-                <button
-                  onClick={copyClabe}
-                  className="p-2 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                  title="Copiar CLABE"
-                >
-                  {copiedClabe
-                    ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    : <Copy className="h-4 w-4" />
-                  }
-                </button>
-              </div>
-            </div>
-            <div>
-              <p className="text-neutral-500 text-xs uppercase tracking-wider mb-1">Concepto</p>
-              <p className="font-mono font-semibold text-sm">
-                SWITCH-{tenantRfc ?? tenantName.toUpperCase().replace(/\s+/g, '-').substring(0, 12)}
-              </p>
-            </div>
-          </div>
-
-          {/* Plan */}
-          <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-700">
-            <p className="font-bold text-neutral-700 dark:text-neutral-300 mb-2">{plan.name}</p>
-            <p className="text-2xl font-black text-emerald-600">
-              ${plan.monthlyPrice.toLocaleString('es-MX')} MXN
-              <span className="text-sm text-neutral-500 font-normal"> / mes</span>
-            </p>
-            <ul className="mt-3 space-y-1">
-              {plan.features.map((f) => (
-                <li key={f} className="text-xs text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3 w-3 text-emerald-500 flex-shrink-0" />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Formulario de comprobante */}
-        <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-6">
-          <h2 className="font-black text-lg flex items-center gap-2 mb-4">
-            <Upload className="h-5 w-5 text-emerald-500" />
-            Subir Comprobante de Pago
-          </h2>
-
-          {success ? (
-            <div className="text-center py-8">
-              <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
-              <p className="font-bold text-lg">¡Comprobante enviado!</p>
-              <p className="text-sm text-neutral-500 mt-2">
-                El equipo de Switch revisará tu pago en menos de 24 horas.
-                Recibirás un correo de confirmación cuando se apruebe.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Monto */}
-              <div>
-                <label className="block text-sm font-semibold mb-1">
-                  Monto transferido (MXN) *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="w-full border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="499.00"
-                  required
-                />
-              </div>
-
-              {/* Clave de rastreo */}
-              <div>
-                <label className="block text-sm font-semibold mb-1">
-                  Clave de rastreo SPEI (opcional)
-                </label>
-                <input
-                  type="text"
-                  value={transferRef}
-                  onChange={(e) => setTransferRef(e.target.value)}
-                  className="w-full border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Ej. 2024012500001234"
-                />
-              </div>
-
-              {/* Fecha de pago */}
-              <div>
-                <label className="block text-sm font-semibold mb-1">
-                  Fecha del pago *
-                </label>
-                <input
-                  type="date"
-                  value={paidAt}
-                  onChange={(e) => setPaidAt(e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                  className="w-full border border-neutral-300 dark:border-neutral-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
-              </div>
-
-              {/* Archivo */}
-              <div>
-                <label className="block text-sm font-semibold mb-1">
-                  Comprobante PDF / JPG / PNG * (máx. 2.5 MB)
-                </label>
-                <div
-                  onClick={() => fileRef.current?.click()}
-                  className="border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-500 transition-colors"
-                >
-                  {file ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <FileText className="h-5 w-5 text-emerald-500" />
-                      <span className="text-sm font-medium">{file.name}</span>
-                    </div>
-                  ) : (
-                    <>
-                      <Upload className="h-8 w-8 mx-auto text-neutral-400 mb-2" />
-                      <p className="text-sm text-neutral-500">
-                        Haz clic para seleccionar tu comprobante
-                      </p>
-                      <p className="text-xs text-neutral-400 mt-1">PDF, JPG o PNG</p>
-                    </>
-                  )}
-                </div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.webp"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </div>
-
-              {error && (
-                <p className="text-sm text-red-600 bg-red-50 dark:bg-red-950/20 px-3 py-2 rounded-lg">
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={isPending || !!pendingProof}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-              >
-                {isPending ? (
-                  <>
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Enviando…
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4" />
-                    Enviar comprobante
-                  </>
-                )}
-              </button>
-              {pendingProof?.status === 'PENDING' && (
-                <p className="text-xs text-center text-neutral-500">
-                  Ya tienes un comprobante en revisión. No puedes enviar otro hasta que sea procesado.
-                </p>
-              )}
-            </form>
-          )}
-        </div>
+      {/* ── Toggle mensual / anual ───────────────────────────────────────── */}
+      <div className="flex items-center justify-center gap-1 bg-slate-100 dark:bg-neutral-800 p-1 rounded-xl w-fit mx-auto">
+        <button
+          onClick={() => setBilling('monthly')}
+          className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+            billing === 'monthly'
+              ? 'bg-white dark:bg-neutral-900 text-slate-900 dark:text-white shadow-sm'
+              : 'text-slate-500 dark:text-slate-400'
+          }`}
+        >
+          Mensual
+        </button>
+        <button
+          onClick={() => setBilling('annual')}
+          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+            billing === 'annual'
+              ? 'bg-white dark:bg-neutral-900 text-slate-900 dark:text-white shadow-sm'
+              : 'text-slate-500 dark:text-slate-400'
+          }`}
+        >
+          Anual
+          <span className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-500/20 dark:text-emerald-400 px-1.5 py-0.5 rounded-md">
+            -17%
+          </span>
+        </button>
       </div>
+
+      {/* ── Cards de planes ─────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {sub.allPlans.map((plan) => {
+          const Icon        = PLAN_ICONS[plan.slug] ?? Zap;
+          const price       = billing === 'annual' ? plan.annualPrice : plan.monthlyPrice;
+          const isCurrentPlan = sub.planId === plan.slug && sub.status === 'ACTIVE';
+          const isLoading   = loadingPlan === plan.slug && isPending;
+
+          return (
+            <div
+              key={plan.slug}
+              className={`relative flex flex-col rounded-2xl border p-6 transition-all ${
+                plan.highlighted
+                  ? 'border-slate-900 dark:border-white shadow-xl ring-1 ring-slate-900 dark:ring-white scale-[1.02]'
+                  : 'border-slate-200 dark:border-neutral-700'
+              } bg-white dark:bg-neutral-900`}
+            >
+              {plan.highlighted && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-white text-white dark:text-black text-xs font-bold px-4 py-1 rounded-full">
+                  Más popular
+                </div>
+              )}
+
+              <div className="mb-4">
+                <div className={`inline-flex p-2 rounded-xl mb-3 ${plan.highlighted ? 'bg-slate-900 dark:bg-white' : 'bg-slate-100 dark:bg-neutral-800'}`}>
+                  <Icon className={`h-5 w-5 ${plan.highlighted ? 'text-white dark:text-black' : 'text-slate-600 dark:text-slate-300'}`} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{plan.name}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{plan.description}</p>
+              </div>
+
+              <div className="mb-6">
+                <span className="text-3xl font-black text-slate-900 dark:text-white">
+                  {formatMXN(price)}
+                </span>
+                <span className="text-sm text-slate-400 ml-1">
+                  {billing === 'annual' ? '/año' : '/mes'}
+                </span>
+                {billing === 'annual' && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                    Equivale a {formatMXN(Math.round(price / 12))}/mes
+                  </p>
+                )}
+              </div>
+
+              <ul className="space-y-2.5 mb-6 flex-1">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              {isCurrentPlan ? (
+                <div className="w-full text-center py-2.5 text-sm font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl border border-emerald-200 dark:border-emerald-500/20">
+                  ✓ Plan actual
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleSelectPlan(plan.slug)}
+                  disabled={isPending}
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 ${
+                    plan.highlighted
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-slate-100'
+                      : 'bg-slate-100 dark:bg-neutral-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-neutral-700'
+                  }`}
+                >
+                  {isLoading ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Procesando…</>
+                  ) : (
+                    `Comenzar con ${plan.name}`
+                  )}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <p className="text-center text-xs text-slate-400 dark:text-slate-600">
+        Todos los planes incluyen 14 días de prueba gratuita · Cancela cuando quieras · Pagos procesados por Stripe
+      </p>
     </div>
   );
 }

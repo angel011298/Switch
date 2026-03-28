@@ -9,7 +9,7 @@ import {
 
 // --- CONFIGURACIÓN DE MARCA BLANCA (Simulada desde BD) ---
 const orgBranding = {
-  name: 'Ad Astra S.A.P.I. de C.V.',
+  name: 'CIFRA Demo S.A.P.I. de C.V.',
   logoUrl: '/logo-dark.png', // Logo de tu empresa
   primaryColor: '#10b981', // Emerald 500
   supportEmail: 'facturacion@adastra.com.mx'
@@ -327,8 +327,8 @@ export default function AutoFacturacionPortal() {
       {/* SELLO DEL ERP (Para ti) */}
       <div className="mt-8 opacity-50 hover:opacity-100 transition-opacity flex flex-col items-center">
         <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">Tecnología impulsada por</p>
-        <img src="/logo-dark.png" alt="Switch SaaS" className="h-4 hidden dark:block grayscale opacity-50" />
-        <img src="/logo-light.png" alt="Switch SaaS" className="h-4 block dark:hidden grayscale opacity-50" />
+        <img src="/logo-dark.png" alt="CIFRA" className="h-4 hidden dark:block grayscale opacity-50" />
+        <img src="/logo-light.png" alt="CIFRA" className="h-4 block dark:hidden grayscale opacity-50" />
       </div>
 
     </div>

@@ -1,5 +1,5 @@
 /**
- * Switch OS — Mailer Transaccional
+ * CIFRA — Mailer Transaccional
  * ==================================
  * Usa nodemailer con cualquier SMTP (Gmail, Outlook, etc.)
  * Costo: $0 — configurar via variables de entorno.
@@ -7,9 +7,9 @@
  * Variables requeridas:
  *   SMTP_HOST      ej. smtp.gmail.com
  *   SMTP_PORT      ej. 587
- *   SMTP_USER      ej. soporte@switchos.mx
+ *   SMTP_USER      ej. soporte@cifra.mx
  *   SMTP_PASS      App Password de Gmail o contraseña SMTP
- *   SMTP_FROM      ej. "Switch OS <soporte@switchos.mx>"
+ *   SMTP_FROM      ej. "CIFRA <soporte@cifra.mx>"
  */
 
 import nodemailer from 'nodemailer';
@@ -47,7 +47,7 @@ function wrapHtml(content: string): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Switch OS</title>
+  <title>CIFRA</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f4f5; margin: 0; padding: 0; }
     .container { max-width: 560px; margin: 40px auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
@@ -64,14 +64,14 @@ function wrapHtml(content: string): string {
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>Switch OS</h1>
-      <p>ERP / CRM Fiscal para México</p>
+    <div class="header" style="padding:0;text-align:center;">
+      <img src="https://app.cifra.mx/email-header.png" alt="CIFRA" width="560"
+           style="display:block;width:100%;max-width:560px;height:auto;" />
     </div>
     <div class="body">${content}</div>
     <div class="footer">
-      <p>Este es un mensaje automático de Switch OS. No responder a este correo.</p>
-      <p>© ${new Date().getFullYear()} Switch OS — Todos los derechos reservados.</p>
+      <p>Este es un mensaje automático de CIFRA. No responder a este correo.</p>
+      <p>© ${new Date().getFullYear()} CIFRA — Todos los derechos reservados.</p>
     </div>
   </div>
 </body>
@@ -101,21 +101,21 @@ export async function sendSubscriptionConfirmationEmail(
   const body = `
     <span class="badge">✅ Pago confirmado</span>
     <p>Hola <strong>${input.toName}</strong>,</p>
-    <p>Hemos recibido y verificado tu pago. Tu suscripción de <strong>${input.tenantName}</strong> en Switch OS ha sido renovada exitosamente.</p>
+    <p>Hemos recibido y verificado tu pago. Tu suscripción de <strong>${input.tenantName}</strong> en CIFRA ha sido renovada exitosamente.</p>
     <div class="info-box">
       <p><strong>Monto aplicado:</strong> $${input.amount.toFixed(2)} MXN</p>
       <p><strong>Días otorgados:</strong> ${input.daysGranted} días</p>
       <p><strong>Acceso vigente hasta:</strong> ${formatDate(input.newValidUntil)}</p>
     </div>
-    <p>Puedes continuar usando todos los módulos de Switch OS sin interrupciones.</p>
+    <p>Puedes continuar usando todos los módulos de CIFRA sin interrupciones.</p>
     <p>Si tienes alguna duda, contáctanos respondiendo a este correo.</p>
-    <p>¡Gracias por confiar en Switch OS! 🚀</p>
+    <p>¡Gracias por confiar en CIFRA! 🚀</p>
   `;
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"Switch OS" <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
     to: input.toEmail,
-    subject: `✅ Suscripción renovada — ${input.tenantName} | Switch OS`,
+    subject: `✅ Suscripción renovada — ${input.tenantName} | CIFRA`,
     html: wrapHtml(body),
     text: `Pago confirmado. Suscripción de ${input.tenantName} vigente hasta ${formatDate(input.newValidUntil)}.`,
   });
@@ -141,19 +141,19 @@ export async function sendExpiryReminderEmail(
   const body = `
     <span class="badge" style="background:#fef3c7;color:#92400e;">${urgency}: Suscripción por vencer</span>
     <p>Hola <strong>${input.toName}</strong>,</p>
-    <p>Tu suscripción de <strong>${input.tenantName}</strong> en Switch OS vence en <strong>${input.daysLeft} día${input.daysLeft !== 1 ? 's' : ''}</strong>.</p>
+    <p>Tu suscripción de <strong>${input.tenantName}</strong> en CIFRA vence en <strong>${input.daysLeft} día${input.daysLeft !== 1 ? 's' : ''}</strong>.</p>
     <div class="info-box">
       <p><strong>Fecha de vencimiento:</strong> ${formatDate(input.validUntil)}</p>
-      <p><strong>Plan:</strong> Switch OS Standard — $499 MXN/mes</p>
+      <p><strong>Plan:</strong> CIFRA Standard — $499 MXN/mes</p>
     </div>
     <p>Para renovar, realiza una transferencia SPEI y sube tu comprobante en la sección <strong>Suscripción</strong> de tu cuenta.</p>
     <p>Si tu suscripción vence, perderás acceso a todos los módulos hasta que el pago sea confirmado.</p>
   `;
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"Switch OS" <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
     to: input.toEmail,
-    subject: `${urgency}: Tu suscripción vence en ${input.daysLeft} día${input.daysLeft !== 1 ? 's' : ''} | Switch OS`,
+    subject: `${urgency}: Tu suscripción vence en ${input.daysLeft} día${input.daysLeft !== 1 ? 's' : ''} | CIFRA`,
     html: wrapHtml(body),
     text: `Tu suscripción vence el ${formatDate(input.validUntil)}. Renueva en /billing/subscription.`,
   });
@@ -199,7 +199,7 @@ export async function sendInvoiceStampedEmail(input: InvoiceStampedInput): Promi
   `;
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"Switch OS" <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
     to: input.toEmail,
     subject: `📄 CFDI ${folioRef} de ${input.emisorName} — ${totalFmt}`,
     html: wrapHtml(body),
@@ -257,11 +257,11 @@ export async function sendLowStockAlertEmail(input: LowStockAlertInput): Promise
       </thead>
       <tbody>${productRows}</tbody>
     </table>
-    <p style="margin-top:20px;">Accede a <strong>SCM → Inventarios → Alertas</strong> en Switch OS para gestionar las entradas de stock.</p>
+    <p style="margin-top:20px;">Accede a <strong>SCM → Inventarios → Alertas</strong> en CIFRA para gestionar las entradas de stock.</p>
   `;
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"Switch OS" <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
     to: input.toEmail,
     subject: `📦 Alerta de inventario: ${input.products.length} producto(s) con stock crítico — ${input.tenantName}`,
     html: wrapHtml(body),
@@ -282,11 +282,11 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> 
   const transporter = createTransporter();
   if (!transporter) return;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.switchos.mx';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://cifra-mx.vercel.app';
 
   const body = `
     <div style="text-align:center;margin-bottom:24px;">
-      <h1 style="font-size:28px;font-weight:700;color:#0f172a;margin:0;">¡Bienvenido a Switch OS!</h1>
+      <h1 style="font-size:28px;font-weight:700;color:#0f172a;margin:0;">¡Bienvenido a CIFRA!</h1>
       <p style="font-size:16px;color:#64748b;margin-top:8px;">Hola ${input.userName}, tu empresa <strong>${input.tenantName}</strong> ya está configurada.</p>
     </div>
     <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
@@ -304,16 +304,43 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> 
     </div>
     <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />
     <p style="font-size:12px;color:#94a3b8;text-align:center;margin:0;">
-      ¿Necesitas ayuda? Contáctanos en soporte@switchos.mx
+      ¿Necesitas ayuda? Contáctanos en soporte@cifra-mx.vercel.app
     </p>
   `;
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"Switch OS" <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
     to: input.to,
-    subject: `¡Bienvenido a Switch OS, ${input.tenantName}! 🚀`,
+    subject: `¡Bienvenido a CIFRA, ${input.tenantName}! 🚀`,
     html: wrapHtml(body),
-    text: `¡Bienvenido a Switch OS! Tu empresa ${input.tenantName} ya está configurada con ${input.modulesActivated} módulos activos. Accede en: ${appUrl}/dashboard`,
+    text: `¡Bienvenido a CIFRA! Tu empresa ${input.tenantName} ya está configurada con ${input.modulesActivated} módulos activos. Accede en: ${appUrl}/dashboard`,
   });
 }
 
+// ─── sendEmail genérico (para reportes PDF/Excel) ─────────────────────────────
+
+export interface SendEmailOptions {
+  to: string;
+  subject: string;
+  html: string;
+  attachments?: { filename: string; content: Buffer; contentType: string }[];
+}
+
+export async function sendEmail(opts: SendEmailOptions): Promise<void> {
+  const transporter = createTransporter();
+  if (!transporter) {
+    console.warn('[mailer] SMTP no configurado — email omitido:', opts.subject);
+    return;
+  }
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    attachments: opts.attachments?.map(a => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType,
+    })),
+  });
+}

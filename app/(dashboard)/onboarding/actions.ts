@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Onboarding Actions
+ * CIFRA — Onboarding Actions
  * ================================
  * FASE 21: Captura perfil fiscal + activa módulos seleccionados + email bienvenida.
  *

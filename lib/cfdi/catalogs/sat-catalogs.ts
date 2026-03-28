@@ -1,5 +1,5 @@
 /**
- * Switch OS — Catálogos SAT para CFDI 4.0
+ * CIFRA — Catálogos SAT para CFDI 4.0
  * =========================================
  * Subconjuntos de los catálogos oficiales del Anexo 20.
  * Solo incluimos los más comunes para validación.

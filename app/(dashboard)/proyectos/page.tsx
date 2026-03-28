@@ -21,7 +21,7 @@ const wbsData = [
     progress: 65,
     subtasks: [
       { id: 't1', name: 'Recolección de Evidencia KYC', type: 'Tarea', owner: 'Asociado Senior', hours: 40, critical: true },
-      { id: 't2', name: 'Validación de Firmas AllSafe', type: 'Tarea', owner: 'Auditor IT', hours: 20, critical: false },
+      { id: 't2', name: 'Validación de Firmas CIFRA', type: 'Tarea', owner: 'Auditor IT', hours: 20, critical: false },
       { id: 'h1', name: 'Entrega de Informe Preliminar', type: 'Hito', owner: 'Socio', hours: 0, critical: true }
     ]
   }

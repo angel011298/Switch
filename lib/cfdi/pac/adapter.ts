@@ -1,5 +1,5 @@
 /**
- * Switch OS — Interfaz del PAC (Proveedor Autorizado de Certificación)
+ * CIFRA — Interfaz del PAC (Proveedor Autorizado de Certificación)
  * =====================================================================
  * Adapter Pattern para desacoplar el motor CFDI del PAC específico.
  *

@@ -1,5 +1,5 @@
 /**
- * Switch OS — Registro Central de Módulos
+ * CIFRA — Registro Central de Módulos
  * ========================================
  * Fuente de verdad que mapea cada ModuleKey del enum de Prisma
  * a su metadata de UI (icono, rutas, color, agrupación).
@@ -250,7 +250,7 @@ export const MODULE_DEFS: Record<ModuleKey, ModuleDef> = {
   },
 };
 
-// ─── Agrupación por Pilar (7 pilares de Switch OS) ─────
+// ─── Agrupación por Pilar (7 pilares de CIFRA) ─────
 
 export const MODULE_GROUPS: ModuleGroup[] = [
   {

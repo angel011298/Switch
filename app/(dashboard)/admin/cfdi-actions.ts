@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Server Actions: Facturación CFDI 4.0
+ * CIFRA — Server Actions: Facturación CFDI 4.0
  * =================================================
  * Acciones del servidor para crear, consultar y cancelar
  * facturas electrónicas. Protegidas por autenticación.

@@ -1,5 +1,5 @@
 /**
- * Switch OS — Sincronización Prisma (Server-side only)
+ * CIFRA — Sincronización Prisma (Server-side only)
  * =====================================================
  * FASE 12: Auto-crear tenant con subscription TRIAL + módulos base.
  *

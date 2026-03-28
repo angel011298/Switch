@@ -1,5 +1,5 @@
 /**
- * Switch OS — 404 Not Found
+ * CIFRA — 404 Not Found
  * ===========================
  * Página global para rutas inexistentes.
  */
@@ -39,7 +39,7 @@ export default function NotFound() {
           </Link>
         </div>
 
-        <p className="text-xs text-neutral-400">Switch OS · ERP/CRM Fiscal para México</p>
+        <p className="text-xs text-neutral-400">CIFRA · ERP/CRM Fiscal para México</p>
       </div>
     </div>
   );

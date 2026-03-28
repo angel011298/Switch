@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Server Actions: Gestión de Reglas Fiscales
+ * CIFRA — Server Actions: Gestión de Reglas Fiscales
  * ======================================================
  * Permite al Super Admin crear, actualizar y expirar reglas fiscales
  * sin modificar código. Todas las operaciones son auditables.

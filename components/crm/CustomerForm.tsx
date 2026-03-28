@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Formulario de Alta de Cliente/Tercero Fiscal
+ * CIFRA — Formulario de Alta de Cliente/Tercero Fiscal
  * =========================================================
  * Formulario para ingresar datos fiscales de un cliente.
  * Se puede llenar manualmente o pre-poblar con datos del QR/SAT.

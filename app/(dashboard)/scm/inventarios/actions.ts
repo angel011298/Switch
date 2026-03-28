@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — SCM Inventarios Server Actions
+ * CIFRA — SCM Inventarios Server Actions
  * ============================================
  * FASE 17: Gestión real de productos, almacenes y movimientos de stock.
  *

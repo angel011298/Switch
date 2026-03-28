@@ -68,7 +68,7 @@ export default function ConfiguracionFiscal() {
     <div className="p-8 max-w-3xl mx-auto space-y-8">
       <header>
         <h1 className="text-3xl font-black text-neutral-950 dark:text-white tracking-tighter">Configuración Fiscal</h1>
-        <p className="text-neutral-500 dark:text-neutral-400 font-medium">Estos datos se utilizarán para generar tus facturas de suscripción a Switch.</p>
+        <p className="text-neutral-500 dark:text-neutral-400 font-medium">Estos datos se utilizarán para generar tus facturas de suscripción a CIFRA.</p>
       </header>
 
       <form onSubmit={handleSubmit} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-8 rounded-[2rem] shadow-sm space-y-6">

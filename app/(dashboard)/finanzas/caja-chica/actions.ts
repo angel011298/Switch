@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Caja Chica Server Actions
+ * CIFRA — Caja Chica Server Actions
  * ========================================
  * FASE 16: Gestión de fondo fijo y registro de gastos menores.
  * Genera póliza contable automática por gasto (best-effort).

@@ -1,5 +1,5 @@
 /**
- * Switch OS — Scraper de Constancia de Situación Fiscal (CSF) del SAT
+ * CIFRA — Scraper de Constancia de Situación Fiscal (CSF) del SAT
  * =====================================================================
  * Extrae datos fiscales de la URL contenida en el QR de la CSF.
  *

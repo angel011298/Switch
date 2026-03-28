@@ -36,8 +36,8 @@ export default function RecuperarPage() {
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors">
       <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
         <div className="mb-8">
-          <img src="/logo-dark.png" alt="Switch Logo" className="h-12 w-auto object-contain hidden dark:block" />
-          <img src="/logo-light.png" alt="Switch Logo" className="h-12 w-auto object-contain block dark:hidden" />
+          <img src="/logo-dark.png" alt="CIFRA" className="h-12 w-auto object-contain hidden dark:block" />
+          <img src="/logo-light.png" alt="CIFRA" className="h-12 w-auto object-contain block dark:hidden" />
         </div>
 
         <h2 className="text-center text-3xl font-black text-neutral-900 dark:text-white tracking-tight">

@@ -1,5 +1,5 @@
 /**
- * Switch OS — Session helpers (Server-side only)
+ * CIFRA — Session helpers (Server-side only)
  * ================================================
  * Extrae datos de sesión del JWT de Supabase para Server Components.
  * Los custom claims (tenant_id, active_modules, etc.) vienen del

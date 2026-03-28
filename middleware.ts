@@ -1,12 +1,14 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { hasRoutePermission } from '@/lib/auth/rbac';
 
 /**
- * Switch OS — Middleware de Autenticacion, Autorizacion y Paywall
+ * CIFRA — Middleware de Autenticacion, Autorizacion y Paywall
  * ==================================================================
  * Capa 1: Autenticacion (sesion Supabase via @supabase/ssr v0.9)
  * Capa 2: Paywall — verifica que la suscripcion este vigente (validUntil)
  * Capa 3: Autorizacion de modulos (JWT claim active_modules)
+ * Capa 4: RBAC — rutas restringidas por rol (ADMIN / MANAGER / OPERATIVE)
  *
  * NO hace JOINs a la base de datos — toda la info viene del JWT.
  */
@@ -57,6 +59,7 @@ const ALWAYS_ALLOWED = [
 
 // Rutas publicas (sin autenticacion)
 const PUBLIC_ROUTES = [
+  '/',                  // Landing page — siempre pública
   '/login',
   '/auth',
   '/recuperar',
@@ -118,7 +121,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && pathname === '/login') {
+  // Usuario autenticado en la landing o en login → ir al dashboard
+  if (user && (pathname === '/' || pathname === '/login')) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
@@ -179,6 +183,17 @@ export async function middleware(request: NextRequest) {
             const url = request.nextUrl.clone();
             url.pathname = '/dashboard';
             url.searchParams.set('module_denied', requiredModule);
+            return NextResponse.redirect(url);
+          }
+        }
+
+        // ── Capa 4: RBAC — rol requerido por ruta ─────────────────────
+        if (!isSuperAdmin) {
+          const userRole: string = payload.user_role ?? 'OPERATIVE';
+          if (!hasRoutePermission(pathname, userRole)) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/dashboard';
+            url.searchParams.set('role_denied', '1');
             return NextResponse.redirect(url);
           }
         }

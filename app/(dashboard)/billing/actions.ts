@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Billing Server Actions
+ * CIFRA — Billing Server Actions
  * =====================================
  * FASE 13: Acciones del módulo de facturación CFDI 4.0.
  * Expone getInvoices, getCsdStatus, downloadXml, cancelInvoice

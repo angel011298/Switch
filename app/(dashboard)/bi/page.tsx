@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — BI & Analytics Dashboard
+ * CIFRA — BI & Analytics Dashboard
  * ======================================
  * FASE 18: KPIs y gráficas reales desde Prisma.
  * Revenue (CFDI) + POS + CRM Pipeline + Top Productos.

@@ -1,5 +1,5 @@
 /**
- * Switch OS — Dashboard Loading Skeleton
+ * CIFRA — Dashboard Loading Skeleton
  * =========================================
  * Se muestra mientras Next.js carga una ruta del dashboard.
  */

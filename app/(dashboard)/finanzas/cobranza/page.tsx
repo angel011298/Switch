@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Cobranza y Aging CxC
+ * CIFRA — Cobranza y Aging CxC
  * ===================================
  * FASE 16: Aging de Cuentas por Cobrar desde Prisma.
  * Migrado de tablas legacy Supabase → Prisma puro.

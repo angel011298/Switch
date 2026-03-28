@@ -1,5 +1,5 @@
 /**
- * Switch OS — Tests: Calculadora POS
+ * CIFRA — Tests: Calculadora POS
  * =====================================
  * Valida el desglose inverso (precio con IVA incluido),
  * el desglose directo (precio sin IVA) y los totales del carrito.

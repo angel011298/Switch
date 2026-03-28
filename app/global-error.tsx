@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Global Error Boundary
+ * CIFRA — Global Error Boundary
  * ====================================
  * Captura errores irrecuperables en el root layout.
  * Se muestra cuando error.tsx no puede rescatar la situación.
@@ -27,7 +27,7 @@ export default function GlobalError({
           <div>
             <h1 className="text-2xl font-black text-white">Error crítico del sistema</h1>
             <p className="text-neutral-400 mt-2 text-sm leading-relaxed">
-              Switch OS encontró un error irrecuperable. Nuestro equipo fue notificado automáticamente.
+              CIFRA encontró un error irrecuperable. Nuestro equipo fue notificado automáticamente.
             </p>
           </div>
 
@@ -56,7 +56,7 @@ export default function GlobalError({
           </div>
 
           <p className="text-xs text-neutral-600">
-            Switch OS ERP/CRM Fiscal para México
+            CIFRA ERP/CRM Fiscal para México
           </p>
         </div>
       </body>

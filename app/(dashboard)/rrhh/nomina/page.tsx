@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Nómina y Administración
+ * CIFRA — Nómina y Administración
  * =====================================
  * FASE 15: Conectado con motor de cálculo real (ISR/IMSS 2026).
  * Permite correr nómina, revisar pre-nómina y cerrar el periodo.
