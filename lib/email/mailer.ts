@@ -269,6 +269,54 @@ export async function sendLowStockAlertEmail(input: LowStockAlertInput): Promise
   });
 }
 
+// ─── Correo: Bienvenida post-onboarding ──────────────────────────────────────
+
+export interface WelcomeEmailInput {
+  to: string;
+  tenantName: string;
+  userName: string;
+  modulesActivated: number;
+}
+
+export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> {
+  const transporter = createTransporter();
+  if (!transporter) return;
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://cifra-mx.vercel.app';
+
+  const body = `
+    <div style="text-align:center;margin-bottom:24px;">
+      <h1 style="font-size:28px;font-weight:700;color:#0f172a;margin:0;">¡Bienvenido a CIFRA!</h1>
+      <p style="font-size:16px;color:#64748b;margin-top:8px;">Hola ${input.userName}, tu empresa <strong>${input.tenantName}</strong> ya está configurada.</p>
+    </div>
+    <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+      <p style="margin:0;font-size:14px;color:#475569;">
+        ✅ <strong>${input.modulesActivated} módulos activados</strong> en tu cuenta de prueba (14 días gratis).<br/>
+        Explora el sistema y descubre todo lo que puedes hacer desde el dashboard.
+      </p>
+    </div>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${appUrl}/dashboard"
+         style="display:inline-block;background:#0f172a;color:#fff;font-weight:600;font-size:14px;
+                padding:12px 32px;border-radius:10px;text-decoration:none;letter-spacing:.02em;">
+        Ir al Dashboard →
+      </a>
+    </div>
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />
+    <p style="font-size:12px;color:#94a3b8;text-align:center;margin:0;">
+      ¿Necesitas ayuda? Contáctanos en soporte@cifra-mx.vercel.app
+    </p>
+  `;
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
+    to: input.to,
+    subject: `¡Bienvenido a CIFRA, ${input.tenantName}! 🚀`,
+    html: wrapHtml(body),
+    text: `¡Bienvenido a CIFRA! Tu empresa ${input.tenantName} ya está configurada con ${input.modulesActivated} módulos activos. Accede en: ${appUrl}/dashboard`,
+  });
+}
+
 // ─── sendEmail genérico (para reportes PDF/Excel) ─────────────────────────────
 
 export interface SendEmailOptions {

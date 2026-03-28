@@ -148,6 +148,16 @@ export async function middleware(request: NextRequest) {
         const activeModules: string[] = payload.active_modules ?? [];
         const subStatus: string = payload.sub_status ?? 'TRIAL';
         const validUntilRaw: string | null = payload.valid_until ?? null;
+        const onboardingComplete: boolean = payload.onboarding_complete === true;
+
+        // ── Capa 0: Onboarding obligatorio ──────────────────────────────
+        // Si el tenant no completó el onboarding, redirigir a /onboarding.
+        // Super Admin está exento para no bloquearse a sí mismo.
+        if (!isSuperAdmin && !onboardingComplete && !pathname.startsWith('/onboarding')) {
+          const url = request.nextUrl.clone();
+          url.pathname = '/onboarding';
+          return NextResponse.redirect(url);
+        }
 
         // ── Capa 2: Paywall ─────────────────────────────────────────────
         // Super Admin nunca es bloqueado por el paywall

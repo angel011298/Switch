@@ -1,319 +1,366 @@
 'use client';
 
 /**
- * CIFRA — Onboarding Obligatorio
- * ====================================
- * FASE 12: Captura perfil fiscal antes de usar el sistema.
- * Sin RFC y datos fiscales no se puede emitir CFDI 4.0.
+ * Switch OS — Wizard de Onboarding (FASE 21)
+ * ============================================
+ * 3 pasos obligatorios antes de usar el sistema:
+ *   1. Datos de empresa (nombre comercial + razón social)
+ *   2. Datos fiscales (RFC + CP + régimen fiscal SAT)
+ *   3. Módulos a activar (selección con auto-TRIAL)
  *
- * Flujo: 2 pasos
- *   1. Nombre empresa + RFC + Razón Social + CP
- *   2. Régimen fiscal
+ * Al completar: activa módulos, envía email de bienvenida
+ * y marca onboardingComplete = true.
  */
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { setupTenantProfile } from './actions';
-import { AlertCircle, CheckCircle, Building2, FileText, MapPin, Landmark } from 'lucide-react';
+import { setupTenantProfile, MODULE_GROUPS } from './actions';
+import type { ModuleKey } from '@prisma/client';
+import {
+  Building2,
+  FileText,
+  Layers,
+  CheckCircle2,
+  AlertCircle,
+  ChevronRight,
+  ChevronLeft,
+  Loader2,
+} from 'lucide-react';
 
 const REGIMES_SAT = [
   { value: '601', label: '601 - General de Ley Personas Morales' },
   { value: '603', label: '603 - Personas Morales con Fines no Lucrativos' },
   { value: '605', label: '605 - Sueldos y Salarios e Ingresos Asimilados' },
   { value: '606', label: '606 - Arrendamiento' },
-  { value: '608', label: '608 - Demás ingresos' },
-  { value: '610', label: '610 - Residentes en el Extranjero' },
-  { value: '611', label: '611 - Ingresos por Dividendos' },
   { value: '612', label: '612 - Personas Físicas con Actividades Empresariales' },
-  { value: '614', label: '614 - Ingresos por intereses' },
   { value: '616', label: '616 - Sin obligaciones fiscales' },
   { value: '621', label: '621 - Incorporación Fiscal' },
-  { value: '622', label: '622 - Actividades Agrícolas, Ganaderas, Silvícolas y Pesqueras' },
-  { value: '623', label: '623 - Opcional para Grupos de Sociedades' },
-  { value: '624', label: '624 - Coordinados' },
-  { value: '625', label: '625 - Régimen de las Actividades Empresariales con ingresos a través de Plataformas Tecnológicas' },
+  { value: '625', label: '625 - Plataformas Tecnológicas' },
   { value: '626', label: '626 - Régimen Simplificado de Confianza (RESICO)' },
 ];
 
+const STEPS = [
+  { id: 1, label: 'Empresa', icon: Building2 },
+  { id: 2, label: 'Fiscal',  icon: FileText   },
+  { id: 3, label: 'Módulos', icon: Layers     },
+];
+
+function getAllModuleKeys(): ModuleKey[] {
+  return MODULE_GROUPS.flatMap((g) => g.modules.map((m) => m.key));
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2>(1);
+
+  const [step, setStep]       = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
+  const [done, setDone]       = useState(false);
 
-  // Form fields
-  const [formData, setFormData] = useState({
-    name: '',
-    legalName: '',
-    rfc: '',
-    zipCode: '',
-    taxRegimeKey: '',
-  });
+  const [name, setName]           = useState('');
+  const [legalName, setLegalName] = useState('');
+  const [rfc, setRfc]             = useState('');
+  const [zipCode, setZipCode]     = useState('');
+  const [taxRegimeKey, setTaxRegime] = useState('');
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === 'rfc' ? value.toUpperCase().replace(/[^A-Z0-9]/g, '') : value,
-    }));
-    setError('');
+  const [selectedModules, setSelectedModules] = useState<Set<ModuleKey>>(
+    new Set(getAllModuleKeys())
+  );
+
+  function toggleModule(key: ModuleKey) {
+    setSelectedModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
-  function handleStep1(e: React.FormEvent) {
-    e.preventDefault();
+  function nextStep() {
     setError('');
-
-    // Validaciones step 1
-    if (!formData.name.trim()) {
-      setError('Nombre de empresa requerido');
-      return;
+    if (step === 1) {
+      if (!name.trim())      return setError('El nombre de empresa es requerido.');
+      if (!legalName.trim()) return setError('La razón social es requerida.');
     }
-    if (formData.rfc.length !== 12 && formData.rfc.length !== 13) {
-      setError('RFC inválido: 12 caracteres (PM) o 13 caracteres (PF)');
-      return;
+    if (step === 2) {
+      if (!rfc.trim())     return setError('El RFC es requerido.');
+      if (!zipCode.trim()) return setError('El Código Postal es requerido.');
+      if (!taxRegimeKey)   return setError('Selecciona un régimen fiscal.');
     }
-    if (!/^[0-9]{5}$/.test(formData.zipCode)) {
-      setError('Código postal debe ser 5 dígitos numéricos');
-      return;
-    }
-
-    setStep(2);
+    setStep((s) => (s < 3 ? ((s + 1) as 1 | 2 | 3) : s));
   }
 
-  async function handleStep2(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleFinish() {
     setError('');
-
-    if (!formData.taxRegimeKey) {
-      setError('Selecciona un régimen fiscal');
-      return;
+    if (selectedModules.size === 0) {
+      return setError('Selecciona al menos un módulo para continuar.');
     }
-
     setLoading(true);
     try {
-      await setupTenantProfile(formData);
-      router.push('/dashboard');
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'Error inesperado');
+      await setupTenantProfile({
+        name,
+        legalName,
+        rfc,
+        zipCode,
+        taxRegimeKey,
+        selectedModules: Array.from(selectedModules),
+      });
+      setDone(true);
+      setTimeout(() => router.push('/dashboard'), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 via-neutral-900 to-emerald-950 p-4">
-      <div className="w-full max-w-lg">
-        {/* Logo / Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center">
-              <Building2 className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-2xl font-black text-white">CIFRA</span>
+  // ── Pantalla de éxito ────────────────────────────────────────────────────────
+  if (done) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-neutral-950">
+        <div className="text-center space-y-4 px-6">
+          <div className="flex justify-center">
+            <CheckCircle2 className="h-16 w-16 text-emerald-500" />
           </div>
-          <h1 className="text-3xl font-black text-white leading-tight">
-            Configura tu empresa
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            ¡Listo! Tu empresa está configurada
           </h1>
-          <p className="text-neutral-400 mt-2 text-sm">
-            Necesitamos tus datos fiscales para emitir CFDI 4.0
+          <p className="text-slate-500 dark:text-slate-400">
+            Activamos {selectedModules.size} módulo{selectedModules.size !== 1 ? 's' : ''}.
+            Redirigiendo al dashboard…
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Wizard ───────────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-neutral-950 p-4">
+      <div className="w-full max-w-2xl">
+
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Configura tu empresa</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            Solo tarda 2 minutos. Puedes modificarlo después en Configuración.
           </p>
         </div>
 
-        {/* Step indicator */}
-        <div className="flex gap-2 mb-6">
-          <div className={`flex-1 h-1 rounded-full transition-colors ${step >= 1 ? 'bg-emerald-500' : 'bg-neutral-700'}`} />
-          <div className={`flex-1 h-1 rounded-full transition-colors ${step >= 2 ? 'bg-emerald-500' : 'bg-neutral-700'}`} />
+        {/* Stepper */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {STEPS.map((s, i) => {
+            const Icon        = s.icon;
+            const isActive    = step === s.id;
+            const isCompleted = step > s.id;
+            return (
+              <div key={s.id} className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-black'
+                    : isCompleted
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-slate-100 dark:bg-neutral-800 text-slate-400'
+                }`}>
+                  {isCompleted
+                    ? <CheckCircle2 className="h-4 w-4" />
+                    : <Icon className="h-4 w-4" />
+                  }
+                  <span className="hidden sm:inline">{s.label}</span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className={`h-px w-8 transition-colors ${step > s.id ? 'bg-emerald-400' : 'bg-slate-200 dark:bg-neutral-700'}`} />
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Card */}
-        <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl p-8">
-          {/* Error Banner */}
+        <div className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-8 shadow-sm">
+
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 items-start">
-              <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
-              <p className="text-red-700 text-sm font-medium">{error}</p>
+            <div className="mb-6 flex items-start gap-3 p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl text-rose-600 dark:text-rose-400 text-sm">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              {error}
             </div>
           )}
 
-          {/* STEP 1: Datos básicos */}
+          {/* ── PASO 1: Empresa ──────────────────────────────────────── */}
           {step === 1 && (
-            <form onSubmit={handleStep1} className="space-y-5">
-              <div className="mb-2">
-                <p className="text-xs font-black uppercase tracking-widest text-neutral-400 mb-1">
-                  Paso 1 de 2
-                </p>
-                <h2 className="text-xl font-black text-neutral-900 dark:text-white">
-                  Datos de la empresa
-                </h2>
-              </div>
-
-              {/* Nombre comercial */}
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Nombre de la empresa *
-                </label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                  <input
-                    name="name"
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="ACME Corporation"
-                    className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm"
-                  />
-                </div>
-                <p className="text-xs text-neutral-500 mt-1">Nombre comercial (puede ser corto)</p>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Datos de tu empresa</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">El nombre comercial aparecerá en el sistema. La razón social se usará en los CFDIs.</p>
               </div>
-
-              {/* Razón Social */}
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Razón Social (completa) *
-                </label>
-                <div className="relative">
-                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                  <input
-                    name="legalName"
-                    type="text"
-                    required
-                    value={formData.legalName}
-                    onChange={handleChange}
-                    placeholder="ACME CORPORATION S.A. DE C.V."
-                    className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm uppercase"
-                  />
-                </div>
-                <p className="text-xs text-neutral-500 mt-1">Como aparece registrado ante el SAT</p>
-              </div>
-
-              {/* RFC */}
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  RFC *
-                </label>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Nombre comercial</label>
                 <input
-                  name="rfc"
                   type="text"
-                  required
-                  maxLength={13}
-                  value={formData.rfc}
-                  onChange={handleChange}
-                  placeholder="ABC123XYZ456 (PM) o ABCD780101XY3 (PF)"
-                  className="w-full px-4 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm font-mono tracking-wider uppercase"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ej. Mi Empresa"
+                  className="w-full bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-emerald-500/30"
                 />
-                <p className="text-xs text-neutral-500 mt-1">12 caracteres (PM) · 13 caracteres (PF)</p>
               </div>
-
-              {/* Código Postal */}
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Código Postal del domicilio fiscal *
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Razón social (como aparece en el SAT)</label>
+                <input
+                  type="text"
+                  value={legalName}
+                  onChange={(e) => setLegalName(e.target.value.toUpperCase())}
+                  placeholder="EJ. MI EMPRESA S.A. DE C.V."
+                  className="w-full bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-emerald-500/30 uppercase"
+                />
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Exactamente como aparece en tu Constancia de Situación Fiscal</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── PASO 2: Fiscal ──────────────────────────────────────── */}
+          {step === 2 && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">Datos fiscales</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Necesarios para emitir CFDI 4.0 válidos ante el SAT.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">RFC</label>
                   <input
-                    name="zipCode"
                     type="text"
-                    required
-                    maxLength={5}
-                    pattern="[0-9]{5}"
-                    value={formData.zipCode}
-                    onChange={handleChange}
-                    placeholder="28001"
-                    className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm"
+                    value={rfc}
+                    onChange={(e) => setRfc(e.target.value.toUpperCase().replace(/[^A-Z0-9&Ñ]/g, ''))}
+                    placeholder="XAXX010101000"
+                    maxLength={13}
+                    className="w-full bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-emerald-500/30 uppercase tracking-widest"
                   />
                 </div>
-                <p className="text-xs text-neutral-500 mt-1">Obligatorio en CFDI 4.0 (Emisor)</p>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black py-3 rounded-xl transition-colors text-sm"
-              >
-                Siguiente →
-              </button>
-            </form>
-          )}
-
-          {/* STEP 2: Régimen fiscal */}
-          {step === 2 && (
-            <form onSubmit={handleStep2} className="space-y-5">
-              <div className="mb-2">
-                <p className="text-xs font-black uppercase tracking-widest text-neutral-400 mb-1">
-                  Paso 2 de 2
-                </p>
-                <h2 className="text-xl font-black text-neutral-900 dark:text-white">
-                  Régimen Fiscal
-                </h2>
-              </div>
-
-              {/* Resumen paso 1 */}
-              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl">
-                <div className="flex gap-2 items-center mb-2">
-                  <CheckCircle className="text-emerald-600" size={16} />
-                  <p className="text-sm font-bold text-emerald-800 dark:text-emerald-400">
-                    Datos capturados
-                  </p>
-                </div>
-                <div className="text-xs text-emerald-700 dark:text-emerald-500 space-y-0.5">
-                  <p><strong>Empresa:</strong> {formData.name}</p>
-                  <p><strong>RFC:</strong> {formData.rfc}</p>
-                  <p><strong>CP:</strong> {formData.zipCode}</p>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Código Postal</label>
+                  <input
+                    type="text"
+                    value={zipCode}
+                    onChange={(e) => setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                    placeholder="06600"
+                    maxLength={5}
+                    className="w-full bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-emerald-500/30"
+                  />
                 </div>
               </div>
-
-              {/* Régimen */}
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Régimen Fiscal SAT *
-                </label>
-                <div className="relative">
-                  <Landmark className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none" />
-                  <select
-                    name="taxRegimeKey"
-                    required
-                    value={formData.taxRegimeKey}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-sm appearance-none"
-                  >
-                    <option value="">— Selecciona tu régimen —</option>
-                    {REGIMES_SAT.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <p className="text-xs text-neutral-500 mt-1">
-                  Consulta tu CSF (Constancia de Situación Fiscal) en sat.gob.mx si no estás seguro
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">Régimen Fiscal SAT</label>
+                <select
+                  value={taxRegimeKey}
+                  onChange={(e) => setTaxRegime(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-emerald-500/30"
+                >
+                  <option value="">Selecciona tu régimen...</option>
+                  {REGIMES_SAT.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* ── PASO 3: Módulos ──────────────────────────────────────── */}
+          {step === 3 && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">¿Qué módulos necesitas?</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Todos están incluidos en tu prueba gratuita de 14 días. Desactiva los que no uses para simplificar el menú.
                 </p>
               </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="flex-1 px-4 py-3 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-semibold rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-sm"
-                >
-                  ← Atrás
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-3 rounded-xl transition-colors text-sm"
-                >
-                  {loading ? 'Guardando...' : '✓ Completar'}
-                </button>
+              <div className="space-y-4 max-h-80 overflow-y-auto pr-1">
+                {MODULE_GROUPS.map((group) => (
+                  <div key={group.group}>
+                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                      {group.group}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {group.modules.map((mod) => {
+                        const isSelected = selectedModules.has(mod.key);
+                        return (
+                          <button
+                            key={mod.key}
+                            type="button"
+                            onClick={() => toggleModule(mod.key)}
+                            className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                              isSelected
+                                ? 'border-slate-900 dark:border-emerald-500 bg-slate-50 dark:bg-emerald-500/10'
+                                : 'border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 opacity-60'
+                            }`}
+                          >
+                            <span className="text-xl leading-none">{mod.icon}</span>
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-sm font-medium truncate ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+                                {mod.label}
+                              </p>
+                              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 line-clamp-1">
+                                {mod.description}
+                              </p>
+                            </div>
+                            {isSelected && (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </form>
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                {selectedModules.size} módulo{selectedModules.size !== 1 ? 's' : ''} seleccionado{selectedModules.size !== 1 ? 's' : ''}
+              </p>
+            </div>
           )}
+
+          {/* Botones */}
+          <div className="flex items-center justify-between mt-8">
+            {step > 1 ? (
+              <button
+                type="button"
+                onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
+                className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </button>
+            ) : (
+              <div />
+            )}
+
+            {step < 3 ? (
+              <button
+                type="button"
+                onClick={nextStep}
+                className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-black font-medium text-sm px-6 py-2.5 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-all active:scale-95"
+              >
+                Siguiente
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleFinish}
+                disabled={loading}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm px-6 py-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+              >
+                {loading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Configurando…</>
+                ) : (
+                  <><CheckCircle2 className="h-4 w-4" /> Completar configuración</>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
-        <p className="text-center text-xs text-neutral-500 mt-6">
-          Esta información es obligatoria para cumplir con la normativa del SAT (CFDI 4.0 — Anexo 20).
-          Puedes editarla después en Configuración.
+        <p className="text-center text-xs text-slate-400 dark:text-slate-600 mt-4">
+          Switch OS · Todos los datos se almacenan de forma segura y cifrada
         </p>
       </div>
     </div>
