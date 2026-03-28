@@ -55,7 +55,8 @@
 ✅ FASE 23: Landing Page CIFRA — Hero + Módulos + Perfiles + Precios (PR #20 merged)
 ✅ FASE 24: Reportes PDF/Excel — CFDI, Estado de Cuenta, Nómina (PR #21 merged)
 ✅ FASE 25: RBAC — Roles, permisos por ruta, AuditLog, UserRoleManager (PR #22 merged)
-🚀 FASE 26-40: Pendiente
+✅ FASE 26: Notificaciones — Notification model, 4 API routes, NotificationCenter, 4 triggers (PR #23 merged)
+🚀 FASE 27-40: Pendiente
 ```
 
 ### Base de datos actual (post-FASE 19)
