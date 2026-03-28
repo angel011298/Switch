@@ -2,9 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { LogOut, Bell, Search, AlertCircle, Clock } from 'lucide-react';
+import { LogOut, Search, AlertCircle, Clock } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
+import NotificationCenter from '@/components/layout/NotificationCenter';
 
 interface HeaderProps {
   userName: string;
@@ -93,10 +94,7 @@ export default function Header({
         )}
 
         {/* Notificaciones */}
-        <button className="relative p-2 rounded-xl text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-emerald-500 rounded-full" />
-        </button>
+        <NotificationCenter />
 
         {/* Perfil */}
         <div className="flex items-center gap-3 pl-4 border-l border-neutral-200 dark:border-neutral-800">

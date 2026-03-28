@@ -13,6 +13,7 @@
 
 import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
+import { notifyLowStock } from '@/lib/notifications/trigger';
 import { revalidatePath } from 'next/cache';
 
 // ─── TIPOS ───────────────────────────────────────────────────────────────────
@@ -382,6 +383,17 @@ export async function adjustStock(input: {
       },
     }),
   ]);
+
+  // ── Notificación: stock bajo mínimo ──────────────────────────────────────
+  if (isNegative && product.trackStock && quantityAfter <= product.minStock && quantityAfter >= 0) {
+    notifyLowStock({
+      tenantId:      session.tenantId,
+      productName:   product.name,
+      currentStock:  quantityAfter,
+      minStock:      product.minStock,
+      warehouseName: wh.name,
+    }).catch(() => {});
+  }
 
   revalidatePath('/scm/inventarios');
 }
