@@ -1,31 +1,37 @@
-# 🎯 SWITCH OS — PLAN MAESTRO FASES 12-25
-## De Infraestructura a Producto SaaS Lanzado
+# 🎯 CIFRA ERP — PLAN MAESTRO FASES 12-40
+## De Infraestructura a Producto SaaS Enterprise
 
-**Generado:** 2026-03-25 | **Actualizado:** 2026-03-25
-**Última FASE completada:** FASE 19 (Production Readiness — PR #15)
-**Siguiente:** FASE 20 (Deploy a Producción)
-**Objetivo actualizado:** Conseguir primeros clientes · Operaciones completas · Sin prisa, sin atajos
+**Generado:** 2026-03-25 | **Actualizado:** 2026-03-28
+**Última FASE completada:** FASE 25 (RBAC — PR #22 merged)
+**Siguiente:** FASE 26 (Notificaciones en Tiempo Real)
+**Objetivo:** Producto SaaS completo · Clientes activos · Escalabilidad enterprise
 
 ---
 
 ## TABLA DE CONTENIDOS
+### ✅ Fases Completadas
 1. [Estado Actual](#estado-actual)
-2. [FASE 12: Infraestructura Base](#fase-12-infraestructura-base)
-3. [FASE 13: Motor de Facturación CFDI UI](#fase-13-motor-de-facturación-cfdi-ui)
-4. [FASE 14: Interconexiones Críticas](#fase-14-interconexiones-críticas)
-5. [FASE 15: RRHH Completo](#fase-15-rrhh-completo)
-6. [FASE 16: Finanzas Módulos](#fase-16-finanzas-módulos)
-7. [FASE 17: SCM Inventarios](#fase-17-scm-inventarios)
-8. [FASE 18: CRM + BI](#fase-18-crm--bi)
-9. [FASE 19: Production Readiness](#fase-19-production-readiness)
-10. [FASE 20: Deploy a Producción](#fase-20-deploy-a-producción)
-11. [FASE 21: Onboarding Público + Registro de Tenant](#fase-21-onboarding-público--registro-de-tenant)
-12. [FASE 22: Stripe Billing](#fase-22-stripe-billing)
-13. [FASE 23: Landing Page](#fase-23-landing-page)
-14. [FASE 24: Reportes PDF / Excel](#fase-24-reportes-pdf--excel)
-15. [FASE 25: RBAC — Roles y Permisos](#fase-25-rbac--roles-y-permisos)
-16. [Decisiones Arquitectónicas](#decisiones-arquitectónicas)
-17. [Timeline y Pull Requests](#timeline-y-pull-requests)
+2. FASE 12–19: MVP Sistema Completo *(ver secciones en el documento)*
+3. FASE 20–25: Producto SaaS Lanzado *(ver secciones en el documento)*
+
+### 🚀 Próximas Fases
+16. [FASE 26: Notificaciones en Tiempo Real](#fase-26-notificaciones-en-tiempo-real)
+17. [FASE 27: Portal del Cliente](#fase-27-portal-del-cliente)
+18. [FASE 28: BI Dashboard Real](#fase-28-bi-dashboard-real)
+19. [FASE 29: POS Completo](#fase-29-pos-completo)
+20. [FASE 30: Calendario / Citas](#fase-30-calendario--citas)
+21. [FASE 31: SCM Compras + Logística](#fase-31-scm-compras--logística)
+22. [FASE 32: CRM Marketing + Soporte](#fase-32-crm-marketing--soporte)
+23. [FASE 33: MRP Real](#fase-33-mrp-real)
+24. [FASE 34: RRHH Asistencia + Documentos](#fase-34-rrhh-asistencia--documentos)
+25. [FASE 35: Multi-idioma (i18n)](#fase-35-multi-idioma-i18n)
+26. [FASE 36: PWA + Offline](#fase-36-pwa--offline)
+27. [FASE 37: Integraciones Externas](#fase-37-integraciones-externas)
+28. [FASE 38: AI Copilot](#fase-38-ai-copilot)
+29. [FASE 39: Marketplace de Integraciones](#fase-39-marketplace-de-integraciones)
+30. [FASE 40: Enterprise Multi-empresa](#fase-40-enterprise-multi-empresa)
+
+31. [Decisiones Arquitectónicas](#decisiones-arquitectónicas)
 
 ---
 
@@ -42,8 +48,14 @@
 ✅ FASE 16: Finanzas Módulos — Impuestos, Cobranza, Caja Chica desde Prisma (PR #12 merged)
 ✅ FASE 17: SCM Inventarios — Warehouse + StockMovement + Catálogo real (PR #13 merged)
 ✅ FASE 18: CRM Pipeline Kanban + BI Dashboard con datos Prisma (PR #14 merged)
-✅ FASE 19: Production Readiness — Error Boundaries, Security Headers, 63 Tests (PR #15 abierto)
-🚀 FASE 20-25: Pendiente
+✅ FASE 19: Production Readiness — Error Boundaries, Security Headers, 63 Tests (PR #15 merged)
+✅ FASE 20: Deploy a Producción — Vercel + CI/CD + Health Check (PR #16 merged)
+✅ FASE 21: Onboarding Wizard 3 pasos + Email bienvenida (PR #17 merged)
+✅ FASE 22: Stripe Billing — Checkout + Webhook + Portal + Pricing UI (PR #18 merged)
+✅ FASE 23: Landing Page CIFRA — Hero + Módulos + Perfiles + Precios (PR #20 merged)
+✅ FASE 24: Reportes PDF/Excel — CFDI, Estado de Cuenta, Nómina (PR #21 merged)
+✅ FASE 25: RBAC — Roles, permisos por ruta, AuditLog, UserRoleManager (PR #22 merged)
+🚀 FASE 26-40: Pendiente
 ```
 
 ### Base de datos actual (post-FASE 19)
@@ -66,13 +78,13 @@ Models Prisma: 36+ modelos
 - StockMovement ✅ (auditoría de movimientos)
 - PipelineColumn ✅ (kanban etapas)
 - Deal ✅ (CRM deals con probabilidad)
-- ⚠️ Subscription (Stripe) ❌ NO EXISTE (FASE 22)
-- ⚠️ UserRole / Permission ❌ NO EXISTE (FASE 25)
+- Subscription ✅ (Stripe — stripeSubscriptionId, stripePriceId, status)
+- AuditLog ✅ (FASE 25 — tenantId, actorId, action, severity, oldData/newData)
 ```
 
-### Módulos implementados (post-FASE 19)
+### Módulos implementados (post-FASE 25)
 ```
-✅ REAL — Prisma-only, datos reales (16 rutas):
+✅ REAL — Prisma-only, datos reales:
   - /dashboard (KPIs: ingresos, gastos, clientes, utilidad)
   - /admin (tenant manager, module control)
   - /pos (POS terminal, checkout, ticket)
@@ -90,13 +102,18 @@ Models Prisma: 36+ modelos
   - /bi (BI dashboard: tendencia, top productos, funnel)
   - /factura-tu-ticket (public auto-invoice)
 
-⚠️ FALTA (bloqueadores para primeros clientes):
-  1. Sistema no tiene URL pública — solo corre en localhost (FASE 20)
-  2. No hay registro público de tenants (FASE 21)
-  3. No hay cobro — tenants no pueden pagar (FASE 22)
-  4. No hay landing page para adquirir clientes (FASE 23)
-  5. No hay exportación PDF/Excel para contador (FASE 24)
-  6. No hay roles — cualquier usuario ve todo (FASE 25)
+✅ BLOQUEADORES RESUELTOS (FASES 20-25):
+  1. ✅ URL pública en producción — cifra-mx.vercel.app (FASE 20)
+  2. ✅ Registro público de tenants con wizard onboarding (FASE 21)
+  3. ✅ Stripe Billing — checkout, webhooks, portal (FASE 22)
+  4. ✅ Landing Page pública con pricing (FASE 23)
+  5. ✅ Exportación PDF/Excel — CFDI, Estado de Cuenta, Nómina (FASE 24)
+  6. ✅ RBAC — roles ADMIN/MANAGER/OPERATIVE, audit log (FASE 25)
+
+🎯 SIGUIENTE NIVEL (FASES 26-40):
+  - Notificaciones, Portal Cliente, BI real, POS completo, Calendario
+  - SCM Compras, CRM Soporte/Marketing, MRP, RRHH Asistencia
+  - i18n, PWA, Integraciones externas, AI Copilot, Multi-empresa
 ```
 
 ---
@@ -4038,32 +4055,470 @@ export async function inviteUser(data: { email: string; role: string }) {
 ## ROADMAP VISUAL COMPLETO
 
 ```
-FASES 12-19 ✅ ─────── MVP Sistema Completo
+FASES 12-19 ✅ ─── MVP Sistema Completo
+FASES 20-25 ✅ ─── Producto SaaS Lanzado (cifra-mx.vercel.app)
                               │
                               ▼
-FASE 20: Deploy           URL Pública
-         (2h)              en Vercel
+              ┌───────────────────────────────────┐
+              │   PRIORIDAD ALTA — Core Producto   │
+              └───────────────────────────────────┘
+FASE 26 (M)   Notificaciones    Badge en header, 5 tipos de alerta
+FASE 27 (M)   Portal Cliente    /portal/[token] sin login al ERP
+FASE 28 (M)   BI Real           Prisma → Recharts, KPIs reales
+FASE 29 (L)   POS Completo      UI cobro, carrito, ticket PDF
+FASE 30 (L)   Calendario        Vistas mes/semana, eventos automáticos
                               │
                               ▼
-FASE 21: Onboarding       Nuevos clientes
-         (2h)              pueden registrarse
+              ┌──────────────────────────────────────┐
+              │  PRIORIDAD MEDIA — Módulos Completos  │
+              └──────────────────────────────────────┘
+FASE 31 (L)   SCM Compras       PurchaseOrder → StockMovement auto
+FASE 32 (L)   CRM Full          Campañas email + Tickets SLA
+FASE 33 (L)   MRP Real          BOM, órdenes producción, calidad
+FASE 34 (L)   RRHH+             Checador, Storage docs, NPS
                               │
                               ▼
-FASE 22: Stripe           Clientes pueden
-         (2.5h)            pagar y suscribirse
+              ┌──────────────────────────────────────┐
+              │    PRIORIDAD BAJA — Crecimiento       │
+              └──────────────────────────────────────┘
+FASE 35 (L)   i18n              ES/EN con next-intl
+FASE 36 (L)   PWA               Offline mode + Push notifications
+FASE 37 (XL)  Integraciones     SAT webservice + CLABE + WhatsApp
+FASE 38 (L)   AI Copilot        Claude API sobre datos del tenant
+FASE 39 (XL)  Marketplace       CONTPAQi, Shopify, MercadoLibre
+FASE 40 (XL)  Enterprise        Multi-empresa, consolidación, holding
                               │
                               ▼
-FASE 23: Landing          Canal de adquisición
-         (1.5h)            orgánica + SEO
-                              │
-                              ▼
-FASE 24: PDFs/Excel       Contadores y clientes
-         (2h)              reciben documentos
-                              │
-                              ▼
-FASE 25: RBAC             Equipos completos
-         (2h)              con roles seguros
-                              │
-                              ▼
-                     🚀 PRODUCTO SAAS LANZADO
+                    🏆 PRODUCTO ENTERPRISE COMPLETO
+```
+
+---
+
+## FASES 26–40 — DETALLE
+
+---
+
+# FASE 26: NOTIFICACIONES EN TIEMPO REAL
+## *(Alerta proactiva — el sistema habla con el usuario)*
+
+**Duración estimada:** ~2 días (M)
+**Rama:** `fase26/notificaciones`
+**Dependencias:** FASE 25 merged
+**Objetivo:** Centro de notificaciones en el header con badge, polling y 5 tipos de alerta automática.
+
+### Modelo Prisma
+```prisma
+model Notification {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String?  // null = broadcast a todo el tenant
+  type       String   // INVOICE_DUE | PAYMENT_RECEIVED | LOW_STOCK | DEAL_WON | PAYROLL_READY
+  title      String
+  body       String
+  read       Boolean  @default(false)
+  link       String?  // URL de destino al hacer click
+  createdAt  DateTime @default(now())
+  @@index([tenantId, userId, read])
+  @@index([tenantId, createdAt])
+}
+```
+
+### Entregables
+```
+🗄️ SCHEMA
+  [ ] Modelo Notification en prisma/schema.prisma
+  [ ] Migración: prisma/migrations/.../migration.sql
+
+🔌 API
+  [ ] GET  /api/notifications        → lista no-leídas del usuario
+  [ ] PATCH /api/notifications/[id]/read → marcar como leída
+  [ ] PATCH /api/notifications/read-all  → marcar todas leídas
+  [ ] POST  /api/notifications/trigger   → crear notificación (interno)
+
+🔔 COMPONENTE
+  [ ] components/layout/NotificationCenter.tsx (client)
+      - Campana con badge de count no-leídas
+      - Dropdown con lista (max 20)
+      - Clic en notificación → navegar a link + marcar leída
+      - Botón "Marcar todas como leídas"
+      - Polling cada 30 segundos con useEffect
+
+📡 DISPARADORES AUTOMÁTICOS (Server Actions)
+  [ ] Al timbrar factura → notif PAYMENT_RECEIVED al ADMIN
+  [ ] Al calcular nómina → notif PAYROLL_READY a RRHH
+  [ ] Al ganar deal en pipeline → notif DEAL_WON al dueño
+  [ ] Al agregar StockMovement que baja del mínimo → LOW_STOCK
+  [ ] Cron diario → facturas con vencimiento en 3 días → INVOICE_DUE
+
+🎨 INTEGRACIÓN EN LAYOUT
+  [ ] Agregar <NotificationCenter /> en app/(dashboard)/layout.tsx
+```
+
+---
+
+# FASE 27: PORTAL DEL CLIENTE
+## *(El cliente ve sus documentos sin acceso al ERP)*
+
+**Duración estimada:** ~2 días (M)
+**Rama:** `fase27/portal-cliente`
+**Dependencias:** FASE 24 (PDF reports) merged
+**Objetivo:** URL pública `/portal/[token]` donde el cliente puede ver sus facturas, descargar CFDIs y consultar su estado de cuenta, sin login al ERP.
+
+### Modelo Prisma
+```prisma
+model CustomerPortalToken {
+  id           String   @id @default(cuid())
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  token        String   @unique @default(cuid())
+  expiresAt    DateTime
+  lastAccessAt DateTime?
+  createdAt    DateTime @default(now())
+  @@index([token])
+}
+```
+
+### Entregables
+```
+🗄️ SCHEMA
+  [ ] Modelo CustomerPortalToken
+  [ ] Relación en Customer model
+
+🔌 API
+  [ ] POST /api/portal/generate-link?customerId=xxx → crea token + devuelve URL
+  [ ] GET  /api/portal/[token]/invoices → facturas del cliente (sin auth ERP)
+  [ ] GET  /api/portal/[token]/estado-cuenta → resumen de saldos
+
+🌐 PÁGINAS PÚBLICAS (sin auth)
+  [ ] app/portal/[token]/page.tsx
+      - Validar token + expiresAt
+      - Mostrar: nombre empresa emisora + logo
+      - Lista de facturas con estado (PAGADA/PENDIENTE/VENCIDA)
+      - Botón "Descargar PDF" por factura (reutiliza API FASE 24)
+      - Botón "Descargar Estado de Cuenta" completo
+  [ ] app/portal/[token]/layout.tsx (sin sidebar, branding limpio)
+
+📧 GENERACIÓN Y ENVÍO
+  [ ] Botón "Enviar portal" en /finanzas/cobranza por cliente
+  [ ] Email con link al portal (expira en 30 días)
+  [ ] Server Action: generatePortalLink(customerId)
+```
+
+---
+
+# FASE 28: BI DASHBOARD REAL
+## *(Datos reales de Prisma en los gráficos)*
+
+**Duración estimada:** ~2 días (M)
+**Rama:** `fase28/bi-real`
+**Dependencias:** FASES 13, 14, 15, 16 (datos en BD)
+**Objetivo:** Reemplazar arrays vacíos en /bi con 5 API routes que consultan Prisma y alimentan los charts de Recharts.
+
+### API Routes a crear
+```
+GET /api/bi/ingresos-egresos   → monthly: { mes, ingresos, egresos }[] (JournalEntry)
+GET /api/bi/top-productos       → { nombre, unidades, monto }[] (InvoiceItem)
+GET /api/bi/funnel-crm          → { etapa, count, monto }[] (Deal por PipelineColumn)
+GET /api/bi/kpis                → { mrr, facturadoMes, cobradoMes, empleados, dealsAbiertos }
+GET /api/bi/cobranza-aging      → { bucket, monto }[] (facturas vencidas por rango días)
+```
+
+### Entregables
+```
+🔌 API
+  [ ] app/api/bi/ingresos-egresos/route.ts  (últimos 6 meses desde JournalEntry)
+  [ ] app/api/bi/top-productos/route.ts     (top 5 por InvoiceItem.importe sum)
+  [ ] app/api/bi/funnel-crm/route.ts        (Deal GROUP BY PipelineColumn)
+  [ ] app/api/bi/kpis/route.ts             (agregados rápidos multi-modelo)
+  [ ] app/api/bi/cobranza-aging/route.ts    (Invoice vencidas GROUP BY rango)
+
+📊 UI /bi
+  [ ] Reemplazar useState([]) con fetch a las 5 rutas
+  [ ] Skeleton loaders mientras carga
+  [ ] Filtro de periodo: 3m / 6m / 12m / año actual
+  [ ] Exportar datos como Excel (reutiliza ExcelJS de FASE 24)
+  [ ] Tarjetas KPI con delta vs periodo anterior (↑↓)
+```
+
+---
+
+# FASE 29: POS COMPLETO
+## *(Terminal de punto de venta funcional)*
+
+**Duración estimada:** ~1 semana (L)
+**Rama:** `fase29/pos-completo`
+**Dependencias:** FASE 14 (POS↔CFDI), FASE 17 (inventario)
+**Objetivo:** Construir UI completa de POS: búsqueda productos, carrito, formas de pago, ticket PDF, y creación automática de Invoice Draft.
+
+### Entregables
+```
+🎨 UI /pos
+  [ ] Layout dos paneles: izquierdo (catálogo) + derecho (carrito)
+  [ ] Búsqueda/filtro de productos en tiempo real
+  [ ] Carrito: agregar, quitar, cambiar cantidad, descuento por línea
+  [ ] Cálculo automático subtotal + IVA + total
+  [ ] Modal de pago:
+      - Efectivo (campo "recibido" + cambio automático)
+      - Tarjeta (campo referencia)
+      - Transferencia (campo CLABE)
+  [ ] Selección de cliente (opcional, buscador)
+
+🔌 SERVER ACTIONS
+  [ ] createPosOrder(cartItems, paymentMethod, customerId?)
+      → PosOrder + PosOrderItems en BD
+      → StockMovement por cada producto (tipo OUT)
+      → Invoice DRAFT si hay cliente con RFC
+
+📄 TICKET PDF
+  [ ] components/pos/TicketPDF.tsx (@react-pdf/renderer)
+      - Logo empresa, folio, fecha, hora
+      - Items con cantidad × precio
+      - Subtotal, IVA, Total
+      - Forma de pago + cambio
+      - QR de verificación (si es CFDI)
+  [ ] Descarga automática al cerrar venta
+  [ ] Botón "Reimprimir" en historial
+
+📋 HISTORIAL
+  [ ] /pos/historial → lista de ventas del día/semana
+  [ ] Filtros por fecha, cajero, forma de pago
+  [ ] Totales del turno (corte de caja)
+```
+
+---
+
+# FASE 30: CALENDARIO / CITAS
+## *(Vista temporal unificada del ERP)*
+
+**Duración estimada:** ~1 semana (L)
+**Rama:** `fase30/calendario`
+**Dependencias:** FASE 26 (Notificaciones) recomendado
+**Objetivo:** Módulo /citas completo con vistas mes/semana/día, creación de eventos, y eventos automáticos desde el ERP (facturas vencidas, pagos pendientes, nómina).
+
+### Modelo Prisma
+```prisma
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String?
+  title       String
+  description String?
+  start       DateTime
+  end         DateTime
+  allDay      Boolean  @default(false)
+  type        String   @default("MANUAL")
+  // MANUAL | INVOICE_DUE | PAYROLL_DATE | DEAL_FOLLOWUP | DELIVERY
+  color       String?
+  relatedId   String?  // ID del recurso relacionado (factura, deal, etc.)
+  relatedType String?  // 'Invoice' | 'Deal' | 'PayrollRun'
+  createdAt   DateTime @default(now())
+  @@index([tenantId, start])
+}
+```
+
+### Entregables
+```
+🗄️ SCHEMA
+  [ ] Modelo CalendarEvent + migración
+
+🔌 API
+  [ ] GET  /api/calendar?from=&to= → eventos en rango de fechas
+  [ ] POST /api/calendar           → crear evento
+  [ ] PUT  /api/calendar/[id]      → editar evento
+  [ ] DELETE /api/calendar/[id]    → eliminar evento
+
+🗓️ UI /citas
+  [ ] Vista mensual (grid 7×5 con eventos por día)
+  [ ] Vista semanal (columnas por día, hora en eje Y)
+  [ ] Modal crear/editar evento (título, fecha inicio/fin, tipo, color)
+  [ ] Clic en evento → detalle + link al recurso relacionado
+
+🔗 INTEGRACIÓN AUTOMÁTICA
+  [ ] Al timbrar factura con vencimiento → CalendarEvent INVOICE_DUE
+  [ ] Al cerrar PayrollRun → CalendarEvent PAYROLL_DATE
+  [ ] Al crear Deal con followup_date → CalendarEvent DEAL_FOLLOWUP
+```
+
+---
+
+# FASE 31: SCM COMPRAS + LOGÍSTICA
+## *(Ciclo completo de abastecimiento)*
+
+**Duración estimada:** ~1 semana (L)
+**Rama:** `fase31/scm-compras-logistica`
+**Dependencias:** FASE 17 (inventario)
+
+### Modelos Prisma
+```prisma
+model PurchaseOrder { id, tenantId, supplierId, status, items[], total, ... }
+model PurchaseOrderItem { purchaseOrderId, productId, quantity, unitCost, ... }
+model Supplier { id, tenantId, name, rfc, email, ... }
+model Shipment { id, tenantId, purchaseOrderId, status, trackingNumber, ... }
+```
+
+### Entregables
+```
+[ ] /scm/compras — lista de órdenes de compra con status
+[ ] Modal nueva orden: proveedor, productos, cantidades, precio
+[ ] Al "Recibir mercancía" → StockMovement IN automático
+[ ] PDF de orden de compra (@react-pdf/renderer)
+[ ] /scm/logistica — shipments con tracking, origen/destino
+[ ] CRUD proveedores
+```
+
+---
+
+# FASE 32: CRM MARKETING + SOPORTE
+## *(Ciclo completo de cliente)*
+
+**Duración estimada:** ~1 semana (L)
+**Rama:** `fase32/crm-marketing-soporte`
+
+### Modelos Prisma
+```prisma
+model Campaign { id, tenantId, name, subject, html, status, sentAt, recipients[], ... }
+model SupportTicket { id, tenantId, customerId, title, status, priority, sla, messages[], ... }
+model SupportMessage { id, ticketId, authorId, body, createdAt, ... }
+```
+
+### Entregables
+```
+[ ] /crm/marketing — lista campañas, editor HTML, segmentación por cliente
+[ ] Envío masivo vía Resend (o Nodemailer existente)
+[ ] /crm/soporte — tablero Kanban tickets (OPEN/IN_PROGRESS/RESOLVED)
+[ ] Hilo de mensajes por ticket
+[ ] SLA timer (alerta si > 24h sin respuesta)
+[ ] Email auto-reply al crear ticket
+```
+
+---
+
+# FASE 33: MRP REAL
+## *(Manufactura y control de producción)*
+
+**Duración estimada:** ~1 semana (L)
+**Rama:** `fase33/mrp-real`
+
+### Modelos Prisma
+```prisma
+model BOM { id, tenantId, productId, version, items[] }
+model BOMItem { bomId, componentId, quantity, unit }
+model ProductionOrder { id, tenantId, bomId, quantity, status, startDate, endDate }
+model QualityInspection { id, productionOrderId, result, notes, inspectedAt }
+```
+
+### Entregables
+```
+[ ] /mrp/bom — árbol de componentes drag & drop
+[ ] /mrp/planificacion — órdenes de producción, timeline Gantt simple
+[ ] Al completar orden → descontar componentes del inventario (StockMovement OUT)
+[ ] /mrp/calidad — inspecciones por lote, no-conformidades
+```
+
+---
+
+# FASE 34: RRHH ASISTENCIA + DOCUMENTOS + CULTURA
+## *(Capital humano completo)*
+
+**Duración estimada:** ~1 semana (L)
+**Rama:** `fase34/rrhh-plus`
+
+### Entregables
+```
+[ ] /rrhh — checador visual (reloj entrada/salida con Attendance existente)
+[ ] /rrhh/documentos — upload contratos/credenciales a Supabase Storage
+[ ] /rrhh/cultura — encuesta NPS empleado (1-10 + comentario libre)
+[ ] Reporte mensual de asistencias en Excel (reutiliza ExcelJS)
+[ ] Vacaciones: solicitud → aprobación por ADMIN → descuento días
+```
+
+---
+
+# FASE 35: MULTI-IDIOMA (i18n)
+**Duración estimada:** ~1 semana (L) | **Rama:** `fase35/i18n`
+```
+[ ] next-intl instalado y configurado
+[ ] /messages/es.json — todos los strings en español
+[ ] /messages/en.json — traducción al inglés
+[ ] Toggle ES/EN en el header (persiste en cookie)
+[ ] Fechas y montos formateados según locale
+```
+
+---
+
+# FASE 36: PWA + OFFLINE
+**Duración estimada:** ~1 semana (L) | **Rama:** `fase36/pwa`
+```
+[ ] manifest.json con íconos y theme_color
+[ ] Service Worker (next-pwa o custom)
+[ ] Offline mode: consulta inventario + historial POS sin internet
+[ ] Web Push API: suscripción + envío desde servidor
+[ ] IndexedDB cache para datos críticos
+```
+
+---
+
+# FASE 37: INTEGRACIONES EXTERNAS
+**Duración estimada:** ~2 semanas (XL) | **Rama:** `fase37/integraciones`
+```
+[ ] SAT: consulta estatus CFDI vía webservice (verificacfdi.sat.gob.mx)
+[ ] Bancos: validación CLABE (18 dígitos + dígito verificador)
+[ ] Conciliación bancaria: upload CSV/OFX del banco → match vs JournalEntry
+[ ] WhatsApp Business API: envío facturas + notificaciones por WA
+[ ] Webhook genérico: recibir eventos de terceros (n8n, Zapier)
+```
+
+---
+
+# FASE 38: AI COPILOT (CIFRA IA)
+**Duración estimada:** ~1 semana (L) | **Rama:** `fase38/ai-copilot`
+```
+[ ] Widget flotante en todas las páginas del dashboard
+[ ] Integración con Claude API (Anthropic claude-sonnet-4-6)
+[ ] Contexto RAG: últimas 50 facturas + inventario + nómina del tenant
+[ ] Preguntas de ejemplo:
+    "¿Cuánto facturé este mes vs el anterior?"
+    "¿Qué productos están por agotarse?"
+    "¿Cuál es mi utilidad neta del trimestre?"
+[ ] Streaming de respuesta (SSE / ReadableStream)
+[ ] Historial de conversación por sesión
+```
+
+---
+
+# FASE 39: MARKETPLACE DE INTEGRACIONES
+**Duración estimada:** ~2 semanas (XL) | **Rama:** `fase39/marketplace`
+```
+[ ] /settings/integraciones — panel con conectores disponibles
+[ ] CONTPAQi Nube — exportar pólizas contables en formato DIOT
+[ ] Shopify — sync productos e inventario bidireccional
+[ ] WooCommerce — sync pedidos → PosOrder automático
+[ ] MercadoLibre — sync órdenes + actualización stock
+[ ] Cada conector: OAuth o API Key + webhook de eventos
+```
+
+---
+
+# FASE 40: ENTERPRISE MULTI-EMPRESA
+**Duración estimada:** ~2 semanas (XL) | **Rama:** `fase40/multi-empresa`
+
+### Modelo Prisma
+```prisma
+model UserTenantMembership {
+  id       String @id @default(cuid())
+  userId   String
+  tenantId String
+  role     Role
+  @@unique([userId, tenantId])
+}
+```
+
+### Entregables
+```
+[ ] Un usuario puede pertenecer a múltiples tenants
+[ ] Selector de empresa en el header (dropdown con switch instantáneo)
+[ ] Reportes consolidados cross-tenant (ingresos grupo holding)
+[ ] Permisos granulares por empresa (ADMIN en empresa A, OPERATIVE en empresa B)
+[ ] Facturación Stripe grupal (un plan que cubre N empresas)
+[ ] Exportación consolidada: balance general grupo + estado de resultados grupo
 ```
