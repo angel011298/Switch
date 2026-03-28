@@ -57,6 +57,7 @@ const ALWAYS_ALLOWED = [
 
 // Rutas publicas (sin autenticacion)
 const PUBLIC_ROUTES = [
+  '/',                  // Landing page — siempre pública
   '/login',
   '/auth',
   '/recuperar',
@@ -118,7 +119,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && pathname === '/login') {
+  // Usuario autenticado en la landing o en login → ir al dashboard
+  if (user && (pathname === '/' || pathname === '/login')) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
