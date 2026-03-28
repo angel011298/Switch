@@ -209,13 +209,43 @@ export async function checkout(input: CheckoutInput) {
     include: { items: true },
   });
 
-  // Descontar stock si aplica
+  // Descontar stock + registrar movimiento de inventario
+  const warehouseDefault = await prisma.warehouse.findFirst({
+    where: { tenantId, isDefault: true, active: true },
+    select: { id: true },
+  });
+
   for (const item of input.items) {
     const product = await prisma.product.findUnique({
       where: { id: item.productId },
-      select: { trackStock: true },
+      select: { trackStock: true, stock: true },
     });
-    if (product?.trackStock) {
+    if (product?.trackStock && warehouseDefault) {
+      const qty = Math.ceil(item.quantity);
+      const quantityBefore = product.stock;
+      const quantityAfter = Math.max(0, quantityBefore - qty);
+
+      await prisma.$transaction([
+        prisma.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: qty } },
+        }),
+        prisma.stockMovement.create({
+          data: {
+            tenantId,
+            warehouseId: warehouseDefault.id,
+            productId: item.productId,
+            type: 'SALIDA',
+            quantity: -qty,
+            quantityBefore,
+            quantityAfter,
+            reference: order.ticketCode,
+            notes: `Venta POS #${order.ticketCode}`,
+          },
+        }),
+      ]);
+    } else if (product?.trackStock) {
+      // No hay almacén configurado, solo decrementar stock
       await prisma.product.update({
         where: { id: item.productId },
         data: { stock: { decrement: Math.ceil(item.quantity) } },
