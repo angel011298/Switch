@@ -1107,3 +1107,25 @@ model CustomerPortalToken {
   @@index([token])
   @@index([customerId])
 }
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String?
+  title       String
+  description String?
+  start       DateTime
+  end         DateTime
+  allDay      Boolean  @default(false)
+  type        String   @default("MANUAL")
+  // MANUAL | INVOICE_DUE | PAYROLL_DATE | DEAL_FOLLOWUP | DELIVERY
+  color       String?
+  relatedId   String?
+  relatedType String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, start])
+  @@index([tenantId, type])
+}
