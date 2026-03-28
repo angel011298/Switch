@@ -1129,3 +1129,79 @@ model CalendarEvent {
   @@index([tenantId, start])
   @@index([tenantId, type])
 }
+
+// ─── FASE 31: SCM Compras + Logística ────────────────────────────────────────
+
+model Supplier {
+  id           String          @id @default(cuid())
+  tenantId     String
+  name         String
+  rfc          String?
+  email        String?
+  phone        String?
+  address      String?
+  contactName  String?
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+
+  @@index([tenantId])
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  tenantId    String
+  supplierId  String?
+  supplier    Supplier?           @relation(fields: [supplierId], references: [id])
+  orderNumber Int
+  status      String              @default("DRAFT")
+  // DRAFT | SENT | PARTIAL | RECEIVED | CANCELLED
+  notes       String?
+  total       Decimal             @default(0) @db.Decimal(14,2)
+  expectedAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  items       PurchaseOrderItem[]
+  shipments   Shipment[]
+
+  @@unique([tenantId, orderNumber])
+  @@index([tenantId, status])
+}
+
+model PurchaseOrderItem {
+  id               String        @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId        String?
+  productName      String
+  quantity         Decimal       @db.Decimal(14,4)
+  quantityReceived Decimal       @default(0) @db.Decimal(14,4)
+  unitCost         Decimal       @db.Decimal(14,4)
+  subtotal         Decimal       @db.Decimal(14,2)
+
+  @@index([purchaseOrderId])
+}
+
+model Shipment {
+  id              String        @id @default(cuid())
+  tenantId        String
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  trackingNumber  String?
+  carrier         String?
+  status          String        @default("PENDING")
+  // PENDING | IN_TRANSIT | DELIVERED | RETURNED
+  origin          String?
+  destination     String?
+  estimatedAt     DateTime?
+  deliveredAt     DateTime?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([tenantId, status])
+  @@index([purchaseOrderId])
+}
