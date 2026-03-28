@@ -446,6 +446,7 @@ model Customer {
 
   isActive          Boolean     @default(true)
   deals             Deal[]      // FASE 18: CRM pipeline
+  portalTokens      CustomerPortalToken[]  // FASE 27: Portal público
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -1092,4 +1093,17 @@ model Notification {
 
   @@index([tenantId, userId, read])
   @@index([tenantId, createdAt])
+}
+
+model CustomerPortalToken {
+  id           String    @id @default(cuid())
+  customerId   String
+  customer     Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  token        String    @unique @default(cuid())
+  expiresAt    DateTime
+  lastAccessAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([token])
+  @@index([customerId])
 }

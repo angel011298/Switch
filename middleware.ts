@@ -66,6 +66,7 @@ const PUBLIC_ROUTES = [
   '/restablecer',
   '/api/webhooks',
   '/factura-tu-ticket',
+  '/portal',            // FASE 27: Portal público del cliente (sin auth)
 ];
 
 export async function middleware(request: NextRequest) {
