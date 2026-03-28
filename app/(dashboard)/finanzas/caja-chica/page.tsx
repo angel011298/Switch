@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Caja Chica
+ * CIFRA — Caja Chica
  * ========================
  * FASE 16: Fondo fijo con CRUD de gastos desde Prisma.
  * Póliza contable automática por cada gasto registrado.

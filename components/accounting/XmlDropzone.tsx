@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Dropzone para XMLs (ZIP)
+ * CIFRA — Dropzone para XMLs (ZIP)
  * ======================================
  * Componente drag-and-drop para subir archivos .ZIP
  * con cientos de XMLs CFDI para contabilización automática.

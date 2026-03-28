@@ -67,15 +67,15 @@ export default function SignInPage() {
         
         {/* Logo corregido: Sin fondo blanco para que respete tu PNG */}
         <div className="mb-8">
-          <img src="/logo-dark.png" alt="Switch Logo" className="h-12 w-auto object-contain hidden dark:block" />
-          <img src="/logo-light.png" alt="Switch Logo" className="h-12 w-auto object-contain block dark:hidden" />
+          <img src="/logo-dark.png" alt="CIFRA" className="h-12 w-auto object-contain hidden dark:block" />
+          <img src="/logo-light.png" alt="CIFRA" className="h-12 w-auto object-contain block dark:hidden" />
         </div>
         
         <h2 className="text-center text-3xl font-black text-neutral-900 dark:text-white tracking-tight">
           Bienvenido de vuelta
         </h2>
         <p className="mt-2 text-center text-sm text-neutral-500 dark:text-neutral-400 font-medium">
-          Accede a tu panel de control Switch
+          Accede a tu panel de control CIFRA
         </p>
       </div>
 

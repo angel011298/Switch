@@ -1,5 +1,5 @@
 /**
- * Switch OS — Catálogo de Cuentas SAT (Anexo 24)
+ * CIFRA — Catálogo de Cuentas SAT (Anexo 24)
  * ================================================
  * Catálogo base de cuentas contables conforme al Anexo 24 del SAT.
  * Se usa para hacer seed del catálogo al crear un tenant.

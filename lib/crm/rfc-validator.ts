@@ -1,5 +1,5 @@
 /**
- * Switch OS — Validador de RFC (Registro Federal de Contribuyentes)
+ * CIFRA — Validador de RFC (Registro Federal de Contribuyentes)
  * ==================================================================
  * Valida el formato del RFC según las reglas oficiales del SAT.
  *

@@ -1,5 +1,5 @@
 /**
- * Switch OS — Definición de Planes
+ * CIFRA — Definición de Planes
  * ===================================
  * Starter  : módulos básicos (POS, CFDI, CRM, Inventario)
  * Pro      : todos los módulos operativos

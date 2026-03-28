@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Onboarding Obligatorio
+ * CIFRA — Onboarding Obligatorio
  * ====================================
  * FASE 12: Captura perfil fiscal antes de usar el sistema.
  * Sin RFC y datos fiscales no se puede emitir CFDI 4.0.
@@ -110,7 +110,7 @@ export default function OnboardingPage() {
             <div className="h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center">
               <Building2 className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-black text-white">Switch OS</span>
+            <span className="text-2xl font-black text-white">CIFRA</span>
           </div>
           <h1 className="text-3xl font-black text-white leading-tight">
             Configura tu empresa

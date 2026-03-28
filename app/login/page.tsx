@@ -159,8 +159,8 @@ function LoginForm() {
     <div className="w-full max-w-md p-10 bg-white/70 dark:bg-neutral-900/70 backdrop-blur-xl border border-white/20 dark:border-neutral-700/30 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 my-8">
       <div className="text-center space-y-3 mb-8">
         <div className="mx-auto h-16 w-auto flex items-center justify-center mb-6">
-          <img src="/logo-light.png" alt="Switch OS" className="max-h-full max-w-full object-contain dark:hidden" />
-          <img src="/logo-dark.png" alt="Switch OS" className="max-h-full max-w-full object-contain hidden dark:block" />
+          <img src="/logo-light.png" alt="CIFRA" className="max-h-full max-w-full object-contain dark:hidden" />
+          <img src="/logo-dark.png" alt="CIFRA" className="max-h-full max-w-full object-contain hidden dark:block" />
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
           {isLogin ? 'Iniciar Sesión' : 'Prueba Gratuita (14 días)'}

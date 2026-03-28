@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Configuración del CSD (Certificado de Sello Digital)
+ * CIFRA — Configuración del CSD (Certificado de Sello Digital)
  * =================================================================
  * FASE 13: Upload de .cer + .key + contraseña para habilitar timbrado.
  * Muestra el CSD activo si ya existe.

@@ -1,5 +1,5 @@
 /**
- * Switch OS — Tests: Validador RFC
+ * CIFRA — Tests: Validador RFC
  * ==================================
  * Prueba el validador de RFC conforme a CFF Art. 27
  * y las reglas del Anexo 20 CFDI 4.0.

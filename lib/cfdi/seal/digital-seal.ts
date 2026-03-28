@@ -1,5 +1,5 @@
 /**
- * Switch OS — Sello Digital CFDI 4.0
+ * CIFRA — Sello Digital CFDI 4.0
  * ====================================
  * Firma la cadena original con SHA256-RSA usando crypto nativo.
  *

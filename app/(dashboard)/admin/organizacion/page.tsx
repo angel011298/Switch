@@ -12,7 +12,7 @@ export default function OrganizationPage() {
 
   // Datos simulados (En producción vienen de Supabase)
   const [orgData] = useState({
-    name: 'Ad Astra',
+    name: 'CIFRA Demo',
     rfc: 'AAS260312XYZ',
     regimen: '601 - General de Ley Personas Morales',
     status: 'active'
@@ -178,7 +178,7 @@ export default function OrganizationPage() {
                     </thead>
                     <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800 text-sm">
                       <tr className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
-                        <td className="p-4 font-bold text-neutral-900 dark:text-white">Ad Astra S.A.P.I. de C.V.</td>
+                        <td className="p-4 font-bold text-neutral-900 dark:text-white">CIFRA Demo S.A.P.I. de C.V.</td>
                         <td className="p-4 font-mono text-neutral-500">AAS260312XYZ</td>
                         <td className="p-4"><span className="bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded text-xs font-bold">2 Activas</span></td>
                         <td className="p-4">
@@ -195,7 +195,7 @@ export default function OrganizationPage() {
                       </tr>
                       {/* Entidad Archivada (Soft Delete Example) */}
                       <tr className="bg-neutral-50/50 dark:bg-neutral-900/50 opacity-75">
-                        <td className="p-4 font-bold text-neutral-500 line-through decoration-neutral-300">Switch Operadora S.A.</td>
+                        <td className="p-4 font-bold text-neutral-500 line-through decoration-neutral-300">CIFRA Operadora S.A.</td>
                         <td className="p-4 font-mono text-neutral-400">SWO210101ABC</td>
                         <td className="p-4 text-neutral-400">0 Activas</td>
                         <td className="p-4">--</td>

@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Server Actions: Auto-Factura Pública
+ * CIFRA — Server Actions: Auto-Factura Pública
  * ==================================================
  * Acciones para la vista pública de auto-facturación.
  * NO requieren autenticación (es una página pública).

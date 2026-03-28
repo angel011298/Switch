@@ -4,9 +4,15 @@ import { Providers } from './providers'
 import '../styles/main.css'
 
 export const metadata: Metadata = {
-  title: 'Switch',
+  title: 'CIFRA',
+  description: 'ERP y CRM Fiscal para empresas mexicanas · CFDI 4.0',
   icons: {
-    icon: '/icon.png?v=2',
+    icon:    '/favicon.ico',
+    apple:   '/icon-192.png',
+    other: [
+      { rel: 'icon', url: '/icon-192.png', sizes: '192x192' },
+      { rel: 'icon', url: '/icon-512.png', sizes: '512x512' },
+    ],
   },
 }
 

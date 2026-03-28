@@ -141,7 +141,7 @@ export default function PlanificacionProduccionPage() {
               {/* MOCK VISUAL DE GANTT */}
               <div className="space-y-4 font-mono">
                 {[
-                  { label: 'Ensamblado Ad Astra X2', start: '10%', width: '50%', color: 'bg-rose-500', status: 'Iniciado' },
+                  { label: 'Ensamblado CIFRA Demo X2', start: '10%', width: '50%', color: 'bg-rose-500', status: 'Iniciado' },
                   { label: 'Calibración Láser', start: '60%', width: '20%', color: 'bg-rose-500', status: 'Dependiente' },
                   { label: 'Control de Calidad', start: '80%', width: '15%', color: 'bg-emerald-500', status: 'Planificado' },
                 ].map((task, i) => (
@@ -271,7 +271,7 @@ export default function PlanificacionProduccionPage() {
                   <FileSignature className="h-12 w-12 text-rose-500 mx-auto mb-4" />
                   <h3 className="text-xl font-black text-neutral-900 dark:text-white">Firma de Responsabilidad de Plan</h3>
                   <p className="text-sm text-neutral-500 mt-2">
-                    Cualquier cambio manual en el plan maestro (MPS) requiere firma digital AllSafe. Los retrasos detectados afectarán proactivamente los contratos en el módulo Legal.
+                    Cualquier cambio manual en el plan maestro (MPS) requiere firma digital CIFRA. Los retrasos detectados afectarán proactivamente los contratos en el módulo Legal.
                   </p>
                 </div>
 

@@ -25,7 +25,7 @@ export default function MyAccountPage() {
             <div>
               <h1 className="text-3xl font-black text-neutral-950 dark:text-white tracking-tight">Mi Cuenta</h1>
               <p className="text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase tracking-widest mt-1">
-                Propietario del Sistema • Ad Astra HQ
+                Propietario del Sistema • CIFRA HQ
               </p>
             </div>
           </div>
@@ -44,7 +44,7 @@ export default function MyAccountPage() {
             {[
               { id: 'perfil', label: 'Identidad y Perfil', icon: UserCircle },
               { id: 'seguridad', label: 'Seguridad (2FA)', icon: Shield },
-              { id: 'facturacion', label: 'Suscripción Switch', icon: CreditCard },
+              { id: 'facturacion', label: 'Suscripción CIFRA', icon: CreditCard },
               { id: 'preferencias', label: 'Preferencias UI', icon: Settings },
               { id: 'sesiones', label: 'Auditoría Personal', icon: Activity },
               { id: 'notificaciones', label: 'Centro de Alertas', icon: Bell },
@@ -312,7 +312,7 @@ export default function MyAccountPage() {
               <div className="space-y-8 animate-in fade-in duration-300">
                 <div>
                   <h2 className="text-xl font-black text-neutral-900 dark:text-white">Centro de Alertas</h2>
-                  <p className="text-sm text-neutral-500">Controla cómo Switch se comunica contigo.</p>
+                  <p className="text-sm text-neutral-500">Controla cómo CIFRA se comunica contigo.</p>
                 </div>
 
                 <div className="border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">

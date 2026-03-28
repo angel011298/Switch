@@ -45,7 +45,7 @@ export default function LegalModulePage() {
       id: 'DOC-1005',
       titulo: 'Acta Constitutiva y Fusión',
       tipo: 'Corporativo',
-      contraparte: 'Ad Astra S.A.P.I.',
+      contraparte: 'CIFRA Demo S.A.P.I.',
       nivelSec: 'L3',
       estatus: 'Vigente',
       vinculoFinanzas: 'Global',

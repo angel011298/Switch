@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Finanzas Server Actions
+ * CIFRA — Finanzas Server Actions
  * =====================================
  * FASE 16: Impuestos, Cobranza y Balanza de Comprobación.
  * Migrado de tablas legacy Supabase → Prisma puro.

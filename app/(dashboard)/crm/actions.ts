@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Server Actions: CRM Onboarding Fiscal
+ * CIFRA — Server Actions: CRM Onboarding Fiscal
  * ===================================================
  * Acciones para gestionar clientes/terceros fiscales.
  * Incluye escaneo QR → scraping SAT → alta automática.

@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — CRM Pipeline Server Actions
+ * CIFRA — CRM Pipeline Server Actions
  * =========================================
  * FASE 18: Tablero Kanban de oportunidades de venta.
  *

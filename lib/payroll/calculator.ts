@@ -1,5 +1,5 @@
 /**
- * Switch OS — Motor de Cálculo de Nómina
+ * CIFRA — Motor de Cálculo de Nómina
  * =========================================
  * Implementa el cálculo de ISR y cuota obrera IMSS para México 2026.
  *

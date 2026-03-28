@@ -1,5 +1,5 @@
 /**
- * Switch OS — Health Check Endpoint
+ * CIFRA — Health Check Endpoint
  * ====================================
  * Usado por Vercel Monitoring, UptimeRobot o cualquier servicio de alertas.
  *

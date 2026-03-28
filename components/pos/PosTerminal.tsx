@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Terminal del Punto de Venta
+ * CIFRA — Terminal del Punto de Venta
  * =========================================
  * Interfaz principal del POS. Catálogo a la izquierda, carrito a la derecha.
  * Toda la calculadora corre client-side via Zustand.

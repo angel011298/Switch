@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * Switch OS — Middleware de Autenticacion, Autorizacion y Paywall
+ * CIFRA — Middleware de Autenticacion, Autorizacion y Paywall
  * ==================================================================
  * Capa 1: Autenticacion (sesion Supabase via @supabase/ssr v0.9)
  * Capa 2: Paywall — verifica que la suscripcion este vigente (validUntil)

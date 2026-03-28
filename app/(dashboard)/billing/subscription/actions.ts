@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * Switch OS — Stripe Billing Actions (FASE 22)
+ * CIFRA — Stripe Billing Actions (FASE 22)
  * ==============================================
  * createCheckoutSession : genera URL de pago en Stripe Checkout
  * createPortalSession   : abre el Stripe Customer Portal para gestionar sub.
@@ -14,7 +14,7 @@ import stripe from '@/lib/billing/stripe';
 import { PLANS, getPlanBySlug, type PlanSlug } from '@/lib/billing/plans';
 import prisma from '@/lib/prisma';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.switchos.mx';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.cifra.mx';
 
 // ─── Crear sesión de Checkout ─────────────────────────────────────────────────
 

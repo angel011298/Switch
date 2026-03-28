@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 import path from 'path';
 
 /**
- * Switch OS — Vitest Configuration
+ * CIFRA — Vitest Configuration
  * ===================================
  * Tests unitarios para lógica de negocio crítica:
  * - Aritmética CFDI (Anexo 20)

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Página de Suscripción con Stripe (FASE 22)
+ * CIFRA — Página de Suscripción con Stripe (FASE 22)
  * ========================================================
  * Muestra el plan actual + tabla de pricing con los 3 planes.
  * Acciones: Checkout (nuevo), Portal (gestionar existente).

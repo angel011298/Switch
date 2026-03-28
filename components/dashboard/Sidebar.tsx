@@ -101,16 +101,16 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
           <div className="flex flex-col gap-1 overflow-hidden">
             <img
               src="/logo-light.png"
-              alt="Switch OS"
+              alt="CIFRA"
               className="h-8 object-contain object-left block dark:hidden"
             />
             <img
               src="/logo-dark.png"
-              alt="Switch OS"
+              alt="CIFRA"
               className="h-8 object-contain object-left hidden dark:block"
             />
             <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest truncate">
-              Switch OS Workspace
+              CIFRA Workspace
             </p>
           </div>
         ) : (
@@ -118,13 +118,13 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
         )}
       </div>
 
-      {/* AllSafe AI */}
+      {/* CIFRA AI */}
       <div className="px-3 mb-4">
         <button
           className={`w-full flex items-center ${
             isCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'
           } bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl shadow-md transition-all group`}
-          title={isCollapsed ? 'AllSafe AI Assistant' : ''}
+          title={isCollapsed ? 'CIFRA AI' : ''}
         >
           <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
             <Bot
@@ -132,7 +132,7 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
                 isCollapsed ? 'h-6 w-6' : 'h-5 w-5'
               } group-hover:animate-bounce`}
             />
-            {!isCollapsed && <span className="text-sm font-bold">AllSafe AI Chat</span>}
+            {!isCollapsed && <span className="text-sm font-bold">CIFRA AI</span>}
           </div>
           {!isCollapsed && <Sparkles className="h-4 w-4 text-purple-200" />}
         </button>

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — Root Error Boundary
+ * CIFRA — Root Error Boundary
  * =================================
  * Captura errores en páginas fuera del dashboard (login, landing, etc.)
  */
@@ -17,7 +17,7 @@ export default function RootError({
 }) {
   useEffect(() => {
     // En producción aquí se enviaría a un servicio de monitoreo (Sentry, etc.)
-    console.error('[Switch OS] Root error:', error);
+    console.error('[CIFRA] Root error:', error);
   }, [error]);
 
   return (

@@ -1,5 +1,5 @@
 /**
- * Switch OS — Cliente Stripe (singleton)
+ * CIFRA — Cliente Stripe (singleton)
  * =========================================
  * Instancia única de Stripe para toda la app.
  * Versión de API: 2024-04-10 (latest estable)

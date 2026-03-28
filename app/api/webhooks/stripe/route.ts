@@ -1,5 +1,5 @@
 /**
- * Switch OS — Webhook de Stripe
+ * CIFRA — Webhook de Stripe
  * ================================
  * Maneja eventos del ciclo de vida de suscripciones.
  *

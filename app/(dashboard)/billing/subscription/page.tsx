@@ -3,7 +3,7 @@ import { getSwitchSession } from '@/lib/auth/session';
 import { getCurrentSubscription } from './actions';
 import SubscriptionClient from './SubscriptionClient';
 
-export const metadata = { title: 'Suscripción | Switch OS' };
+export const metadata = { title: 'Suscripción | CIFRA' };
 
 export default async function SubscriptionPage() {
   const session = await getSwitchSession();

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Switch OS — SCM Inventarios
+ * CIFRA — SCM Inventarios
  * ============================
  * FASE 17: Gestión real de productos, almacenes y movimientos de stock.
  * Migrado de datos mock → Prisma puro.
