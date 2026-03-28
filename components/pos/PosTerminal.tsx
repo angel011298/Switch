@@ -292,8 +292,16 @@ export default function PosTerminal() {
               <p className="text-zinc-400 text-xs mt-1">
                 Total: ${lastTicket.total.toFixed(2)}
               </p>
-              {/* ── Interconexión POS → CFDI ── */}
-              <div className="flex gap-2 mt-3 justify-center">
+              {/* ── Acciones post-venta ── */}
+              <div className="flex gap-2 mt-3 justify-center flex-wrap">
+                <a
+                  href={`/api/pos/ticket/${lastTicket.orderId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 px-3 bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs font-bold rounded-lg transition-colors text-center"
+                >
+                  🖨️ Ticket
+                </a>
                 <Link
                   href={`/billing/nueva?posOrderId=${lastTicket.orderId}`}
                   className="flex-1 py-2 px-3 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold rounded-lg transition-colors text-center"

@@ -1,20 +1,48 @@
-'use client';
+import { getSwitchSession } from '@/lib/auth/session';
+import prisma from '@/lib/prisma';
+import CorteDeCajaClient from './CorteDeCajaClient';
 
-import ModulePage from '@/components/dashboard/ModulePage';
-import { ShoppingCart } from 'lucide-react';
+export const dynamic = 'force-dynamic';
 
-export default function POSCortePage() {
+export default async function CortePage() {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) return <div className="p-8 text-neutral-500">No autenticado</div>;
+  const tenantId = session.tenantId;
+
+  // Today only
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const orders = await prisma.posOrder.findMany({
+    where: { tenantId, createdAt: { gte: today }, status: 'CLOSED' },
+    select: {
+      paymentMethod: true,
+      total: true,
+      amountPaid: true,
+      changeDue: true,
+    },
+  });
+
+  const byMethod: Record<string, { count: number; total: number }> = {};
+  let grandTotal = 0;
+
+  for (const o of orders) {
+    const m = o.paymentMethod;
+    if (!byMethod[m]) byMethod[m] = { count: 0, total: 0 };
+    byMethod[m].count++;
+    byMethod[m].total += Number(o.total);
+    grandTotal += Number(o.total);
+  }
+
+  const efectivoTotal = byMethod['01']?.total ?? 0;
+
   return (
-    <ModulePage
-      title="Corte de Caja"
-      description="Realiza cortes parciales o de cierre, concilia efectivo, tarjetas y transferencias. Genera reportes de arqueo listos para contabilidad."
-      icon={ShoppingCart}
-      iconColor="text-pink-500"
-      iconBg="bg-pink-50 dark:bg-pink-500/10"
-      breadcrumbs={[
-        { label: 'Punto de Venta', href: '/pos' },
-        { label: 'Corte de Caja' },
-      ]}
+    <CorteDeCajaClient
+      grandTotal={grandTotal}
+      efectivoTotal={efectivoTotal}
+      byMethod={byMethod}
+      ordersCount={orders.length}
+      date={today.toISOString()}
     />
   );
 }
