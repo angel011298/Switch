@@ -13,6 +13,7 @@ import prisma from '@/lib/prisma';
 import { createCfdi, storeCsd } from '@/lib/cfdi';
 import type { CfdiInput } from '@/lib/cfdi';
 import { MockPac } from '@/lib/cfdi/pac/mock-pac';
+import { notifyInvoiceStamped } from '@/lib/notifications/trigger';
 import { revalidatePath } from 'next/cache';
 import { generateJournalFromCfdi, type ParsedCfdiData } from '@/lib/accounting/journal-engine';
 import { createJournalEntryFromInput } from '@/lib/accounting/create-journal';
@@ -255,6 +256,18 @@ export async function createInvoiceAction(input: CfdiInput, posOrderId?: string)
     } catch (posErr) {
       console.warn('[POS→CFDI] No se pudo marcar orden como facturada:', posErr);
     }
+  }
+
+  // ── Notificación: factura timbrada ──────────────────────────────────────────
+  if (result.status === 'STAMPED') {
+    const folio = `${input.serie ?? 'A'}${input.folio ?? ''}`;
+    notifyInvoiceStamped({
+      tenantId: session.tenantId,
+      folio,
+      receptorNombre: input.receptorNombre ?? '',
+      total: Number(input.total ?? 0),
+      invoiceId: result.invoiceId ?? '',
+    }).catch(() => {});
   }
 
   revalidatePath('/billing');

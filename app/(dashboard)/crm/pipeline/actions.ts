@@ -13,6 +13,7 @@
 
 import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
+import { notifyDealWon } from '@/lib/notifications/trigger';
 import { revalidatePath } from 'next/cache';
 
 // ─── TIPOS ───────────────────────────────────────────────────────────────────
@@ -247,6 +248,16 @@ export async function moveDeal(dealId: string, targetColumnId: string): Promise<
       lostAt:   targetColumn.isLost ? new Date() : null,
     },
   });
+
+  // ── Notificación: deal ganado ─────────────────────────────────────────────
+  if (targetColumn.isWon) {
+    notifyDealWon({
+      tenantId: session.tenantId,
+      userId:   session.userId,
+      dealName: deal.title,
+      amount:   Number(deal.value ?? 0),
+    }).catch(() => {});
+  }
 
   revalidatePath('/crm/pipeline');
 }

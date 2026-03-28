@@ -1076,3 +1076,20 @@ model AuditLog {
   @@index([tenantId, action])
   @@index([tenantId, severity])
 }
+
+model Notification {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String?  // null = para todos los usuarios del tenant
+
+  type      String   // INVOICE_DUE | INVOICE_STAMPED | PAYMENT_RECEIVED | LOW_STOCK | DEAL_WON | PAYROLL_READY | ACCESS_DENIED
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  link      String?  // ruta de navegación al hacer click
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, userId, read])
+  @@index([tenantId, createdAt])
+}

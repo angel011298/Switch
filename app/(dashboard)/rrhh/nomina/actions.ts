@@ -10,6 +10,7 @@
 import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { notifyPayrollReady } from '@/lib/notifications/trigger';
 import {
   calculateEmployeePayroll,
   buildPeriod,
@@ -168,6 +169,16 @@ export async function runPayroll(
   }
 
   revalidatePath('/rrhh/nomina');
+
+  // ── Notificación: nómina calculada ──────────────────────────────────────────
+  const totalNeto = employees.reduce((s, e) => s + Number(e.neto), 0);
+  notifyPayrollReady({
+    tenantId,
+    periodLabel: run.periodLabel,
+    employeeCount: employees.length,
+    totalNeto,
+  }).catch(() => {});
+
   return { success: true, runId: run.id, employeeCount: employees.length };
 }
 
