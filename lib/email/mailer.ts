@@ -268,3 +268,31 @@ export async function sendLowStockAlertEmail(input: LowStockAlertInput): Promise
     text: `Alerta de inventario para ${input.tenantName}: ${outOfStock.length} sin stock, ${lowStock.length} bajo mínimo.`,
   });
 }
+
+// ─── sendEmail genérico (para reportes PDF/Excel) ─────────────────────────────
+
+export interface SendEmailOptions {
+  to: string;
+  subject: string;
+  html: string;
+  attachments?: { filename: string; content: Buffer; contentType: string }[];
+}
+
+export async function sendEmail(opts: SendEmailOptions): Promise<void> {
+  const transporter = createTransporter();
+  if (!transporter) {
+    console.warn('[mailer] SMTP no configurado — email omitido:', opts.subject);
+    return;
+  }
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    attachments: opts.attachments?.map(a => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType,
+    })),
+  });
+}
