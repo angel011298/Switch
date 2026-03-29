@@ -7,6 +7,7 @@ import prisma from '@/lib/prisma';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
 import ModuleDeniedToast from '@/components/dashboard/ModuleDeniedToast';
+import { I18nProvider } from '@/lib/i18n/context';
 
 export const metadata = {
   title: 'CIFRA',
@@ -61,35 +62,37 @@ export default async function DashboardLayout({
     : null;
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar dinámico — solo módulos activos */}
-      <Sidebar
-        activeModules={session.activeModules}
-        isSuperAdmin={session.isSuperAdmin}
-        userName={session.name}
-      />
-
-      {/* Área principal */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header con perfil y badge de suscripción */}
-        <Header
-          userName={session.name}
-          userEmail={session.email}
+    <I18nProvider>
+      <div className="flex h-screen overflow-hidden">
+        {/* Sidebar dinámico — solo módulos activos */}
+        <Sidebar
+          activeModules={session.activeModules}
           isSuperAdmin={session.isSuperAdmin}
-          subscriptionStatus={session.subscriptionStatus}
-          daysLeft={daysLeft}
+          userName={session.name}
         />
 
-        {/* Contenido de la página */}
-        <main className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300">
-          {children}
-        </main>
-      </div>
+        {/* Área principal */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header con perfil y badge de suscripción */}
+          <Header
+            userName={session.name}
+            userEmail={session.email}
+            isSuperAdmin={session.isSuperAdmin}
+            subscriptionStatus={session.subscriptionStatus}
+            daysLeft={daysLeft}
+          />
 
-      {/* Toast de módulo denegado */}
-      <Suspense fallback={null}>
-        <ModuleDeniedToast />
-      </Suspense>
-    </div>
+          {/* Contenido de la página */}
+          <main className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300">
+            {children}
+          </main>
+        </div>
+
+        {/* Toast de módulo denegado */}
+        <Suspense fallback={null}>
+          <ModuleDeniedToast />
+        </Suspense>
+      </div>
+    </I18nProvider>
   );
 }
