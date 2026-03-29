@@ -1463,3 +1463,50 @@ model ApiKey {
   @@index([tenantId])
   @@index([keyHash])
 }
+
+// ─── FASE 40: Enterprise Multi-empresa ────────────────────────────────────────
+
+model Organization {
+  id            String    @id @default(cuid())
+  name          String    // Nombre del grupo empresarial
+  slug          String    @unique  // URL-friendly identifier
+  logoUrl       String?
+  ownerId       String    // userId del admin principal
+  plan          String    @default("ENTERPRISE") // ENTERPRISE | HOLDING
+
+  members       OrgMember[]
+  tenants       OrgTenant[]  // Empresas/subsidiarias vinculadas
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([ownerId])
+}
+
+model OrgMember {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  role           String       @default("VIEWER") // OWNER | ADMIN | VIEWER
+
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model OrgTenant {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tenantId       String       // FK to Tenant
+  alias          String?      // Nombre corto/alias dentro del grupo
+  order          Int          @default(0) // Display order
+
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, tenantId])
+  @@index([organizationId])
+}
