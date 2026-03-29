@@ -332,6 +332,8 @@ model Product {
 
   orderItems      PosOrderItem[]
   stockMovements  StockMovement[]  // FASE 17
+  boms           BOM[]              // FASE 33: MRP (producto terminado)
+  bomComponents  BOMItem[]          @relation("BOMComponent")  // FASE 33: componente en BOM
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -1260,4 +1262,68 @@ model SupportMessage {
   createdAt DateTime      @default(now())
 
   @@index([ticketId])
+}
+
+// ─── FASE 33: MRP Real ────────────────────────────────────────────────────────
+
+model BOM {
+  id        String    @id @default(cuid())
+  tenantId  String
+  productId String
+  product   Product   @relation(fields: [productId], references: [id])
+  version   String    @default("1.0")
+  notes     String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  items             BOMItem[]
+  productionOrders  ProductionOrder[]
+
+  @@unique([tenantId, productId, version])
+  @@index([tenantId])
+}
+
+model BOMItem {
+  id          String  @id @default(cuid())
+  bomId       String
+  bom         BOM     @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  componentId String
+  component   Product @relation("BOMComponent", fields: [componentId], references: [id])
+  quantity    Decimal @db.Decimal(14,4)
+  unit        String  @default("pza")
+
+  @@index([bomId])
+}
+
+model ProductionOrder {
+  id          String              @id @default(cuid())
+  tenantId    String
+  bomId       String
+  bom         BOM                 @relation(fields: [bomId], references: [id])
+  quantity    Decimal             @db.Decimal(14,4)
+  status      String              @default("PLANNED")
+  // PLANNED | IN_PROGRESS | COMPLETED | CANCELLED
+  startDate   DateTime?
+  endDate     DateTime?
+  notes       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  inspections QualityInspection[]
+
+  @@index([tenantId, status])
+}
+
+model QualityInspection {
+  id                String          @id @default(cuid())
+  productionOrderId String
+  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
+  result            String          @default("PENDING")
+  // PENDING | PASS | FAIL | CONDITIONAL
+  notes             String?
+  inspectedAt       DateTime?
+  createdAt         DateTime        @default(now())
+
+  @@index([productionOrderId])
 }
