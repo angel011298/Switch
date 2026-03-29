@@ -2,8 +2,8 @@
 ## De Infraestructura a Producto SaaS Enterprise
 
 **Generado:** 2026-03-25 | **Actualizado:** 2026-03-28
-**Última FASE completada:** FASE 34 (RRHH Completo — PR #31 merged)
-**Siguiente:** FASE 35 (Multi-idioma i18n)
+**Última FASE completada:** FASE 35 (Multi-idioma i18n — PR #32 merged)
+**Siguiente:** FASE 36 (PWA + Offline)
 **Objetivo:** Producto SaaS completo · Clientes activos · Escalabilidad enterprise
 
 ---
@@ -64,7 +64,8 @@
 ✅ FASE 32: CRM Completo — Campaign (email masivo), SupportTicket Kanban + hilo mensajes (PR #29 merged)
 ✅ FASE 33: MRP Real — BOM, ProductionOrder, QualityInspection, descontar componentes→StockMovement (PR #30 merged)
 ✅ FASE 34: RRHH Completo — EmployeeDocument, LeaveRequest, PerformanceReview, Clock In/Out, Evaluaciones (PR #31 merged)
-🚀 FASE 35-40: Pendiente
+✅ FASE 35: Multi-idioma i18n — ES/EN, I18nProvider, LanguageSwitcher, /configuracion/idioma (PR #32 merged)
+🚀 FASE 36-40: Pendiente
 ```
 
 ### Base de datos actual (post-FASE 19)

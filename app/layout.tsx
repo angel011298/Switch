@@ -1,11 +1,20 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Providers } from './providers'
+import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
+import { InstallPrompt } from '@/components/pwa/InstallPrompt'
 
 import '../styles/main.css'
 
 export const metadata: Metadata = {
   title: 'CIFRA',
   description: 'ERP y CRM Fiscal para empresas mexicanas · CFDI 4.0',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'CIFRA ERP',
+  },
+  formatDetection: { telephone: false },
   icons: {
     icon:    '/favicon.ico',
     apple:   '/icon-192.png',
@@ -16,11 +25,21 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  themeColor: '#3b82f6',
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+  userScalable: false,
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
       <body className="bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 transition-colors duration-300">
         <Providers>{children}</Providers>
+        <ServiceWorkerRegistration />
+        <InstallPrompt />
       </body>
     </html>
   )
