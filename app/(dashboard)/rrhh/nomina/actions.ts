@@ -171,12 +171,11 @@ export async function runPayroll(
   revalidatePath('/rrhh/nomina');
 
   // ── Notificación: nómina calculada ──────────────────────────────────────────
-  const totalNeto = employees.reduce((s, e) => s + Number(e.neto), 0);
   notifyPayrollReady({
     tenantId,
     periodLabel: run.periodLabel,
     employeeCount: employees.length,
-    totalNeto,
+    totalNeto,           // usa el ya calculado en línea 103
   }).catch(() => {});
 
   return { success: true, runId: run.id, employeeCount: employees.length };
