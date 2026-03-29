@@ -8,6 +8,7 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
 import ModuleDeniedToast from '@/components/dashboard/ModuleDeniedToast';
 import { I18nProvider } from '@/lib/i18n/context';
+import { CopilotChat } from '@/components/ai/CopilotChat';
 
 export const metadata = {
   title: 'CIFRA',
@@ -93,6 +94,7 @@ export default async function DashboardLayout({
           <ModuleDeniedToast />
         </Suspense>
       </div>
+      <CopilotChat />
     </I18nProvider>
   );
 }
