@@ -815,6 +815,9 @@ model Employee {
   // Relaciones
   attendances     Attendance[]
   payrollItems    PayrollItem[]  // FASE 15
+  documents       EmployeeDocument[]
+  leaveRequests   LeaveRequest[]
+  reviews         PerformanceReview[]
 
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -1326,4 +1329,74 @@ model QualityInspection {
   createdAt         DateTime        @default(now())
 
   @@index([productionOrderId])
+}
+
+// ─── FASE 34: RRHH Documentos + Vacaciones + Desempeño ────────────────────────
+
+model EmployeeDocument {
+  id           String    @id @default(cuid())
+  tenantId     String
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  type         String    // CONTRATO | NDA | CONSTANCIA | ALTA_IMSS | BAJA_IMSS | OTRO
+  name         String    // Nombre descriptivo del documento
+  fileUrl      String    // URL pública o path en storage
+  fileSize     Int?      // Bytes
+  mimeType     String?
+
+  expiresAt    DateTime? // Para documentos con vigencia
+  notes        String?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([employeeId])
+}
+
+model LeaveRequest {
+  id           String    @id @default(cuid())
+  tenantId     String
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  type         String    // VACACIONES | PERMISO | INCAPACIDAD | DUELO
+  startDate    DateTime  @db.Date
+  endDate      DateTime  @db.Date
+  days         Int       // Días calendario
+  reason       String?
+  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  approvedById String?   // userId que aprobó
+  approvedAt   DateTime?
+  rejectedReason String?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([tenantId, status])
+}
+
+model PerformanceReview {
+  id           String    @id @default(cuid())
+  tenantId     String
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  period       String    // e.g. "2026-Q1"
+  score        Int       // 1-5
+  goals        String?   // Objetivos del período (texto libre / JSON)
+  achievements String?   // Logros
+  improvements String?   // Áreas de mejora
+  reviewerName String?   // Nombre del evaluador
+  status       String    @default("DRAFT") // DRAFT | PUBLISHED
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([employeeId, period])
+  @@index([tenantId])
+  @@index([employeeId])
 }

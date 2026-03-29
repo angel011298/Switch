@@ -2,8 +2,8 @@
 ## De Infraestructura a Producto SaaS Enterprise
 
 **Generado:** 2026-03-25 | **Actualizado:** 2026-03-28
-**Última FASE completada:** FASE 25 (RBAC — PR #22 merged)
-**Siguiente:** FASE 26 (Notificaciones en Tiempo Real)
+**Última FASE completada:** FASE 33 (MRP Real — PR #30 merged)
+**Siguiente:** FASE 34 (RRHH Asistencia + Documentos + Cultura)
 **Objetivo:** Producto SaaS completo · Clientes activos · Escalabilidad enterprise
 
 ---
@@ -56,7 +56,14 @@
 ✅ FASE 24: Reportes PDF/Excel — CFDI, Estado de Cuenta, Nómina (PR #21 merged)
 ✅ FASE 25: RBAC — Roles, permisos por ruta, AuditLog, UserRoleManager (PR #22 merged)
 ✅ FASE 26: Notificaciones — Notification model, 4 API routes, NotificationCenter, 4 triggers (PR #23 merged)
-🚀 FASE 27-40: Pendiente
+✅ FASE 27: Portal del Cliente — CustomerPortalToken, /portal/[token], API pública (PR #24 merged)
+✅ FASE 28: BI Dashboard Real — 5 API routes, aging cobranza, filtro período, export CSV (PR #25 merged)
+✅ FASE 29: POS Completo — TicketPDF, Historial, Corte de Caja, StockMovement en checkout (PR #26 merged)
+✅ FASE 30: Calendario Nativo — CalendarEvent, vistas mes/semana, 5 tipos, CRUD (PR #27 merged)
+✅ FASE 31: SCM Compras + Logística — Supplier, PurchaseOrder, Shipment, receiveGoods→StockMovement (PR #28 merged)
+✅ FASE 32: CRM Completo — Campaign (email masivo), SupportTicket Kanban + hilo mensajes (PR #29 merged)
+✅ FASE 33: MRP Real — BOM, ProductionOrder, QualityInspection, descontar componentes→StockMovement (PR #30 merged)
+🚀 FASE 34-40: Pendiente
 ```
 
 ### Base de datos actual (post-FASE 19)
