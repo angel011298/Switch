@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useSearchParams } from 'next/navigation'
 
 function VerifyForm() {
-  const [digits, setDigits] = useState<string[]>(Array(8).fill(''))
+  const [digits, setDigits] = useState<string[]>(Array(6).fill(''))
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [success, setSuccess] = useState(false)
@@ -27,16 +27,16 @@ function VerifyForm() {
 
   const handleChange = (index: number, value: string) => {
     // Pegar código completo
-    if (value.length === 8 && /^\d{8}$/.test(value)) {
+    if (value.length === 6 && /^\d{6}$/.test(value)) {
       setDigits(value.split(''))
-      refs.current[7]?.focus()
+      refs.current[5]?.focus()
       return
     }
     const digit = value.replace(/\D/g, '').slice(-1)
     const next = [...digits]
     next[index] = digit
     setDigits(next)
-    if (digit && index < 7) refs.current[index + 1]?.focus()
+    if (digit && index < 5) refs.current[index + 1]?.focus()
   }
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -46,18 +46,17 @@ function VerifyForm() {
   }
 
   const handlePaste = (e: React.ClipboardEvent) => {
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 8)
-    if (pasted.length >= 6) {
-      const filled = pasted.padEnd(8, '').slice(0, 8).split('')
-      setDigits(filled)
-      refs.current[pasted.length - 1]?.focus()
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    if (pasted.length === 6) {
+      setDigits(pasted.split(''))
+      refs.current[5]?.focus()
     }
     e.preventDefault()
   }
 
   const handleVerify = async (e?: React.FormEvent) => {
     e?.preventDefault()
-    if (code.length < 8) { setMessage('Ingresa los 8 dígitos del código.'); return }
+    if (code.length < 6) { setMessage('Ingresa los 6 dígitos del código.'); return }
     setIsLoading(true)
     setMessage('')
 
@@ -114,7 +113,7 @@ function VerifyForm() {
             Verifica tu cuenta
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-            Enviamos un código de <strong className="text-slate-700 dark:text-slate-300">8 dígitos</strong> a<br />
+            Enviamos un código de <strong className="text-slate-700 dark:text-slate-300">6 dígitos</strong> a<br />
             <span className="font-medium text-slate-800 dark:text-slate-200">{email}</span>
           </p>
         </div>
@@ -140,7 +139,7 @@ function VerifyForm() {
                 ref={el => { refs.current[i] = el }}
                 type="text"
                 inputMode="numeric"
-                maxLength={8}
+                maxLength={6}
                 value={d}
                 onChange={e => handleChange(i, e.target.value)}
                 onKeyDown={e => handleKeyDown(i, e)}
@@ -158,7 +157,7 @@ function VerifyForm() {
 
           <button
             type="submit"
-            disabled={isLoading || success || code.length < 8}
+            disabled={isLoading || success || code.length < 6}
             className="w-full bg-slate-900 dark:bg-white text-white dark:text-black font-semibold rounded-xl p-3.5 text-sm hover:bg-slate-700 dark:hover:bg-slate-100 transition-all active:scale-[0.98] flex justify-center items-center h-12 disabled:opacity-40 shadow-md hover:shadow-lg"
           >
             {isLoading
