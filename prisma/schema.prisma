@@ -162,6 +162,8 @@ model Tenant {
   warehouses       Warehouse[]     // FASE 17: SCM almacenes
   pipelineColumns  PipelineColumn[] // FASE 18: CRM Pipeline
   deals            Deal[]           // FASE 18: CRM Deals
+  webhookEndpoints WebhookEndpoint[] // FASE 37: Integraciones
+  apiKeys          ApiKey[]          // FASE 37: API pública
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -1399,4 +1401,65 @@ model PerformanceReview {
   @@unique([employeeId, period])
   @@index([tenantId])
   @@index([employeeId])
+}
+
+// ─── FASE 37: Integraciones Externas ──────────────────────────────────────────
+
+model WebhookEndpoint {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  url         String    // Endpoint URL del cliente
+  secret      String    // HMAC secret para firma de payloads
+  events      String[]  // Array de eventos suscritos: invoice.created, pos.sale, etc.
+  active      Boolean   @default(true)
+  description String?
+
+  deliveries  WebhookDelivery[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, active])
+}
+
+model WebhookDelivery {
+  id           String          @id @default(cuid())
+  webhookId    String
+  webhook      WebhookEndpoint @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  event        String          // Tipo de evento
+  payload      Json            // Payload enviado
+  statusCode   Int?            // HTTP status de la respuesta
+  responseBody String?         // Primeros 500 chars de la respuesta
+  success      Boolean         @default(false)
+  attemptCount Int             @default(1)
+  deliveredAt  DateTime?
+
+  createdAt    DateTime        @default(now())
+
+  @@index([webhookId])
+  @@index([webhookId, success])
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name        String    // Label descriptivo
+  keyHash     String    @unique  // SHA-256 del API key (nunca almacenar en texto claro)
+  keyPrefix   String    // Primeros 8 chars para identificación: "cifra_sk_"
+  scopes      String[]  // read:invoices, write:customers, read:inventory, etc.
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  active      Boolean   @default(true)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([keyHash])
 }
