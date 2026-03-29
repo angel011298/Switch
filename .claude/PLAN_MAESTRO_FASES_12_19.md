@@ -4539,3 +4539,83 @@ model UserTenantMembership {
 [ ] Facturación Stripe grupal (un plan que cubre N empresas)
 [ ] Exportación consolidada: balance general grupo + estado de resultados grupo
 ```
+
+---
+
+# FASE 41: ONBOARDING FISCAL AUTOMÁTICO
+**Duración estimada:** ~2 semanas (L) | **Rama:** `fase41/onboarding-fiscal`
+**Estado:** PENDIENTE
+
+### Objetivo
+Wizard post-login que configura la empresa automáticamente según su régimen fiscal, eliminando la configuración manual inicial.
+
+### Entregables
+```
+[ ] /onboarding — wizard multi-paso (solo se muestra si organization.setupComplete === false)
+[ ] Paso 1: RFC → validación con SAT vía SOAP, auto-rellena razón social + domicilio fiscal
+[ ] Paso 2: Régimen fiscal → auto-selecciona plan de cuentas + tasas de impuesto (IVA 16%, ISR por régimen)
+[ ] Paso 3: Datos empresa (logo, giro, sector)
+[ ] Paso 4: "Primera factura demo" — guía interactiva generando CFDI válido
+[ ] Paso 5: Invitar colaboradores (email + rol)
+[ ] Prisma: Organization.setupComplete (Boolean), Organization.onboardingStep (Int)
+[ ] Middleware: si setupComplete === false → redirect /onboarding (excepto rutas de auth)
+[ ] AI Copilot integrado en cada paso (responde preguntas del usuario en contexto)
+[ ] Progress bar visual (5 pasos, cada uno con ícono y descripción)
+[ ] Mobile-first: wizard funciona perfectamente en smartphone
+```
+
+### Diferenciadores vs SAP/NetSuite
+- Setup completo en < 10 minutos (vs horas/días)
+- Sin intervención humana (vs consultivo en NetSuite)
+- Validación RFC en tiempo real (SAT SOAP)
+- AI Copilot integrado (sin costo adicional)
+
+---
+
+# FASE 42: PLANES Y FACTURACIÓN (FREEMIUM → PAID)
+**Duración estimada:** ~2 semanas (L) | **Rama:** `fase42/billing-plans`
+**Estado:** PENDIENTE
+
+### Objetivo
+Sistema de planes con límites, upgrade modal y facturación Stripe real.
+
+### Entregables
+```
+[ ] Plan Free: 10 facturas/mes, 5 usuarios, sin AI Copilot, sin Marketplace
+[ ] Plan Starter ($599 MXN/mes): 100 facturas, 10 usuarios, AI Copilot básico
+[ ] Plan Professional ($1,499 MXN/mes): ilimitado, todos los módulos, prioridad soporte
+[ ] Plan Enterprise (precio personalizado): multi-empresa, SLA 99.9%, onboarding dedicado
+[ ] Stripe Checkout integration (precios en MXN)
+[ ] Usage tracking: contador facturas por mes por organización
+[ ] Upgrade modal: aparece al alcanzar el 80% del límite
+[ ] /settings/billing — panel de suscripción (plan actual, historial, cambiar plan)
+[ ] Webhook Stripe: maneja payment_succeeded, subscription_cancelled, invoice_failed
+[ ] Watermark "VERSIÓN PRUEBA" en PDFs de facturas en plan Free
+[ ] Prisma: Plan (enum), Organization.planLimits (Json), Organization.stripeCustomerId
+```
+
+---
+
+# FASE 43: CERTIFICADO DIGITAL Y TIMBRADO REAL
+**Duración estimada:** ~3 semanas (XL) | **Rama:** `fase43/timbrado-cfdi`
+**Estado:** PENDIENTE
+
+### Objetivo
+Integración completa con PAC (Proveedor Autorizado de Certificación) para timbrar CFDIs reales ante el SAT. Este es el núcleo fiscal del ERP.
+
+### Entregables
+```
+[ ] Upload de certificado .cer + .key + contraseña → genera .pfx en servidor
+[ ] Almacenamiento seguro: Supabase Storage con cifrado AES-256 por organización
+[ ] Generación XML CFDI 4.0 compliant (xsd validado contra esquemas del SAT)
+[ ] Integración PAC: Finkok o SW Sapien (sandbox → producción)
+[ ] Timbrado → recibe UUID, sello SAT, cadena original
+[ ] PDF/A: genera representación impresa CFDI (layout profesional CIFRA-branded)
+[ ] Cancelación CFDI: flujo con motivo (01-04), envía a PAC, estado "cancelado" en DB
+[ ] Complementos: Pago (REP), Nómina Digital, Comercio Exterior (base)
+[ ] Validación previa: RFC receptor válido, régimen, uso CFDI, forma pago
+[ ] Dashboard fiscal: CFDIs emitidos/cancelados/pendientes, total facturado mes
+[ ] Prisma: CFDI, TimbradoLog, CertificadoDigital (encrypted), PAC
+[ ] Tests: genera CFDI válido en entorno sandbox del SAT
+```
+

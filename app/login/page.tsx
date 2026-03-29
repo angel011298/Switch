@@ -101,11 +101,20 @@ function LoginForm() {
     <div className="w-full max-w-md opacity-0 animate-fade-up">
       <div className="p-10 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-white/30 dark:border-neutral-700/40 rounded-3xl shadow-[0_20px_60px_-10px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_60px_-10px_rgba(0,0,0,0.5)] my-8 transition-colors duration-300">
 
-        {/* ── Isologo con esquinas redondeadas — SIN texto "CIFRA" ── */}
+        {/* ── Logo tipográfico inline — sin imagen, sin texto "CIFRA" ── */}
         <div className="flex flex-col items-center mb-8 opacity-0 animate-scale-in">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-md ring-1 ring-black/5 dark:ring-white/10 mb-4 flex items-center justify-center bg-white dark:bg-neutral-800">
-            <img src="/isologo-dark.png" alt="CIFRA" className="w-12 h-12 object-contain dark:hidden" />
-            <img src="/isologo-white.png" alt="CIFRA" className="w-12 h-12 object-contain hidden dark:block" />
+          <div className="w-auto h-12 px-5 rounded-2xl bg-slate-900 dark:bg-neutral-800 shadow-md ring-1 ring-black/5 dark:ring-white/10 mb-4 flex items-center justify-center">
+            <svg viewBox="0 0 90 32" className="h-7 w-auto" aria-label="ÇifRΛ" role="img">
+              <text
+                x="45" y="24"
+                textAnchor="middle"
+                fontSize="24"
+                fontWeight="800"
+                fill="white"
+                fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+                letterSpacing="-0.8"
+              >ÇifRΛ</text>
+            </svg>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
             {isLogin ? 'Iniciar Sesión' : 'Prueba Gratuita (14 días)'}
