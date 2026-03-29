@@ -80,9 +80,15 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        // Solo redirige al dashboard cuando NO viene un código de auth de Supabase.
+        // Si llega /?code=... (flujo PKCE de confirmación de email), lo maneja app/page.tsx.
         source: '/',
         destination: '/dashboard',
         permanent: false,
+        missing: [
+          { type: 'query', key: 'code' },
+          { type: 'query', key: 'token_hash' },
+        ],
       },
     ];
   },
