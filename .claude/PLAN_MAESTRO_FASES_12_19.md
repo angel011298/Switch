@@ -2,8 +2,8 @@
 ## De Infraestructura a Producto SaaS Enterprise
 
 **Generado:** 2026-03-25 | **Actualizado:** 2026-03-28
-**Última FASE completada:** FASE 37 (Integraciones Externas — PR #34 merged)
-**Siguiente:** FASE 38 (AI Copilot)
+**Última FASE completada:** FASE 38 (AI Copilot Claude — PR #35 merged)
+**Siguiente:** FASE 39 (Marketplace de Integraciones)
 **Objetivo:** Producto SaaS completo · Clientes activos · Escalabilidad enterprise
 
 ---
@@ -67,7 +67,8 @@
 ✅ FASE 35: Multi-idioma i18n — ES/EN, I18nProvider, LanguageSwitcher, /configuracion/idioma (PR #32 merged)
 ✅ FASE 36: PWA + Offline — SW cache-first/network-first, manifest, InstallPrompt, offline page (PR #33 merged)
 ✅ FASE 37: Integraciones Externas — WebhookEndpoint, ApiKey, REST API v1, triggerWebhook (PR #34 merged)
-🚀 FASE 38-40: Pendiente
+✅ FASE 38: AI Copilot — Claude streaming, contexto ERP live, widget flotante, página /ai (PR #35 merged)
+🚀 FASE 39-40: Pendiente
 ```
 
 ### Base de datos actual (post-FASE 19)
