@@ -113,6 +113,129 @@ export async function createProduct(input: {
   return { success: true, productId: product.id };
 }
 
+/**
+ * Actualizar un producto del catálogo.
+ */
+export async function updateProduct(
+  productId: string,
+  input: {
+    name?: string;
+    sku?: string;
+    barcode?: string;
+    category?: string;
+    description?: string;
+    price?: number;
+    priceIncludesTax?: boolean;
+    taxRate?: number;
+    cost?: number;
+    stock?: number;
+    trackStock?: boolean;
+    imageUrl?: string;
+    claveProdServ?: string;
+    claveUnidad?: string;
+    unidad?: string;
+  }
+) {
+  const session = await requireAuth();
+  const tenantId = session.tenantId!;
+
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product || product.tenantId !== tenantId) throw new Error('Producto no encontrado');
+
+  await prisma.product.update({
+    where: { id: productId },
+    data: {
+      ...(input.name !== undefined && { name: input.name }),
+      ...(input.sku !== undefined && { sku: input.sku || null }),
+      ...(input.barcode !== undefined && { barcode: input.barcode || null }),
+      ...(input.category !== undefined && { category: input.category || null }),
+      ...(input.description !== undefined && { description: input.description || null }),
+      ...(input.price !== undefined && { price: input.price }),
+      ...(input.priceIncludesTax !== undefined && { priceIncludesTax: input.priceIncludesTax }),
+      ...(input.taxRate !== undefined && { taxRate: input.taxRate }),
+      ...(input.cost !== undefined && { cost: input.cost }),
+      ...(input.stock !== undefined && { stock: input.stock }),
+      ...(input.trackStock !== undefined && { trackStock: input.trackStock }),
+      ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl || null }),
+      ...(input.claveProdServ !== undefined && { claveProdServ: input.claveProdServ }),
+      ...(input.claveUnidad !== undefined && { claveUnidad: input.claveUnidad }),
+      ...(input.unidad !== undefined && { unidad: input.unidad }),
+    },
+  });
+
+  revalidatePath('/pos');
+  return { success: true };
+}
+
+/**
+ * Activar / desactivar un producto del catálogo POS.
+ */
+export async function toggleProductActive(productId: string): Promise<boolean> {
+  const session = await requireAuth();
+  const tenantId = session.tenantId!;
+
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product || product.tenantId !== tenantId) throw new Error('Producto no encontrado');
+
+  const updated = await prisma.product.update({
+    where: { id: productId },
+    data: { isActive: !product.isActive },
+    select: { isActive: true },
+  });
+
+  revalidatePath('/pos');
+  return updated.isActive;
+}
+
+/**
+ * Eliminar un producto del catálogo (solo si no tiene ventas asociadas).
+ */
+export async function deleteProduct(productId: string): Promise<void> {
+  const session = await requireAuth();
+  const tenantId = session.tenantId!;
+
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product || product.tenantId !== tenantId) throw new Error('Producto no encontrado');
+
+  // Verificar si tiene ventas registradas
+  const salesCount = await prisma.posOrderItem.count({ where: { productId } });
+  if (salesCount > 0) {
+    // En lugar de borrar, desactivar para preservar historial
+    await prisma.product.update({ where: { id: productId }, data: { isActive: false } });
+    revalidatePath('/pos');
+    return;
+  }
+
+  await prisma.product.delete({ where: { id: productId } });
+  revalidatePath('/pos');
+}
+
+/**
+ * Carga TODOS los productos (incluye inactivos) para el panel de administración.
+ */
+export async function getProductsForManagement() {
+  const session = await requireAuth();
+
+  const products = await prisma.product.findMany({
+    where: { tenantId: session.tenantId! },
+    orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+    select: {
+      id: true, name: true, sku: true, barcode: true, category: true,
+      price: true, cost: true, stock: true, trackStock: true,
+      priceIncludesTax: true, taxRate: true, isActive: true,
+      imageUrl: true, claveProdServ: true, claveUnidad: true, unidad: true,
+      description: true,
+    },
+  });
+
+  return products.map((p) => ({
+    ...p,
+    price: Number(p.price),
+    cost: p.cost !== null ? Number(p.cost) : null,
+    taxRate: Number(p.taxRate),
+  }));
+}
+
 // ─── CHECKOUT ──────────────────────────────────────────
 
 export interface CheckoutInput {

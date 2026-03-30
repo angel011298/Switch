@@ -11,14 +11,377 @@
 import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePosStore } from '@/stores/pos-store';
-import { loadProducts, checkout } from '@/app/(dashboard)/pos/actions';
+import {
+  loadProducts, checkout, createProduct, updateProduct,
+  toggleProductActive, deleteProduct, getProductsForManagement,
+} from '@/app/(dashboard)/pos/actions';
 import type { CheckoutInput } from '@/app/(dashboard)/pos/actions';
+
+// ─── Tipos para gestión ────────────────────────────────
+type ManagedProduct = {
+  id: string; name: string; sku: string | null; barcode: string | null;
+  category: string | null; price: number; cost: number | null;
+  stock: number; trackStock: boolean; priceIncludesTax: boolean;
+  taxRate: number; isActive: boolean; imageUrl: string | null;
+  claveProdServ: string; claveUnidad: string; unidad: string;
+  description: string | null;
+};
+
+// ─── Modal: Crear / Editar Producto ───────────────────
+function ProductFormModal({
+  product,
+  onClose,
+  onSaved,
+}: {
+  product?: ManagedProduct;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const isEdit = !!product;
+  const [isPending, start] = useTransition();
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    name: product?.name ?? '',
+    sku: product?.sku ?? '',
+    barcode: product?.barcode ?? '',
+    category: product?.category ?? '',
+    description: product?.description ?? '',
+    price: product?.price?.toString() ?? '',
+    cost: product?.cost?.toString() ?? '',
+    stock: product?.stock?.toString() ?? '0',
+    trackStock: product?.trackStock ?? false,
+    priceIncludesTax: product?.priceIncludesTax ?? true,
+    taxRate: ((product?.taxRate ?? 0.16) * 100).toString(),
+    claveProdServ: product?.claveProdServ ?? '84111506',
+    claveUnidad: product?.claveUnidad ?? 'H87',
+    unidad: product?.unidad ?? 'Pieza',
+  });
+
+  function set(key: string, val: string | boolean) {
+    setForm((prev) => ({ ...prev, [key]: val }));
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) { setError('El nombre es requerido'); return; }
+    if (!form.price || isNaN(Number(form.price))) { setError('Precio inválido'); return; }
+    setError('');
+    const payload = {
+      name: form.name.trim(),
+      sku: form.sku || undefined,
+      barcode: form.barcode || undefined,
+      category: form.category || undefined,
+      description: form.description || undefined,
+      price: Number(form.price),
+      cost: form.cost ? Number(form.cost) : undefined,
+      stock: Number(form.stock) || 0,
+      trackStock: form.trackStock,
+      priceIncludesTax: form.priceIncludesTax,
+      taxRate: Number(form.taxRate) / 100,
+      claveProdServ: form.claveProdServ || '84111506',
+      claveUnidad: form.claveUnidad || 'H87',
+      unidad: form.unidad || 'Pieza',
+    };
+    start(async () => {
+      try {
+        if (isEdit) {
+          await updateProduct(product!.id, payload);
+        } else {
+          await createProduct(payload);
+        }
+        onSaved();
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Error al guardar');
+      }
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+          <h2 className="text-lg font-bold text-white">{isEdit ? 'Editar producto' : 'Nuevo producto'}</h2>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white transition-colors">✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          {error && <p className="text-sm text-red-400 bg-red-900/30 border border-red-800 rounded-lg px-3 py-2">{error}</p>}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-xs text-zinc-400 font-semibold mb-1 uppercase tracking-wider">Nombre *</label>
+              <input value={form.name} onChange={e => set('name', e.target.value)} required
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1 uppercase tracking-wider">SKU</label>
+              <input value={form.sku} onChange={e => set('sku', e.target.value)} placeholder="Ej. PROD-001"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1 uppercase tracking-wider">Código de barras</label>
+              <input value={form.barcode} onChange={e => set('barcode', e.target.value)} placeholder="Ej. 7501000000000"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1 uppercase tracking-wider">Categoría</label>
+              <input value={form.category} onChange={e => set('category', e.target.value)} placeholder="Ej. Bebidas"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1 uppercase tracking-wider">Precio de venta *</label>
+              <input type="number" step="0.01" min="0" value={form.price} onChange={e => set('price', e.target.value)} required
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1 uppercase tracking-wider">Costo</label>
+              <input type="number" step="0.01" min="0" value={form.cost} onChange={e => set('cost', e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1 uppercase tracking-wider">IVA (%)</label>
+              <select value={form.taxRate} onChange={e => set('taxRate', e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none">
+                <option value="16">16%</option>
+                <option value="8">8% (Frontera)</option>
+                <option value="0">0% (Exento)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1 uppercase tracking-wider">Stock inicial</label>
+              <input type="number" min="0" value={form.stock} onChange={e => set('stock', e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1 uppercase tracking-wider">Clave SAT (Prod/Serv)</label>
+              <input value={form.claveProdServ} onChange={e => set('claveProdServ', e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-400 font-semibold mb-1 uppercase tracking-wider">Unidad SAT</label>
+              <input value={form.unidad} onChange={e => set('unidad', e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-white text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.trackStock} onChange={e => set('trackStock', e.target.checked)}
+                className="w-4 h-4 rounded border-zinc-700 text-pink-600 focus:ring-pink-500 bg-zinc-800" />
+              <span className="text-sm text-zinc-300">Controlar stock</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.priceIncludesTax} onChange={e => set('priceIncludesTax', e.target.checked)}
+                className="w-4 h-4 rounded border-zinc-700 text-pink-600 focus:ring-pink-500 bg-zinc-800" />
+              <span className="text-sm text-zinc-300">Precio incluye IVA</span>
+            </label>
+          </div>
+        </form>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-zinc-800">
+          <button onClick={onClose} disabled={isPending}
+            className="px-5 py-2 text-sm text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors disabled:opacity-50">
+            Cancelar
+          </button>
+          <button onClick={handleSubmit as any} disabled={isPending}
+            className="px-6 py-2 text-sm font-bold bg-pink-600 hover:bg-pink-700 text-white rounded-xl transition-colors disabled:opacity-60 flex items-center gap-2">
+            {isPending && <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+            {isPending ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Crear producto'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Panel: Gestión de Productos ──────────────────────
+function ProductManagementPanel({ onClose, onRefreshCatalog }: { onClose: () => void; onRefreshCatalog: () => void }) {
+  const [products, setProducts] = useState<ManagedProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [editTarget, setEditTarget] = useState<ManagedProduct | null>(null);
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [isPending, start] = useTransition();
+
+  async function fetchProducts() {
+    setLoading(true);
+    try {
+      const data = await getProductsForManagement();
+      setProducts(data as ManagedProduct[]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { fetchProducts(); }, []);
+
+  function handleSaved() {
+    setShowNewModal(false);
+    setEditTarget(null);
+    fetchProducts();
+    onRefreshCatalog();
+  }
+
+  function handleToggle(id: string) {
+    start(async () => {
+      await toggleProductActive(id);
+      fetchProducts();
+      onRefreshCatalog();
+    });
+  }
+
+  function handleDelete(id: string) {
+    if (!confirm('¿Eliminar este producto? Si tiene ventas, se desactivará en su lugar.')) return;
+    start(async () => {
+      await deleteProduct(id);
+      fetchProducts();
+      onRefreshCatalog();
+    });
+  }
+
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.sku ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (p.barcode ?? '').includes(search)
+  );
+
+  return (
+    <div className="fixed inset-0 z-40 flex">
+      {/* Overlay */}
+      <div className="flex-1 bg-black/60" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="w-[680px] bg-zinc-950 border-l border-zinc-800 flex flex-col h-full shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+          <div>
+            <h2 className="text-xl font-bold text-white">Catálogo de Productos</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">{products.length} productos · {products.filter(p => p.isActive).length} activos</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm rounded-xl transition-colors"
+            >
+              + Nuevo producto
+            </button>
+            <button onClick={onClose} className="text-zinc-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-zinc-800">✕</button>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="px-6 py-3 border-b border-zinc-800">
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por nombre, SKU o código de barras..."
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none"
+          />
+        </div>
+
+        {/* Product list */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center h-40">
+              <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-zinc-500 text-sm">No hay productos{search ? ' con ese criterio' : ' aún'}</p>
+              {!search && (
+                <button onClick={() => setShowNewModal(true)}
+                  className="mt-4 px-5 py-2 bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm rounded-xl transition-colors">
+                  Crear primer producto
+                </button>
+              )}
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead className="sticky top-0 bg-zinc-900/90 backdrop-blur-sm">
+                <tr className="border-b border-zinc-800">
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Producto</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Precio</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Stock</th>
+                  <th className="text-center px-4 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Estado</th>
+                  <th className="text-center px-4 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/60">
+                {filtered.map(p => (
+                  <tr key={p.id} className={`hover:bg-zinc-800/30 transition-colors ${!p.isActive ? 'opacity-50' : ''}`}>
+                    <td className="px-6 py-3">
+                      <p className="text-sm font-medium text-white truncate max-w-[200px]">{p.name}</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">
+                        {p.sku && <span className="mr-2">SKU: {p.sku}</span>}
+                        {p.category && <span className="text-zinc-600">{p.category}</span>}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <p className="text-sm font-bold text-pink-400">${Number(p.price).toFixed(2)}</p>
+                      {p.cost && <p className="text-xs text-zinc-600">Costo: ${Number(p.cost).toFixed(2)}</p>}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {p.trackStock ? (
+                        <span className={`text-sm font-bold ${p.stock <= 0 ? 'text-red-400' : p.stock <= 5 ? 'text-amber-400' : 'text-zinc-300'}`}>
+                          {p.stock}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-zinc-600">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => handleToggle(p.id)}
+                        disabled={isPending}
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors disabled:opacity-50 ${
+                          p.isActive
+                            ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-800 hover:bg-red-900/50 hover:text-red-400 hover:border-red-800'
+                            : 'bg-zinc-800 text-zinc-500 border border-zinc-700 hover:bg-emerald-900/50 hover:text-emerald-400 hover:border-emerald-800'
+                        }`}
+                      >
+                        {p.isActive ? 'Activo' : 'Inactivo'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setEditTarget(p)}
+                          className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-lg transition-colors text-xs"
+                          title="Editar"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          disabled={isPending}
+                          className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-900/30 rounded-lg transition-colors text-xs disabled:opacity-40"
+                          title="Eliminar"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Modales dentro del panel */}
+      {showNewModal && <ProductFormModal onClose={() => setShowNewModal(false)} onSaved={handleSaved} />}
+      {editTarget && <ProductFormModal product={editTarget} onClose={() => setEditTarget(null)} onSaved={handleSaved} />}
+    </div>
+  );
+}
 
 export default function PosTerminal() {
   const store = usePosStore();
   const [isPending, startTransition] = useTransition();
   const [lastTicket, setLastTicket] = useState<{ code: string; total: number; orderId: string } | null>(null);
-  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showManageProducts, setShowManageProducts] = useState(false);
 
   // Cargar catálogo una vez
   useEffect(() => {
@@ -29,6 +392,14 @@ export default function PosTerminal() {
       });
     }
   }, []);
+
+  // Recargar catálogo después de editar productos
+  function handleRefreshCatalog() {
+    startTransition(async () => {
+      const products = await loadProducts();
+      store.setProducts(products as any);
+    });
+  }
 
   const filteredProducts = store.filteredProducts();
 
@@ -73,10 +444,11 @@ export default function PosTerminal() {
   }
 
   return (
+    <>
     <div className="flex h-[calc(100vh-80px)] gap-4">
       {/* ═══ CATÁLOGO (Izquierda) ═══ */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Barra de búsqueda */}
+        {/* Barra de búsqueda + botón gestionar */}
         <div className="flex gap-3 mb-4">
           <div className="flex-1 relative">
             <input
@@ -90,6 +462,15 @@ export default function PosTerminal() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
+          <button
+            onClick={() => setShowManageProducts(true)}
+            className="flex items-center gap-2 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-pink-500/50 text-zinc-300 hover:text-white font-medium text-sm rounded-xl transition-all whitespace-nowrap"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            Gestionar productos
+          </button>
         </div>
 
         {/* Grid de productos */}
@@ -100,8 +481,13 @@ export default function PosTerminal() {
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-zinc-500">No hay productos en el catalogo</p>
-              <p className="text-zinc-600 text-sm mt-1">Agrega productos desde el panel de administracion</p>
+              <p className="text-zinc-500">No hay productos en el catálogo</p>
+              <button
+                onClick={() => setShowManageProducts(true)}
+                className="mt-3 px-5 py-2 bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm rounded-xl transition-colors"
+              >
+                + Agregar primer producto
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -320,5 +706,14 @@ export default function PosTerminal() {
         )}
       </div>
     </div>
+
+    {/* Panel de gestión de productos (slide-in) */}
+    {showManageProducts && (
+      <ProductManagementPanel
+        onClose={() => setShowManageProducts(false)}
+        onRefreshCatalog={handleRefreshCatalog}
+      />
+    )}
+    </>
   );
 }

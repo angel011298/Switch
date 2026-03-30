@@ -5,7 +5,9 @@ import prisma from '@/lib/prisma';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+// Soporta tanto Anthropic directo (sk-ant-...) como Vercel AI Gateway (vck_...)
+const ANTHROPIC_API_URL  = 'https://api.anthropic.com/v1/messages';
+const VERCEL_GATEWAY_URL = 'https://ai-gateway.vercel.sh/v1/anthropic/messages';
 
 // System prompt for CIFRA ERP assistant
 async function buildSystemPrompt(tenantId: string): Promise<string> {
@@ -85,13 +87,19 @@ export async function POST(req: NextRequest) {
 
   const systemPrompt = await buildSystemPrompt(session.tenantId);
 
-  // Call Anthropic API with streaming
-  const anthropicRes = await fetch(ANTHROPIC_API_URL, {
+  // Detectar si es Vercel AI Gateway (vck_) o Anthropic directo (sk-ant-)
+  const isVercelGateway = apiKey.startsWith('vck_');
+  const apiUrl = isVercelGateway ? VERCEL_GATEWAY_URL : ANTHROPIC_API_URL;
+  const authHeaders = isVercelGateway
+    ? { 'Authorization': `Bearer ${apiKey}` }
+    : { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' };
+
+  // Call AI API with streaming
+  const anthropicRes = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      ...authHeaders,
     },
     body: JSON.stringify({
       model: 'claude-3-haiku-20240307',
