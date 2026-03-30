@@ -1,33 +1,27 @@
 /**
  * CIFRA — Mailer Transaccional
  * ==================================
- * Usa nodemailer con cualquier SMTP (Gmail, Outlook, etc.)
- * Costo: $0 — configurar via variables de entorno.
+ * Usa Resend (https://resend.com) — Gratis: 3,000 emails/mes.
  *
  * Variables requeridas:
- *   SMTP_HOST      ej. smtp.gmail.com
- *   SMTP_PORT      ej. 587
- *   SMTP_USER      ej. soporte@cifra.mx
- *   SMTP_PASS      App Password de Gmail o contraseña SMTP
- *   SMTP_FROM      ej. "CIFRA <soporte@cifra.mx>"
+ *   RESEND_API_KEY     ej. re_xxxxxxxxxxxx
+ *   RESEND_FROM        ej. "CIFRA <noreply@cifra-mx.com>" (dominio verificado)
+ *                      Si no está configurado, usa onboarding@resend.dev (solo para testing)
  */
 
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-function createTransporter() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-    // Si no hay SMTP configurado, log y no lanzar error (non-blocking)
+function getResend(): Resend | null {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.log('[mailer] RESEND_API_KEY no configurado — emails omitidos');
     return null;
   }
+  return new Resend(apiKey);
+}
 
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT ?? 587),
-    secure: Number(SMTP_PORT ?? 587) === 465,
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-  });
+function getFrom(): string {
+  return process.env.RESEND_FROM ?? 'CIFRA <onboarding@resend.dev>';
 }
 
 // ─── Plantillas ───────────────────────────────────────────────────────────────
@@ -65,7 +59,7 @@ function wrapHtml(content: string): string {
 <body>
   <div class="container">
     <div class="header" style="padding:0;text-align:center;">
-      <img src="https://app.cifra.mx/email-header.png" alt="CIFRA" width="560"
+      <img src="https://cifra-mx.vercel.app/email-header.png" alt="CIFRA" width="560"
            style="display:block;width:100%;max-width:560px;height:auto;" />
     </div>
     <div class="body">${content}</div>
@@ -92,11 +86,8 @@ export interface SubscriptionConfirmationInput {
 export async function sendSubscriptionConfirmationEmail(
   input: SubscriptionConfirmationInput
 ): Promise<void> {
-  const transporter = createTransporter();
-  if (!transporter) {
-    console.log('[mailer] SMTP no configurado — omitiendo correo para:', input.toEmail);
-    return;
-  }
+  const resend = getResend();
+  if (!resend) return;
 
   const body = `
     <span class="badge">✅ Pago confirmado</span>
@@ -108,16 +99,14 @@ export async function sendSubscriptionConfirmationEmail(
       <p><strong>Acceso vigente hasta:</strong> ${formatDate(input.newValidUntil)}</p>
     </div>
     <p>Puedes continuar usando todos los módulos de CIFRA sin interrupciones.</p>
-    <p>Si tienes alguna duda, contáctanos respondiendo a este correo.</p>
     <p>¡Gracias por confiar en CIFRA! 🚀</p>
   `;
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
+  await resend.emails.send({
+    from: getFrom(),
     to: input.toEmail,
     subject: `✅ Suscripción renovada — ${input.tenantName} | CIFRA`,
     html: wrapHtml(body),
-    text: `Pago confirmado. Suscripción de ${input.tenantName} vigente hasta ${formatDate(input.newValidUntil)}.`,
   });
 }
 
@@ -131,11 +120,9 @@ export interface ExpiryReminderInput {
   daysLeft: number;
 }
 
-export async function sendExpiryReminderEmail(
-  input: ExpiryReminderInput
-): Promise<void> {
-  const transporter = createTransporter();
-  if (!transporter) return;
+export async function sendExpiryReminderEmail(input: ExpiryReminderInput): Promise<void> {
+  const resend = getResend();
+  if (!resend) return;
 
   const urgency = input.daysLeft <= 3 ? '🚨 URGENTE' : '⚠️ Aviso';
   const body = `
@@ -147,15 +134,13 @@ export async function sendExpiryReminderEmail(
       <p><strong>Plan:</strong> CIFRA Standard — $499 MXN/mes</p>
     </div>
     <p>Para renovar, realiza una transferencia SPEI y sube tu comprobante en la sección <strong>Suscripción</strong> de tu cuenta.</p>
-    <p>Si tu suscripción vence, perderás acceso a todos los módulos hasta que el pago sea confirmado.</p>
   `;
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
+  await resend.emails.send({
+    from: getFrom(),
     to: input.toEmail,
     subject: `${urgency}: Tu suscripción vence en ${input.daysLeft} día${input.daysLeft !== 1 ? 's' : ''} | CIFRA`,
     html: wrapHtml(body),
-    text: `Tu suscripción vence el ${formatDate(input.validUntil)}. Renueva en /billing/subscription.`,
   });
 }
 
@@ -163,20 +148,21 @@ export async function sendExpiryReminderEmail(
 
 export interface InvoiceStampedInput {
   toEmail: string;
-  toName: string;          // Nombre del receptor
-  emisorName: string;      // Razón social del emisor
-  uuid: string;            // Folio fiscal
+  toName: string;
+  emisorName: string;
+  uuid: string;
   serie?: string;
   folio: number;
   total: number;
   fechaEmision: Date;
-  pdfUrl?: string;         // URL del PDF del CFDI (opcional)
+  pdfBuffer?: Buffer;     // PDF adjunto del CFDI
+  xmlContent?: string;    // XML del CFDI para adjuntar
 }
 
 export async function sendInvoiceStampedEmail(input: InvoiceStampedInput): Promise<void> {
-  const transporter = createTransporter();
-  if (!transporter) {
-    console.log('[mailer] SMTP no configurado — omitiendo notificación CFDI para:', input.toEmail);
+  const resend = getResend();
+  if (!resend) {
+    console.log('[mailer] RESEND_API_KEY no configurado — omitiendo notificación CFDI para:', input.toEmail);
     return;
   }
 
@@ -194,16 +180,23 @@ export async function sendInvoiceStampedEmail(input: InvoiceStampedInput): Promi
       <p><strong>Fecha de emisión:</strong> ${formatDate(input.fechaEmision)}</p>
     </div>
     <p>Este CFDI fue timbrado ante el SAT y tiene plena validez fiscal. Puedes verificarlo en el portal del SAT con el UUID indicado.</p>
-    ${input.pdfUrl ? `<p><a href="${input.pdfUrl}" style="color:#10b981;font-weight:600;">📥 Descargar PDF del CFDI</a></p>` : ''}
-    <p>Conserva este comprobante para efectos fiscales.</p>
+    <p>Se adjuntan el PDF y el XML de este comprobante.</p>
   `;
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
+  const attachments: { filename: string; content: Buffer }[] = [];
+  if (input.pdfBuffer) {
+    attachments.push({ filename: `CFDI_${folioRef}.pdf`, content: input.pdfBuffer });
+  }
+  if (input.xmlContent) {
+    attachments.push({ filename: `CFDI_${folioRef}.xml`, content: Buffer.from(input.xmlContent, 'utf-8') });
+  }
+
+  await resend.emails.send({
+    from: getFrom(),
     to: input.toEmail,
     subject: `📄 CFDI ${folioRef} de ${input.emisorName} — ${totalFmt}`,
     html: wrapHtml(body),
-    text: `CFDI ${folioRef} de ${input.emisorName}. Total: ${totalFmt}. UUID: ${input.uuid}. Fecha: ${formatDate(input.fechaEmision)}.`,
+    attachments,
   });
 }
 
@@ -222,11 +215,8 @@ export interface LowStockAlertInput {
 }
 
 export async function sendLowStockAlertEmail(input: LowStockAlertInput): Promise<void> {
-  const transporter = createTransporter();
-  if (!transporter) {
-    console.log('[mailer] SMTP no configurado — omitiendo alerta de stock para:', input.toEmail);
-    return;
-  }
+  const resend = getResend();
+  if (!resend) return;
 
   const outOfStock = input.products.filter((p) => p.stock <= 0);
   const lowStock   = input.products.filter((p) => p.stock > 0 && p.stock <= p.minStock);
@@ -260,12 +250,11 @@ export async function sendLowStockAlertEmail(input: LowStockAlertInput): Promise
     <p style="margin-top:20px;">Accede a <strong>SCM → Inventarios → Alertas</strong> en CIFRA para gestionar las entradas de stock.</p>
   `;
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
+  await resend.emails.send({
+    from: getFrom(),
     to: input.toEmail,
     subject: `📦 Alerta de inventario: ${input.products.length} producto(s) con stock crítico — ${input.tenantName}`,
     html: wrapHtml(body),
-    text: `Alerta de inventario para ${input.tenantName}: ${outOfStock.length} sin stock, ${lowStock.length} bajo mínimo.`,
   });
 }
 
@@ -279,8 +268,8 @@ export interface WelcomeEmailInput {
 }
 
 export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> {
-  const transporter = createTransporter();
-  if (!transporter) return;
+  const resend = getResend();
+  if (!resend) return;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://cifra-mx.vercel.app';
 
@@ -302,18 +291,13 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<void> 
         Ir al Dashboard →
       </a>
     </div>
-    <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />
-    <p style="font-size:12px;color:#94a3b8;text-align:center;margin:0;">
-      ¿Necesitas ayuda? Contáctanos en soporte@cifra-mx.vercel.app
-    </p>
   `;
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"CIFRA" <${process.env.SMTP_USER}>`,
+  await resend.emails.send({
+    from: getFrom(),
     to: input.to,
     subject: `¡Bienvenido a CIFRA, ${input.tenantName}! 🚀`,
     html: wrapHtml(body),
-    text: `¡Bienvenido a CIFRA! Tu empresa ${input.tenantName} ya está configurada con ${input.modulesActivated} módulos activos. Accede en: ${appUrl}/dashboard`,
   });
 }
 
@@ -327,20 +311,19 @@ export interface SendEmailOptions {
 }
 
 export async function sendEmail(opts: SendEmailOptions): Promise<void> {
-  const transporter = createTransporter();
-  if (!transporter) {
-    console.warn('[mailer] SMTP no configurado — email omitido:', opts.subject);
+  const resend = getResend();
+  if (!resend) {
+    console.warn('[mailer] RESEND_API_KEY no configurado — email omitido:', opts.subject);
     return;
   }
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
+  await resend.emails.send({
+    from: getFrom(),
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
-    attachments: opts.attachments?.map(a => ({
+    attachments: opts.attachments?.map((a) => ({
       filename: a.filename,
       content: a.content,
-      contentType: a.contentType,
     })),
   });
 }

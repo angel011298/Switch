@@ -30,6 +30,7 @@ import { TAX_TYPE_TO_SAT, TIPO_FACTOR } from './catalogs/sat-catalogs';
 import { calculateTransactionTaxes } from '@/lib/taxes/taxEngine';
 import type { PacAdapter } from './pac/adapter';
 import { MockPac } from './pac/mock-pac';
+import { SwSapienPac } from './pac/sw-sapien';
 import type {
   CfdiInput,
   CfdiData,
@@ -45,8 +46,13 @@ import type { OperationType } from '@prisma/client';
 // ─── CONFIGURACIÓN ─────────────────────────────────────
 
 function getPacAdapter(): PacAdapter {
-  // En producción, instanciar el PAC real basándose en env
-  // Por ahora, siempre mock
+  const swToken = process.env.SW_SAPIEN_TOKEN;
+  if (swToken) {
+    // Usar SW Sapien real (sandbox si la URL contiene "test", producción si no)
+    const isSandbox = (process.env.SW_SAPIEN_URL ?? 'test').includes('test');
+    return new SwSapienPac(swToken, isSandbox);
+  }
+  // Sin token → mock (desarrollo)
   return new MockPac();
 }
 
@@ -388,5 +394,6 @@ export class CfdiError extends Error {
 
 export { getCsd, storeCsd } from './csd/vault';
 export { MockPac } from './pac/mock-pac';
+export { SwSapienPac } from './pac/sw-sapien';
 export type { PacAdapter } from './pac/adapter';
 export type { CfdiInput, CfdiResult, CfdiReceptor, CfdiConceptoInput } from './types';

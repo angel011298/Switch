@@ -4699,6 +4699,13 @@ El sistema i18n existe pero solo Sidebar y Header están traducidos. Todos los m
 **Prioridad:** ALTA — Bloqueante para uso fiscal real
 **PAC recomendado para produccion:** SW Sapien (sandbox gratuito)
 
+**Estado:** ✅ COMPLETADA (2026-03-30)
+**Implementado:**
+- Email migrado de nodemailer → Resend SDK (gratis 3,000/mes)
+- PAC SW Sapien adapter (`lib/cfdi/pac/sw-sapien.ts`) con timbrado CFDI 4.0
+- `getPacAdapter()` selecciona automáticamente SW Sapien si `SW_SAPIEN_TOKEN` está configurado
+- Emails de CFDI timbrado ahora adjuntan PDF y XML al receptor
+
 ---
 
 # FASE 48: NOMINA CFDI — COMPLEMENTO DE NOMINA DIGITAL
