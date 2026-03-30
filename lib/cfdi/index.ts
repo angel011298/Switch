@@ -46,13 +46,15 @@ import type { OperationType } from '@prisma/client';
 // ─── CONFIGURACIÓN ─────────────────────────────────────
 
 function getPacAdapter(): PacAdapter {
-  const swToken = process.env.SW_SAPIEN_TOKEN;
-  if (swToken) {
-    // Usar SW Sapien real (sandbox si la URL contiene "test", producción si no)
-    const isSandbox = (process.env.SW_SAPIEN_URL ?? 'test').includes('test');
-    return new SwSapienPac(swToken, isSandbox);
+  const swToken    = process.env.SW_SAPIEN_TOKEN;
+  const swUser     = process.env.SW_SAPIEN_USER;
+  const swPassword = process.env.SW_SAPIEN_PASSWORD;
+  const isSandbox  = (process.env.SW_SAPIEN_URL ?? 'test').includes('test');
+
+  if (swToken || (swUser && swPassword)) {
+    return new SwSapienPac({ token: swToken, user: swUser, password: swPassword, sandbox: isSandbox });
   }
-  // Sin token → mock (desarrollo)
+  // Sin credenciales → mock (desarrollo)
   return new MockPac();
 }
 
