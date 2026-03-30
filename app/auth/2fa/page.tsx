@@ -4,12 +4,14 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { verify2FALogin } from '@/app/(dashboard)/configuracion/seguridad/actions';
+import { useI18n } from '@/lib/i18n/context';
 
 export default function TwoFactorPage() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { t } = useI18n();
 
   function handleVerify() {
     setError('');
@@ -33,8 +35,8 @@ export default function TwoFactorPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-4">
             <Shield className="h-7 w-7 text-emerald-500" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Verificación 2FA</h1>
-          <p className="text-zinc-400 text-sm mt-2">Ingresa el código de tu app autenticadora</p>
+          <h1 className="text-2xl font-bold text-white">{t.auth.twoFactor}</h1>
+          <p className="text-zinc-400 text-sm mt-2">{t.auth.enterCode}</p>
         </div>
 
         {/* Card */}
@@ -65,11 +67,11 @@ export default function TwoFactorPage() {
             disabled={code.length !== 6 || isPending}
             className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-semibold rounded-xl transition text-sm"
           >
-            {isPending ? 'Verificando...' : 'Verificar y continuar →'}
+            {isPending ? t.auth.verifying : `${t.auth.verify} →`}
           </button>
 
           <p className="text-xs text-zinc-500 text-center">
-            El código cambia cada 30 segundos. Si tienes problemas, contacta a tu administrador.
+            {t.auth.codeChanges}
           </p>
         </div>
       </div>

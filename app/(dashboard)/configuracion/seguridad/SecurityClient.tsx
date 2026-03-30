@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import QRCode from 'qrcode';
 import { Shield, ShieldCheck, ShieldOff, Smartphone, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { initiate2FASetup, confirm2FASetup, disable2FA } from './actions';
+import { useI18n } from '@/lib/i18n/context';
 
 interface Props {
   initialEnabled: boolean;
@@ -20,6 +21,7 @@ export default function SecurityClient({ initialEnabled, email }: Props) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
+  const { t } = useI18n();
 
   async function handleStartSetup() {
     setError('');
@@ -110,14 +112,14 @@ export default function SecurityClient({ initialEnabled, email }: Props) {
                 disabled={isPending}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition disabled:opacity-50"
               >
-                {isPending ? 'Preparando...' : 'Activar 2FA'}
+                {isPending ? 'Preparando...' : t.configuracion.enable2fa}
               </button>
             ) : (
               <button
                 onClick={() => { setStep('disable-verify'); setCode(''); setError(''); }}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition"
               >
-                Desactivar 2FA
+                {t.configuracion.disable2fa}
               </button>
             )}
           </div>
