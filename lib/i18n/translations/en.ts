@@ -94,4 +94,16 @@ export const en = {
     currency: 'Currency',
     companyInfo: 'Company Info',
   },
+  sidebar: {
+    workspace: 'CIFRA Workspace',
+    aiButton: 'CIFRA AI',
+    adminMaestro: 'Master Admin',
+    dayMode: 'Day Mode',
+    nightMode: 'Night Mode',
+    noModules: 'No active modules.',
+    contactAdmin: 'Contact your administrator to enable modules.',
+  },
+  header: {
+    searchPlaceholder: 'Search in CIFRA...',
+  },
 } as const satisfies import('./es').Translations;

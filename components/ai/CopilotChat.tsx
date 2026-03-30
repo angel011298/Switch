@@ -26,6 +26,13 @@ export function CopilotChat() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Escuchar evento del botón en el Sidebar
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    document.addEventListener('cifra-ai-open', handler);
+    return () => document.removeEventListener('cifra-ai-open', handler);
+  }, []);
+
   useEffect(() => {
     if (open && messages.length === 0) {
       // Welcome message

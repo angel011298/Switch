@@ -12,7 +12,9 @@ import { CopilotChat } from '@/components/ai/CopilotChat';
 
 export const metadata = {
   title: 'CIFRA',
-  icons: { icon: '/icon.png?v=2' },
+  icons: {
+    icon: [{ url: '/icon', sizes: '32x32', type: 'image/png' }],
+  },
 };
 
 /**

@@ -94,6 +94,18 @@ export const es = {
     currency: 'Moneda',
     companyInfo: 'Datos de la Empresa',
   },
+  sidebar: {
+    workspace: 'CIFRA Workspace',
+    aiButton: 'CIFRA AI',
+    adminMaestro: 'Admin Maestro',
+    dayMode: 'Modo Día',
+    nightMode: 'Modo Noche',
+    noModules: 'No hay módulos activos.',
+    contactAdmin: 'Contacta a tu administrador para activar módulos.',
+  },
+  header: {
+    searchPlaceholder: 'Buscar en CIFRA...',
+  },
 } as const;
 
 export type Translations = typeof es;

@@ -52,6 +52,8 @@ export default function TenantModuleManager({ tenant }: Props) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError]     = useState('');
 
+  const SUPER_ADMIN_EMAIL = '553angelortiz@gmail.com';
+  const isSuperAdminTenant = tenant.users.some((u) => u.email === SUPER_ADMIN_EMAIL);
   const activeCount = optimisticModules.filter((m) => m.isActive).length;
   const statusColor =
     tenant.subscriptionStatus === 'ACTIVE'
@@ -221,8 +223,8 @@ export default function TenantModuleManager({ tenant }: Props) {
             </div>
           )}
 
-          {/* ── ZONA DE PELIGRO: Eliminar tenant ────────────────────── */}
-          <div className="pt-4 border-t border-red-100 dark:border-red-900/30">
+          {/* ── ZONA DE PELIGRO: Eliminar tenant (oculto para el super admin) ── */}
+          {!isSuperAdminTenant && <div className="pt-4 border-t border-red-100 dark:border-red-900/30">
             <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <AlertTriangle className="h-3 w-3" />
               Zona de Peligro
@@ -278,7 +280,7 @@ export default function TenantModuleManager({ tenant }: Props) {
                 </div>
               </div>
             )}
-          </div>
+          </div>}
 
         </div>
       )}

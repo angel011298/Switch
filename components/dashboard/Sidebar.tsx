@@ -15,6 +15,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { getActiveGroups, type ModuleDef } from '@/lib/modules/registry';
+import { useI18n } from '@/lib/i18n/context';
 
 // ─── Props ──────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ interface SidebarProps {
 export default function Sidebar({ activeModules, isSuperAdmin, userName }: SidebarProps) {
   const pathname = usePathname() || '';
   const { theme, setTheme } = useTheme();
+  const { t } = useI18n();
   const [mounted, setMounted] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -105,17 +107,17 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
             <img
               src="/logo-light.png"
               alt="CIFRA"
-              className="h-8 object-contain object-left rounded-lg block dark:hidden"
+              className="h-16 object-contain object-left rounded-lg block dark:hidden"
             />
             {/* Logo noche (dark mode) */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-dark.png"
               alt="CIFRA"
-              className="h-8 object-contain object-left rounded-lg hidden dark:block"
+              className="h-16 object-contain object-left rounded-lg hidden dark:block"
             />
             <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest truncate">
-              CIFRA Workspace
+              {t.sidebar.workspace}
             </p>
           </div>
         ) : (
@@ -132,10 +134,11 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
       {/* CIFRA AI */}
       <div className="px-3 mb-4">
         <button
+          onClick={() => document.dispatchEvent(new CustomEvent('cifra-ai-open'))}
           className={`w-full flex items-center ${
             isCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'
           } bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl shadow-md transition-all group`}
-          title={isCollapsed ? 'CIFRA AI' : ''}
+          title={isCollapsed ? t.sidebar.aiButton : ''}
         >
           <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
             <Bot
@@ -143,7 +146,7 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
                 isCollapsed ? 'h-6 w-6' : 'h-5 w-5'
               } group-hover:animate-bounce`}
             />
-            {!isCollapsed && <span className="text-sm font-bold">CIFRA AI</span>}
+            {!isCollapsed && <span className="text-sm font-bold">{t.sidebar.aiButton}</span>}
           </div>
           {!isCollapsed && <Sparkles className="h-4 w-4 text-purple-200" />}
         </button>
@@ -265,10 +268,10 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
         {effectiveGroups.length === 0 && !isCollapsed && (
           <div className="px-4 py-8 text-center">
             <p className="text-sm text-neutral-400 font-medium">
-              No hay modulos activos.
+              {t.sidebar.noModules}
             </p>
             <p className="text-xs text-neutral-500 mt-1">
-              Contacta a tu administrador para activar modulos.
+              {t.sidebar.contactAdmin}
             </p>
           </div>
         )}
@@ -280,7 +283,7 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
         {isSuperAdmin && (
           <Link
             href="/admin"
-            title={isCollapsed ? 'Admin Maestro' : ''}
+            title={isCollapsed ? t.sidebar.adminMaestro : ''}
             className={`w-full flex items-center ${
               isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3'
             } rounded-xl transition-all font-black mb-2 ${
@@ -290,21 +293,21 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
             }`}
           >
             <ShieldAlert className="h-4 w-4 flex-shrink-0" />
-            {!isCollapsed && <span className="text-sm truncate">Admin Maestro</span>}
+            {!isCollapsed && <span className="text-sm truncate">{t.sidebar.adminMaestro}</span>}
           </Link>
         )}
 
         {/* Toggle tema */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          title={isCollapsed ? `Modo ${theme === 'dark' ? 'Dia' : 'Noche'}` : ''}
+          title={isCollapsed ? (theme === 'dark' ? t.sidebar.dayMode : t.sidebar.nightMode) : ''}
           className={`w-full flex items-center ${
             isCollapsed ? 'justify-center p-3' : 'justify-between px-3 py-2'
           } rounded-xl text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-all`}
         >
           {!isCollapsed && (
             <span className="text-sm font-medium">
-              Modo {theme === 'dark' ? 'Dia' : 'Noche'}
+              {theme === 'dark' ? t.sidebar.dayMode : t.sidebar.nightMode}
             </span>
           )}
           {theme === 'dark' ? (

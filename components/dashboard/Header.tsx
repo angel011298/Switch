@@ -7,6 +7,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import NotificationCenter from '@/components/layout/NotificationCenter';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
+import { useI18n } from '@/lib/i18n/context';
 
 interface HeaderProps {
   userName: string;
@@ -26,6 +27,7 @@ export default function Header({
 }: HeaderProps) {
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useI18n();
   const [signingOut, setSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -59,7 +61,7 @@ export default function Header({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
           <input
             type="text"
-            placeholder="Buscar en CIFRA..."
+            placeholder={t.header.searchPlaceholder}
             className="w-full pl-10 pr-4 py-2 text-sm bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all placeholder:text-neutral-400"
           />
           <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-neutral-400 bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
