@@ -146,6 +146,9 @@ model Tenant {
   // FASE 51: Seguridad — timeout de sesión en minutos (default 8h)
   sessionTimeoutMinutes Int        @default(480)
 
+  // FASE 48: Nómina CFDI — registro patronal IMSS
+  registroPatronal  String?
+
   subscription     Subscription?
   paymentProofs    PaymentProof[]
   modules          TenantModule[]
@@ -904,6 +907,16 @@ model PayrollItem {
   absenceDays   Int        @default(0)           // Días de falta
   absenceDeduct Decimal    @db.Decimal(12, 2) @default(0)  // Deducción por faltas
   neto          Decimal    @db.Decimal(12, 2)   // Neto a pagar
+
+  // FASE 48: CFDI Nómina Digital
+  cfdiUuid          String?
+  cfdiStatus        String    @default("PENDING") // PENDING | STAMPED | ERROR
+  cfdiXml           String?   @db.Text
+  cfdiSello         String?   @db.Text
+  cfdiNoCertificado String?
+  rfcProvCertif     String?
+  fechaTimbrado     DateTime?
+  cfdiError         String?
 
   createdAt     DateTime   @default(now())
 

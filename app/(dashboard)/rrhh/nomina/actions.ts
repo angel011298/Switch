@@ -18,6 +18,7 @@ import {
 } from '@/lib/payroll/calculator';
 import { createJournalEntryFromInput } from '@/lib/accounting/create-journal';
 import type { JournalEntryInput } from '@/lib/accounting/journal-engine';
+import { stampPayrollRun, type StampRunResult } from '@/lib/cfdi/nomina/stamp';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -349,6 +350,20 @@ export async function closePayrollRun(runId: string): Promise<{ success: boolean
 
   revalidatePath('/rrhh/nomina');
   return { success: true };
+}
+
+// ─── TIMBRADO CFDI NÓMINA ─────────────────────────────────────────────────────
+
+/**
+ * Timbra todos los recibos de nómina de una corrida cerrada.
+ * Retorna el conteo de timbrados/errores.
+ */
+export async function stampNominaRun(runId: string): Promise<StampRunResult> {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) throw new Error('No autenticado');
+  const result = await stampPayrollRun(session.tenantId, runId);
+  revalidatePath('/rrhh/nomina');
+  return result;
 }
 
 // ─── EMPLEADOS CRUD ───────────────────────────────────────────────────────────

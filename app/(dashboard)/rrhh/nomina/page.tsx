@@ -18,9 +18,11 @@ import {
   getPayrollRun,
   getPayrollHistory,
   closePayrollRun,
+  stampNominaRun,
   type PayrollRunSummary,
   type PayrollItemRow,
 } from './actions';
+import type { StampRunResult } from '@/lib/cfdi/nomina/stamp';
 
 // ─── Tipos locales ────────────────────────────────────────────────────────────
 
@@ -53,6 +55,10 @@ export default function NominaAdministracionPage() {
 
   // Búsqueda en tabla
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Timbrado CFDI
+  const [stampResult, setStampResult] = useState<StampRunResult | null>(null);
+  const [isStamping, setIsStamping] = useState(false);
 
   // ── Cargar corrida más reciente al montar ──
   useEffect(() => {
@@ -103,6 +109,25 @@ export default function NominaAdministracionPage() {
         setError(e.message);
       }
     });
+  }
+
+  // ── Timbrar nómina ──
+  async function handleStampRun() {
+    if (!currentRun) return;
+    if (!confirm(`¿Timbrar ${currentRun.employeeCount} recibos de nómina del período "${currentRun.periodLabel}"?`)) return;
+    setError(null);
+    setStampResult(null);
+    setIsStamping(true);
+    try {
+      const result = await stampNominaRun(currentRun.id);
+      setStampResult(result);
+      const run = await getPayrollRun();
+      setCurrentRun(run);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setIsStamping(false);
+    }
   }
 
   // ── Filtrar items ──
@@ -399,35 +424,126 @@ export default function NominaAdministracionPage() {
           {/* 2. TIMBRADO CFDI 4.0 */}
           {activeTab === 'timbrado' && (
             <div className="space-y-6">
-              <div className="flex flex-col md:flex-row justify-between items-center bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 p-5 rounded-2xl gap-4">
+              {/* Header + botón timbrar */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 p-5 rounded-2xl gap-4">
                 <div className="flex items-start gap-4">
                   <Server className="h-8 w-8 text-blue-500 mt-1 flex-shrink-0" />
                   <div>
-                    <h3 className="font-black text-blue-900 dark:text-blue-100 text-lg">Procesador de Recibos CFDI 4.0</h3>
+                    <h3 className="font-black text-blue-900 dark:text-blue-100 text-lg">CFDI Nómina v1.2 — PAC SW Sapien</h3>
                     <p className="text-xs text-blue-700 dark:text-blue-400 mt-1 leading-relaxed max-w-xl">
-                      El timbrado masivo de nómina requiere CSD vigente y empleados con RFC registrado.
-                      Disponible en el siguiente sprint (integración PAC nómina).
+                      Timbrado masivo: un CFDI tipo N con Complemento Nómina v1.2 por empleado.
+                      Requiere CSD cargado y nómina en estado <strong>Cerrado</strong>.
                     </p>
                   </div>
                 </div>
                 <button
-                  disabled
-                  className="w-full md:w-auto bg-blue-300 dark:bg-blue-900 text-white dark:text-blue-300 font-black px-6 py-3 rounded-xl text-sm opacity-60 cursor-not-allowed flex items-center justify-center gap-2"
+                  onClick={handleStampRun}
+                  disabled={isStamping || !currentRun || currentRun.status !== 'CLOSED'}
+                  className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black px-6 py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
                 >
-                  <Send className="h-4 w-4" /> Timbrado Masivo (Próximo)
+                  {isStamping
+                    ? <><RefreshCw className="h-4 w-4 animate-spin" /> Timbrando...</>
+                    : <><Send className="h-4 w-4" /> Timbrar Nómina</>
+                  }
                 </button>
               </div>
 
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="bg-neutral-100 dark:bg-neutral-800 p-6 rounded-full mb-4">
-                  <FileDigit className="h-12 w-12 text-neutral-400" />
+              {/* Requisitos */}
+              {!currentRun || currentRun.status !== 'CLOSED' ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="bg-amber-50 dark:bg-amber-500/10 p-5 rounded-full mb-4 border border-amber-200 dark:border-amber-500/20">
+                    <AlertTriangle className="h-10 w-10 text-amber-500" />
+                  </div>
+                  <h3 className="font-black text-neutral-700 dark:text-neutral-300">Nómina no cerrada</h3>
+                  <p className="text-neutral-500 text-sm max-w-md mt-2">
+                    Primero calcula y cierra el período de nómina en la pestaña <strong>Motor de Cálculo</strong>.
+                    Solo las nóminas cerradas pueden timbrarse.
+                  </p>
                 </div>
-                <h3 className="font-black text-neutral-700 dark:text-neutral-300 text-lg">CFDI de Nómina (tipo N)</h3>
-                <p className="text-neutral-500 text-sm max-w-md mt-2">
-                  Esta funcionalidad estará disponible una vez que existan empleados con RFC y CSD registrado.
-                  La póliza contable se genera automáticamente al cerrar el período.
-                </p>
-              </div>
+              ) : (
+                <>
+                  {/* Resumen de estado de timbrado */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[
+                      {
+                        label: 'Total Recibos',
+                        value: currentRun.employeeCount,
+                        color: 'text-neutral-900 dark:text-white',
+                        bg: 'bg-neutral-100 dark:bg-neutral-800',
+                        icon: FileDigit,
+                      },
+                      {
+                        label: 'Timbrados',
+                        value: stampResult?.stamped ?? '—',
+                        color: 'text-emerald-600 dark:text-emerald-400',
+                        bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+                        icon: CheckCircle2,
+                      },
+                      {
+                        label: 'Errores',
+                        value: stampResult?.errors ?? '—',
+                        color: 'text-rose-600 dark:text-rose-400',
+                        bg: 'bg-rose-50 dark:bg-rose-500/10',
+                        icon: XCircle,
+                      },
+                    ].map((m) => (
+                      <div key={m.label} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{m.label}</p>
+                          <p className={`text-3xl font-black mt-1 ${m.color}`}>{m.value}</p>
+                        </div>
+                        <div className={`p-3 rounded-xl ${m.bg}`}>
+                          <m.icon className={`h-6 w-6 ${m.color}`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Tabla de resultados */}
+                  {stampResult && stampResult.details.length > 0 && (
+                    <div className="overflow-x-auto border border-neutral-200 dark:border-neutral-800 rounded-2xl">
+                      <table className="min-w-full text-sm text-left">
+                        <thead className="bg-neutral-50 dark:bg-black/50 border-b border-neutral-200 dark:border-neutral-800 text-[10px] uppercase text-neutral-500 tracking-widest font-black">
+                          <tr>
+                            <th className="p-4">Empleado</th>
+                            <th className="p-4">UUID / Error</th>
+                            <th className="p-4 text-center">Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
+                          {stampResult.details.map((d, i) => (
+                            <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/30">
+                              <td className="p-4 font-bold text-neutral-900 dark:text-white">{d.employeeName}</td>
+                              <td className="p-4 font-mono text-xs text-neutral-500">
+                                {d.uuid ? d.uuid : (d.error ?? '—')}
+                              </td>
+                              <td className="p-4 text-center">
+                                {d.uuid ? (
+                                  <span className="px-2 py-1 rounded text-[10px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
+                                    TIMBRADO
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-1 rounded text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400">
+                                    ERROR
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {!stampResult && (
+                    <div className="text-center py-10 text-neutral-500 text-sm">
+                      <Activity className="h-8 w-8 mx-auto mb-3 text-neutral-300" />
+                      <p>Haz clic en <strong>"Timbrar Nómina"</strong> para generar los CFDIs de todos los empleados.</p>
+                      <p className="text-xs mt-1 text-neutral-400">Cada recibo genera un CFDI 4.0 tipo N con Complemento Nómina v1.2 vía SW Sapien.</p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
