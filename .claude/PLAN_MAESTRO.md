@@ -4619,3 +4619,203 @@ Integración completa con PAC (Proveedor Autorizado de Certificación) para timb
 [ ] Tests: genera CFDI válido en entorno sandbox del SAT
 ```
 
+
+
+---
+
+# NUEVAS FASES — Post-Auditoría 2026-03-30
+
+**Actualización:** 2026-03-30 | Tras recorrido completo de módulos
+**Fases 41-43:** Pendientes (definidas previamente)
+**Fases 44-52:** Nuevas, definidas tras auditoría
+
+---
+
+# FASE 44: POS — GESTIÓN COMPLETA DE PRODUCTOS
+**Prioridad:** ALTA (reportado por usuario)
+**Duración estimada:** ~3h
+
+### Problema
+El Terminal POS permite vender pero NO permite administrar el catálogo directamente desde POS. El usuario debe ir a SCM/Inventarios para crear productos, rompiendo el flujo del vendedor.
+
+### Entregables
+```
+[ ] Panel "Gestión de Productos" dentro de /pos
+[ ] CRUD de productos desde POS: crear, editar precio, activar/desactivar
+[ ] Modal de producto: nombre, SKU, precio venta, costo, stock inicial, unidad, IVA
+[ ] Toggle "Disponible en POS" por producto
+[ ] Carga de imagen de producto (Supabase Storage)
+[ ] Indicadores de stock bajo en el grid del POS
+[ ] Sincronización automática POS <-> SCM/Inventarios (mismo modelo Product)
+```
+
+---
+
+# FASE 45: i18n COMPLETO — TRADUCCIÓN TOTAL DE LA INTERFAZ
+**Prioridad:** MEDIA
+**Duración estimada:** ~4h
+
+### Problema
+El sistema i18n existe pero solo Sidebar y Header están traducidos. Todos los módulos siguen en español hardcodeado.
+
+### Entregables
+```
+[ ] Expandir es.ts y en.ts con claves para todos los módulos
+[ ] /dashboard, /billing, /rrhh, /finanzas, /crm, /scm, /mrp, /pos, /bi, /proyectos
+[ ] Modales y mensajes de error de server actions
+[ ] Fechas y montos: formato en-US vs es-MX (Intl.NumberFormat, Intl.DateTimeFormat)
+[ ] Onboarding wizard completamente bilingüe
+```
+
+---
+
+# FASE 46: ANTHROPIC API KEY + AI COPILOT ENTERPRISE
+**Prioridad:** MEDIA
+**Duración estimada:** ~2h
+
+### Instrucción inmediata para activar el AI
+```
+1. Ve a https://console.anthropic.com
+2. Crea cuenta y obtén API Key
+3. Vercel -> Settings -> Environment Variables:
+   ANTHROPIC_API_KEY = sk-ant-api03-...
+4. Redeploy -> El AI Copilot queda activo
+```
+
+### Mejoras Enterprise planeadas
+```
+[ ] Respuestas en idioma del tenant (detectar locale)
+[ ] Historial de conversaciones persistido en DB (tabla AIConversation)
+[ ] Acciones directas desde AI: "Crear factura para [cliente]"
+[ ] Analisis predictivo de clientes en riesgo de no pagar
+[ ] Generacion de reportes narrativos ("Resume el mes de marzo")
+[ ] Comandos de voz (Web Speech API)
+```
+
+---
+
+# FASE 47: CFDI TIMBRADO REAL (= FASE 43)
+*(Ver definicion completa en FASE 43)*
+**Prioridad:** ALTA — Bloqueante para uso fiscal real
+**PAC recomendado para produccion:** SW Sapien (sandbox gratuito)
+
+---
+
+# FASE 48: NOMINA CFDI — COMPLEMENTO DE NOMINA DIGITAL
+**Prioridad:** MEDIA-ALTA
+**Duración estimada:** ~4h
+
+### Entregables
+```
+[ ] Generacion de CFDI con complemento de nomina (version 1.2)
+[ ] Calculo automatico de percepciones y deducciones SAT
+[ ] Timbrado digital ante PAC por cada recibo de nomina
+[ ] PDF de recibo de nomina con UUID y sello digital
+[ ] Envio automatico por email al empleado (via Resend)
+[ ] Historial de recibos timbrados por empleado
+[ ] Acumulados fiscales: ISR retenido, IMSS, INFONAVIT
+```
+
+---
+
+# FASE 49: PORTAL DEL CLIENTE — AUTOSERVICIO AVANZADO
+**Prioridad:** MEDIA
+**Duración estimada:** ~3h
+
+### Entregables
+```
+[ ] Pagos desde el portal (Stripe Payment Link por factura)
+[ ] Descarga de estados de cuenta en PDF
+[ ] Aceptacion de cotizaciones (aprobacion digital)
+[ ] Chat de soporte desde portal (conectado a CRM Mesa de Soporte)
+[ ] Historial de tickets del cliente en el portal
+[ ] Personalizacion del portal con logo del tenant
+```
+
+---
+
+# FASE 50: REPORTES AVANZADOS Y EXPORTACION
+**Prioridad:** MEDIA
+**Duración estimada:** ~3h
+
+### Entregables
+```
+[ ] Reporte ejecutivo mensual en PDF
+[ ] Exportacion Excel de cualquier tabla del sistema
+[ ] Dashboard BI: comparativa mes actual vs mes anterior (%)
+[ ] Reporte de ISR mensual acumulado
+[ ] Reporte de IVA trasladado vs acreditable
+[ ] Reporte de costo de ventas y margen bruto
+[ ] Grafica de flujo de caja proyectado a 90 dias
+[ ] Integracion Google Sheets (export directo)
+```
+
+---
+
+# FASE 51: SEGURIDAD AVANZADA Y COMPLIANCE
+**Prioridad:** MEDIA-ALTA
+**Duración estimada:** ~3h
+
+### Entregables
+```
+[ ] 2FA (TOTP via Google Authenticator) para todos los usuarios
+[ ] IP allowlist por tenant
+[ ] Session timeout configurable (15min/1h/8h/indefinido)
+[ ] Audit log visual en el dashboard del usuario
+[ ] Exportacion de datos del tenant (GDPR-compliant)
+[ ] Cifrado en transito de archivos sensibles (CSD, XMLs)
+[ ] Notificacion de inicio de sesion desde nuevo dispositivo
+```
+
+---
+
+# FASE 52: MOBILE FIRST + PWA COMPLETO
+**Prioridad:** BAJA-MEDIA
+**Duración estimada:** ~3h
+
+### Entregables
+```
+[ ] Sidebar colapsado por defecto en mobile con gesture swipe
+[ ] POS Terminal responsive para tablet (modo caja registradora)
+[ ] Inventario: scanner de codigo de barras via camara (ZXing)
+[ ] Push Notifications nativas (Service Worker push API)
+[ ] Modo offline inteligente: cache de facturas, productos, empleados
+[ ] Sync diferido: acciones offline en cola, se sincronizan al reconectar
+[ ] Biometria: FaceID/TouchID para autenticacion rapida
+```
+
+---
+
+## RESUMEN EJECUTIVO — ESTADO DEL PRODUCTO (2026-03-30)
+
+```
+FASES 12-40: COMPLETAS (29 fases, 37 PRs, 50000+ lineas)
+
+HOTFIXES APLICADOS 2026-03-30:
+  - Favicon delta azul en todas las paginas
+  - Logo CIFRA x2 tamano en sidebar expandido
+  - Boton CIFRA AI conectado al chat flotante
+  - Language Switcher funcional (Sidebar + Header traducidos)
+  - Super Admin 553angelortiz@gmail.com inelimnable
+  - Bug offline page (onClick sin use client) FIXED
+  - Bug marketing route group (client-reference-manifest) FIXED
+
+PRIORIDAD ALTA (impacto directo en ventas y compliance):
+  - FASE 44: POS Gestion de Productos
+  - FASE 46: ANTHROPIC_API_KEY en Vercel (activar AI)
+  - FASE 47: CFDI Timbrado Real (PAC)
+
+PRIORIDAD MEDIA-ALTA:
+  - FASE 48: Nomina CFDI Digital
+  - FASE 51: Seguridad Avanzada 2FA
+  - FASE 41: Onboarding OCR
+
+MEJORAS DE PRODUCTO:
+  - FASE 45: i18n Completo
+  - FASE 49: Portal Cliente Avanzado
+  - FASE 50: Reportes Avanzados
+  - FASE 42: Planes Stripe MXN
+
+LARGO PLAZO:
+  - FASE 52: Mobile First
+```
