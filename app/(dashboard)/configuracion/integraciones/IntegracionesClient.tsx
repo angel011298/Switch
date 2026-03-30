@@ -9,9 +9,8 @@ import {
   getWebhookDeliveries,
   createApiKey,
   revokeApiKey,
-  WEBHOOK_EVENTS,
-  API_SCOPES,
 } from './actions';
+import { WEBHOOK_EVENTS, API_SCOPES } from './constants';
 
 // ─── PROPS ────────────────────────────────────────────────────────────────────
 

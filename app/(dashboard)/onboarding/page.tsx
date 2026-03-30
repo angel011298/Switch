@@ -12,7 +12,8 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { setupTenantProfile, MODULE_GROUPS } from './actions';
+import { setupTenantProfile } from './actions';
+import { MODULE_GROUPS } from './constants';
 import type { ModuleKey } from '@prisma/client';
 import {
   Building2, FileText, Layers, Landmark,
