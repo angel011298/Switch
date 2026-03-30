@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * CIFRA — Página offline (FASE 36 PWA)
  * Mostrada por el service worker cuando no hay conexión y no hay caché.
