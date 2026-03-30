@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { Suspense } from 'react';
 import { getSwitchSession } from '@/lib/auth/session';
 import { ensurePrismaUser } from '@/lib/auth/ensure-user';
@@ -54,6 +54,20 @@ export default async function DashboardLayout({
 
     if (!tenant?.onboardingComplete && !pathname.startsWith('/onboarding')) {
       redirect('/onboarding');
+    }
+  }
+
+  // FASE 51: Check 2FA verification
+  const cookieStore = await cookies();
+  const twoFaVerified = cookieStore.get('cifra_2fa_verified')?.value === '1';
+
+  if (!twoFaVerified) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { twoFactorEnabled: true },
+    });
+    if (dbUser?.twoFactorEnabled) {
+      redirect('/auth/2fa');
     }
   }
 

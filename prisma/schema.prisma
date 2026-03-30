@@ -143,6 +143,9 @@ model Tenant {
   // FASE 12: Onboarding
   onboardingComplete Boolean      @default(false) // true = RFC/nombre/CP capturados
 
+  // FASE 51: Seguridad — timeout de sesión en minutos (default 8h)
+  sessionTimeoutMinutes Int        @default(480)
+
   subscription     Subscription?
   paymentProofs    PaymentProof[]
   modules          TenantModule[]
@@ -254,6 +257,10 @@ model User {
   timeEntries      TimeEntry[]
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+
+  // FASE 51: Seguridad 2FA
+  twoFactorEnabled  Boolean  @default(false)
+  twoFactorSecret   String?  // TOTP secret (encrypted via app-level AES, stored as base64)
 
   @@index([tenantId])
 }
