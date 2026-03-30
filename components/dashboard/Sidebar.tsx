@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
-  Menu,
   Sun,
   Moon,
   ChevronDown,
@@ -91,32 +90,44 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
         )}
       </button>
 
-      {/* Logo */}
-      <div
-        className={`px-4 py-6 mb-2 flex items-center ${
+      {/* Logo — clic siempre lleva al dashboard principal */}
+      <Link
+        href="/dashboard"
+        title="Ir al Inicio"
+        className={`px-4 py-6 mb-2 flex items-center transition-opacity hover:opacity-80 ${
           isCollapsed ? 'justify-center' : 'justify-start'
         }`}
       >
         {!isCollapsed ? (
           <div className="flex flex-col gap-1 overflow-hidden">
+            {/* Logo día (light mode) */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-light.png"
               alt="CIFRA"
-              className="h-8 object-contain object-left block dark:hidden"
+              className="h-8 object-contain object-left rounded-lg block dark:hidden"
             />
+            {/* Logo noche (dark mode) */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-dark.png"
               alt="CIFRA"
-              className="h-8 object-contain object-left hidden dark:block"
+              className="h-8 object-contain object-left rounded-lg hidden dark:block"
             />
             <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest truncate">
               CIFRA Workspace
             </p>
           </div>
         ) : (
-          <Menu className="h-6 w-6 text-neutral-400" />
+          /* Collapsed: ícono cuadrado con Δ */
+          <div className="h-9 w-9 rounded-xl bg-slate-900 dark:bg-neutral-800 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10 shrink-0">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-label="CIFRA" role="img">
+              <polygon points="10,2 19,18 1,18" fill="white" />
+              <polygon points="10,7 15.5,16.5 4.5,16.5" fill="#1d4ed8" />
+            </svg>
+          </div>
         )}
-      </div>
+      </Link>
 
       {/* CIFRA AI */}
       <div className="px-3 mb-4">

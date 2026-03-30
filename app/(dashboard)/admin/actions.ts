@@ -4,6 +4,20 @@ import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
 import { ModuleKey } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { createClient } from '@supabase/supabase-js';
+
+// ─── Helper: Supabase Admin Client (Service Role) ─────────────────────────────
+
+function getSupabaseAdmin() {
+  const url  = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key  = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) throw new Error('Variables de entorno Supabase Admin no configuradas.')
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
+// ─── TOGGLE MÓDULO ────────────────────────────────────────────────────────────
 
 /**
  * Toggle un modulo para un tenant.
@@ -14,13 +28,9 @@ export async function toggleTenantModule(
   moduleKey: string,
   activate: boolean
 ) {
-  // Validar sesion y permisos
   const session = await getSwitchSession();
-  if (!session?.isSuperAdmin) {
-    throw new Error('Acceso denegado: se requiere Super Admin');
-  }
+  if (!session?.isSuperAdmin) throw new Error('Acceso denegado: se requiere Super Admin');
 
-  // Validar que el moduleKey sea valido
   const validKeys: string[] = [
     'DASHBOARD', 'CALENDAR', 'BI',
     'HCM', 'PAYROLL', 'TALENT',
@@ -31,42 +41,23 @@ export async function toggleTenantModule(
     'MRP', 'QUALITY', 'PROJECTS',
   ];
 
-  if (!validKeys.includes(moduleKey)) {
-    throw new Error(`ModuleKey invalido: ${moduleKey}`);
-  }
+  if (!validKeys.includes(moduleKey)) throw new Error(`ModuleKey invalido: ${moduleKey}`);
 
-  // Upsert: crear si no existe, actualizar si ya existe
   await prisma.tenantModule.upsert({
-    where: {
-      tenantId_moduleKey: {
-        tenantId,
-        moduleKey: moduleKey as ModuleKey,
-      },
-    },
-    update: {
-      isActive: activate,
-    },
-    create: {
-      tenantId,
-      moduleKey: moduleKey as ModuleKey,
-      isActive: activate,
-    },
+    where:  { tenantId_moduleKey: { tenantId, moduleKey: moduleKey as ModuleKey } },
+    update: { isActive: activate },
+    create: { tenantId, moduleKey: moduleKey as ModuleKey, isActive: activate },
   });
 
-  // Revalidar la pagina de admin para reflejar el cambio
   revalidatePath('/admin');
-
   return { success: true, moduleKey, isActive: activate };
 }
 
-/**
- * Activa TODOS los modulos para un tenant.
- */
+// ─── ACTIVAR / DESACTIVAR TODOS ───────────────────────────────────────────────
+
 export async function activateAllModules(tenantId: string) {
   const session = await getSwitchSession();
-  if (!session?.isSuperAdmin) {
-    throw new Error('Acceso denegado: se requiere Super Admin');
-  }
+  if (!session?.isSuperAdmin) throw new Error('Acceso denegado: se requiere Super Admin');
 
   const allKeys: ModuleKey[] = [
     'DASHBOARD', 'CALENDAR', 'BI',
@@ -81,7 +72,7 @@ export async function activateAllModules(tenantId: string) {
   await Promise.all(
     allKeys.map((moduleKey) =>
       prisma.tenantModule.upsert({
-        where: { tenantId_moduleKey: { tenantId, moduleKey } },
+        where:  { tenantId_moduleKey: { tenantId, moduleKey } },
         update: { isActive: true },
         create: { tenantId, moduleKey, isActive: true },
       })
@@ -92,20 +83,83 @@ export async function activateAllModules(tenantId: string) {
   return { success: true };
 }
 
-/**
- * Desactiva TODOS los modulos para un tenant.
- */
 export async function deactivateAllModules(tenantId: string) {
   const session = await getSwitchSession();
-  if (!session?.isSuperAdmin) {
-    throw new Error('Acceso denegado: se requiere Super Admin');
-  }
+  if (!session?.isSuperAdmin) throw new Error('Acceso denegado: se requiere Super Admin');
 
   await prisma.tenantModule.updateMany({
     where: { tenantId },
-    data: { isActive: false },
+    data:  { isActive: false },
   });
 
   revalidatePath('/admin');
   return { success: true };
+}
+
+// ─── ELIMINAR TENANT DEFINITIVAMENTE ─────────────────────────────────────────
+
+/**
+ * Elimina un tenant de forma permanente:
+ *  1. Obtiene todos los usuarios del tenant
+ *  2. Los elimina de Supabase Auth (service role)
+ *  3. Elimina el tenant de Prisma (cascade)
+ *
+ * ⚠️ ACCIÓN IRREVERSIBLE — solo Super Admin.
+ */
+export async function deleteTenant(
+  tenantId: string
+): Promise<{ success: boolean; error?: string }> {
+  const session = await getSwitchSession();
+  if (!session?.isSuperAdmin) throw new Error('Acceso denegado: se requiere Super Admin');
+
+  try {
+    // 1. Obtener usuarios del tenant
+    const tenantUsers = await prisma.user.findMany({
+      where:  { tenantId },
+      select: { id: true, email: true },
+    });
+
+    // 2. Eliminar cada usuario de Supabase Auth
+    if (tenantUsers.length > 0) {
+      const supabaseAdmin = getSupabaseAdmin();
+      const deleteResults = await Promise.allSettled(
+        tenantUsers.map(u => supabaseAdmin.auth.admin.deleteUser(u.id))
+      );
+      deleteResults.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.warn(`[deleteTenant] No se pudo eliminar user ${tenantUsers[i]?.email} de Supabase:`, r.reason);
+        }
+      });
+    }
+
+    // 3. Eliminar el tenant de Prisma
+    //    Nota: si el schema tiene onDelete: Cascade en las relaciones,
+    //    basta con delete(). De lo contrario, eliminamos manualmente las
+    //    relaciones conocidas primero para evitar FK constraint errors.
+    try {
+      await prisma.tenant.delete({ where: { id: tenantId } });
+    } catch (cascadeErr: any) {
+      if (cascadeErr?.code === 'P2003' || cascadeErr?.code === 'P2014') {
+        // FK constraint — eliminar relaciones conocidas manualmente
+        await prisma.$transaction([
+          prisma.tenantModule.deleteMany({ where: { tenantId } }),
+          // Agregar aquí otras relaciones que no tengan cascade
+          // ej: prisma.payrollItem.deleteMany({ where: { payrollRun: { tenantId } } }),
+          prisma.user.deleteMany({ where: { tenantId } }),
+          prisma.tenant.delete({ where: { id: tenantId } }),
+        ]);
+      } else {
+        throw cascadeErr;
+      }
+    }
+
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error: any) {
+    console.error('[deleteTenant] Error:', error);
+    return {
+      success: false,
+      error: error?.message ?? 'Error al eliminar el tenant. Intenta de nuevo.',
+    };
+  }
 }

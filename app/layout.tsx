@@ -16,8 +16,9 @@ export const metadata: Metadata = {
   },
   formatDetection: { telephone: false },
   icons: {
-    icon:    '/favicon.ico',
-    apple:   '/icon-192.png',
+    // Next.js sirve /icon desde app/icon.tsx (PNG con Δ azul)
+    icon: [{ url: '/icon', sizes: '32x32', type: 'image/png' }],
+    apple: '/icon-192.png',
     other: [
       { rel: 'icon', url: '/icon-192.png', sizes: '192x192' },
       { rel: 'icon', url: '/icon-512.png', sizes: '512x512' },
