@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { LogOut, Search, AlertCircle, Clock } from 'lucide-react';
+import { LogOut, Search, AlertCircle, Clock, Menu } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import NotificationCenter from '@/components/layout/NotificationCenter';
@@ -16,6 +16,8 @@ interface HeaderProps {
   // FASE 12: Paywall badge
   subscriptionStatus?: string | null;
   daysLeft?: number | null;
+  /** FASE 52: Mobile hamburger toggle */
+  onMobileMenuToggle?: () => void;
 }
 
 export default function Header({
@@ -24,6 +26,7 @@ export default function Header({
   isSuperAdmin,
   subscriptionStatus,
   daysLeft,
+  onMobileMenuToggle,
 }: HeaderProps) {
   const router = useRouter();
   const supabase = createClient();
@@ -54,7 +57,19 @@ export default function Header({
   const isExpired = daysLeft !== null && daysLeft !== undefined && daysLeft <= 0;
 
   return (
-    <header className="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-40">
+    <header className="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
+
+      {/* ── FASE 52: Hamburger button (mobile only) ── */}
+      {onMobileMenuToggle && (
+        <button
+          onClick={onMobileMenuToggle}
+          className="md:hidden p-2 rounded-xl text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors mr-2 flex-shrink-0"
+          aria-label="Abrir menú"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
+
       {/* Barra de búsqueda global */}
       <div className="flex items-center gap-3 flex-1 max-w-md">
         <div className="relative w-full">

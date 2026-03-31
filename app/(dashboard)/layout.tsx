@@ -4,8 +4,7 @@ import { Suspense } from 'react';
 import { getSwitchSession } from '@/lib/auth/session';
 import { ensurePrismaUser } from '@/lib/auth/ensure-user';
 import prisma from '@/lib/prisma';
-import Sidebar from '@/components/dashboard/Sidebar';
-import Header from '@/components/dashboard/Header';
+import DashboardShell from '@/components/dashboard/DashboardShell';
 import ModuleDeniedToast from '@/components/dashboard/ModuleDeniedToast';
 import { I18nProvider } from '@/lib/i18n/context';
 import { CopilotChat } from '@/components/ai/CopilotChat';
@@ -80,36 +79,22 @@ export default async function DashboardLayout({
 
   return (
     <I18nProvider>
-      <div className="flex h-screen overflow-hidden">
-        {/* Sidebar dinámico — solo módulos activos */}
-        <Sidebar
-          activeModules={session.activeModules}
-          isSuperAdmin={session.isSuperAdmin}
-          userName={session.name}
-        />
+      {/* FASE 52: DashboardShell gestiona el estado del drawer móvil */}
+      <DashboardShell
+        activeModules={session.activeModules}
+        isSuperAdmin={session.isSuperAdmin}
+        userName={session.name}
+        userEmail={session.email}
+        subscriptionStatus={session.subscriptionStatus ?? null}
+        daysLeft={daysLeft}
+      >
+        {children}
+      </DashboardShell>
 
-        {/* Área principal */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header con perfil y badge de suscripción */}
-          <Header
-            userName={session.name}
-            userEmail={session.email}
-            isSuperAdmin={session.isSuperAdmin}
-            subscriptionStatus={session.subscriptionStatus}
-            daysLeft={daysLeft}
-          />
-
-          {/* Contenido de la página */}
-          <main className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300">
-            {children}
-          </main>
-        </div>
-
-        {/* Toast de módulo denegado */}
-        <Suspense fallback={null}>
-          <ModuleDeniedToast />
-        </Suspense>
-      </div>
+      {/* Toast de módulo denegado */}
+      <Suspense fallback={null}>
+        <ModuleDeniedToast />
+      </Suspense>
       <CopilotChat />
     </I18nProvider>
   );

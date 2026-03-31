@@ -23,11 +23,13 @@ interface SidebarProps {
   activeModules: string[];
   isSuperAdmin: boolean;
   userName: string;
+  /** FASE 52: callback para cerrar el drawer en móvil al navegar */
+  onMobileClose?: () => void;
 }
 
 // ─── Componente ─────────────────────────────────────────
 
-export default function Sidebar({ activeModules, isSuperAdmin, userName }: SidebarProps) {
+export default function Sidebar({ activeModules, isSuperAdmin, userName, onMobileClose }: SidebarProps) {
   const pathname = usePathname() || '';
   const { theme, setTheme } = useTheme();
   const { t } = useI18n();
@@ -38,6 +40,12 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName }: Sideb
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // FASE 52: Cerrar drawer de móvil al cambiar de ruta
+  useEffect(() => {
+    onMobileClose?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   // Auto-abrir el grupo que contiene la ruta activa
   useEffect(() => {

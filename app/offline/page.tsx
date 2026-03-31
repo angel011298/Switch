@@ -1,34 +1,52 @@
 'use client';
 
 /**
- * CIFRA — Página offline (FASE 36 PWA)
- * Mostrada por el service worker cuando no hay conexión y no hay caché.
+ * CIFRA — Página offline
+ * =======================
+ * FASE 52: Mobile First + PWA
+ * Mostrada por el Service Worker cuando no hay conexión
+ * y la página solicitada no está en caché.
  */
 export default function OfflinePage() {
+  const features = [
+    { label: 'Dashboard en caché',        ok: true  },
+    { label: 'Historial POS reciente',    ok: true  },
+    { label: 'Timbrado CFDI (SAT)',       ok: false },
+    { label: 'Sincronización en tiempo real', ok: false },
+  ];
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-6 text-center">
-      <div className="w-20 h-20 rounded-2xl bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center mb-6">
-        <svg className="w-10 h-10 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-            d="M18.364 5.636a9 9 0 010 12.728M15.536 8.464a5 5 0 010 7.072M12 12h.01M3 3l18 18" />
-        </svg>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-950 p-6 text-center">
+
+      {/* Logo */}
+      <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center mb-6 shadow-2xl shadow-blue-500/30">
+        <span className="text-4xl font-black text-white select-none">Δ</span>
       </div>
 
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Sin conexión</h1>
-      <p className="text-zinc-500 dark:text-zinc-400 max-w-sm mb-8">
-        No tienes acceso a internet. Algunas páginas pueden estar disponibles desde caché.
+      <h1 className="text-2xl font-black text-white mb-2 tracking-tight">Sin conexión</h1>
+      <p className="text-neutral-400 max-w-xs mb-6 text-sm leading-relaxed">
+        CIFRA ERP no puede conectarse ahora. Revisa tu conexión e intenta de nuevo.
       </p>
+
+      {/* Feature availability */}
+      <div className="w-full max-w-xs bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-6 text-left">
+        <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3">Estado del modo offline</p>
+        {features.map(({ label, ok }) => (
+          <div key={label} className="flex items-center gap-3 py-2 border-b border-neutral-800 last:border-0">
+            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${ok ? 'bg-emerald-500' : 'bg-neutral-600'}`} />
+            <span className={`text-sm ${ok ? 'text-neutral-200' : 'text-neutral-500'}`}>{label}</span>
+          </div>
+        ))}
+      </div>
 
       <button
         onClick={() => window.location.reload()}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-xl transition-colors"
+        className="w-full max-w-xs bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold py-3 rounded-2xl transition-colors text-sm"
       >
-        Intentar de nuevo
+        Reintentar conexión
       </button>
 
-      <p className="mt-6 text-sm text-zinc-400">
-        CIFRA ERP — Modo sin conexión
-      </p>
+      <p className="mt-5 text-xs text-neutral-600">CIFRA ERP — Modo sin conexión</p>
     </div>
   );
 }

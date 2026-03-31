@@ -1,17 +1,20 @@
 /**
  * CIFRA ERP — Service Worker
  * FASE 36: PWA + Offline support
+ * FASE 52: SKIP_WAITING message + offline fallback page
  *
  * Estrategia:
  * - App shell (static assets): Cache-first
  * - API routes: Network-first con fallback a cache
  * - Páginas navegación: Stale-while-revalidate
+ * - Sin conexión: sirve /offline
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_STATIC  = `cifra-static-${CACHE_VERSION}`;
 const CACHE_DYNAMIC = `cifra-dynamic-${CACHE_VERSION}`;
 const CACHE_API     = `cifra-api-${CACHE_VERSION}`;
+const OFFLINE_URL   = '/offline';
 
 // Assets que se cachean en la instalación (app shell)
 const STATIC_ASSETS = [
@@ -21,7 +24,15 @@ const STATIC_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
   '/favicon.ico',
+  OFFLINE_URL,
 ];
+
+// ── FASE 52: Activación inmediata cuando lo pide el cliente ──────────────────
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
 // ── Install ──────────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
@@ -32,7 +43,7 @@ self.addEventListener('install', (event) => {
       });
     })
   );
-  self.skipWaiting();
+  // No auto-skip: espera mensaje SKIP_WAITING del cliente
 });
 
 // ── Activate ─────────────────────────────────────────────────────────────────
@@ -72,9 +83,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Páginas de navegación → Stale-while-revalidate
+  // Páginas de navegación → Stale-while-revalidate, fallback /offline
   if (request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(staleWhileRevalidate(request, CACHE_DYNAMIC));
+    event.respondWith(navigateWithOfflineFallback(request));
     return;
   }
 
@@ -129,7 +140,27 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached ?? (await fetchPromise) ?? new Response('Offline', { status: 503 });
 }
 
-// ── Push Notifications (stub para fase futura) ────────────────────────────────
+// ── FASE 52: Navegación con fallback a página offline ────────────────────────
+async function navigateWithOfflineFallback(request) {
+  const cache = await caches.open(CACHE_DYNAMIC);
+  const cached = await cache.match(request);
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  } catch {
+    // Sin conexión: devolver desde caché o la página offline
+    if (cached) return cached;
+    const offlinePage = await caches.match(OFFLINE_URL);
+    return offlinePage ?? new Response('Sin conexión', {
+      status: 503,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  }
+}
+
+// ── Push Notifications ────────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
   if (!event.data) return;
   const data = event.data.json();
