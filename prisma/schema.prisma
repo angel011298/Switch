@@ -628,6 +628,10 @@ model Invoice {
   rfcProvCertif     String?
   xmlTimbrado       String?  @db.Text  // XML completo timbrado
 
+  // FASE 49: Portal — pago online
+  paidAt                DateTime?
+  stripePaymentIntentId String?
+
   // Relaciones
   items          InvoiceItem[]
 

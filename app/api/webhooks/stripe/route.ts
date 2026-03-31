@@ -135,9 +135,28 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const tenantId    = session.metadata?.tenantId;
+        const invoiceId   = session.metadata?.invoiceId; // FASE 49: pago portal
         const customerId  = typeof session.customer === 'string'
           ? session.customer
           : session.customer?.id ?? null;
+
+        // ── FASE 49: Pago de factura desde portal ────────────────────────────
+        if (invoiceId && session.payment_status === 'paid') {
+          const paymentIntentId = typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent?.id ?? null;
+
+          await prisma.invoice.update({
+            where: { id: invoiceId },
+            data: {
+              paidAt:                new Date(),
+              stripePaymentIntentId: paymentIntentId,
+            },
+          }).catch((e) => console.warn('[stripe-webhook] No se pudo marcar factura pagada:', e));
+
+          console.log(`[stripe-webhook] Factura ${invoiceId} marcada como pagada`);
+          break; // no procesar como suscripción
+        }
 
         if (tenantId && customerId) {
           await prisma.tenant.update({

@@ -63,6 +63,7 @@ export async function GET(
       total: true,
       moneda: true,
       uuid: true,
+      paidAt: true,
       items: { select: { descripcion: true }, take: 1 },
     },
   });
@@ -74,24 +75,27 @@ export async function GET(
   });
 
   // Calcular totales
-  const statusMap: Record<string, 'PAGADA' | 'PENDIENTE' | 'CANCELADA'> = {
-    STAMPED: 'PAGADA',
-    DRAFT: 'PENDIENTE',
-    SEALED: 'PENDIENTE',
-    CANCELLED: 'CANCELADA',
-    ERROR: 'PENDIENTE',
-  };
-
-  const mapped = invoices.map((inv) => ({
-    id: inv.id,
-    folio: `${inv.serie ?? 'A'}${inv.folio}`,
-    fecha: inv.fechaEmision,
-    concepto: inv.items[0]?.descripcion ?? 'Servicios',
-    total: Number(inv.total),
-    moneda: inv.moneda,
-    uuid: inv.uuid,
-    status: statusMap[inv.status] ?? 'PENDIENTE',
-  }));
+  const mapped = invoices.map((inv) => {
+    let status: 'PAGADA' | 'PENDIENTE' | 'CANCELADA';
+    if (inv.status === 'CANCELLED') {
+      status = 'CANCELADA';
+    } else if (inv.paidAt) {
+      status = 'PAGADA';
+    } else {
+      status = 'PENDIENTE';
+    }
+    return {
+      id:      inv.id,
+      folio:   `${inv.serie ?? 'A'}${inv.folio}`,
+      fecha:   inv.fechaEmision,
+      concepto: inv.items[0]?.descripcion ?? 'Servicios',
+      total:   Number(inv.total),
+      moneda:  inv.moneda,
+      uuid:    inv.uuid,
+      paidAt:  inv.paidAt,
+      status,
+    };
+  });
 
   const totalFacturado = mapped.reduce((s, i) => s + i.total, 0);
   const totalPagado    = mapped.filter(i => i.status === 'PAGADA').reduce((s, i) => s + i.total, 0);
