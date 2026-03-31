@@ -10,7 +10,7 @@
  * - Sin conexión: sirve /offline
  */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_STATIC  = `cifra-static-${CACHE_VERSION}`;
 const CACHE_DYNAMIC = `cifra-dynamic-${CACHE_VERSION}`;
 const CACHE_API     = `cifra-api-${CACHE_VERSION}`;
