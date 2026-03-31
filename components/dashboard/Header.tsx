@@ -1,7 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
 import { LogOut, Search, AlertCircle, Clock, Menu } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -28,16 +26,15 @@ export default function Header({
   daysLeft,
   onMobileMenuToggle,
 }: HeaderProps) {
-  const router = useRouter();
-  const supabase = createClient();
   const { t } = useI18n();
   const [signingOut, setSigningOut] = useState(false);
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     setSigningOut(true);
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    // Hard redirect to server-side sign-out route.
+    // This ensures the Supabase session is revoked on the server and
+    // ALL sb-* cookies are purged before the browser lands on /login.
+    window.location.href = '/api/auth/signout';
   };
 
   // Iniciales del usuario para el avatar

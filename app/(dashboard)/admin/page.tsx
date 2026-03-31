@@ -24,8 +24,8 @@ export default async function AdminPage() {
     prisma.tenant.findMany({
       include: {
         modules: { orderBy: { moduleKey: 'asc' } },
-        users: { select: { id: true, email: true, name: true, role: true } },
-        subscription: true,
+        users: { select: { id: true, email: true, name: true, role: true, createdAt: true } },
+        subscription: { select: { status: true, validUntil: true, planId: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -138,6 +138,7 @@ export default async function AdminPage() {
                   name: u.name,
                   email: u.email,
                   role: u.role,
+                  createdAt: u.createdAt.toISOString(),
                 })),
                 modules: tenant.modules.map((m) => ({
                   id: m.id,
@@ -145,6 +146,8 @@ export default async function AdminPage() {
                   isActive: m.isActive,
                 })),
                 subscriptionStatus: tenant.subscription?.status ?? null,
+                subscriptionValidUntil: tenant.subscription?.validUntil?.toISOString() ?? null,
+                subscriptionPlan: tenant.subscription?.planId ?? null,
               }}
             />
           ))}

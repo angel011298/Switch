@@ -109,22 +109,15 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName, onMobil
         }`}
       >
         {!isCollapsed ? (
-          <div className="flex flex-col gap-1 overflow-hidden">
-            {/* Logo día (light mode) */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo-light.png"
-              alt="CIFRA"
-              className="h-16 object-contain object-left rounded-lg block dark:hidden"
-            />
-            {/* Logo noche (dark mode) */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo-dark.png"
-              alt="CIFRA"
-              className="h-16 object-contain object-left rounded-lg hidden dark:block"
-            />
-            <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest truncate">
+          <div className="flex flex-col gap-1.5 overflow-hidden">
+            {/* Logo — crisp SVG, adapta a light/dark */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-md shadow-blue-500/25 flex-shrink-0">
+                <span className="text-base font-black text-white leading-none select-none">Δ</span>
+              </div>
+              <span className="text-xl font-black text-neutral-900 dark:text-white tracking-tight">CIFRA</span>
+            </div>
+            <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest truncate pl-0.5">
               {t.sidebar.workspace}
             </p>
           </div>
