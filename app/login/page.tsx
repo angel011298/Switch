@@ -1,167 +1,223 @@
 'use client'
 
-import { useState, Suspense, useEffect, useRef } from 'react'
+import { useState, Suspense, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { syncUserWithPrisma, getGoogleOAuthUrl, checkSignupDuplicates } from './actions'
 import { useRouter } from 'next/navigation'
 import {
   FileText, BarChart3, Users, ShoppingCart,
   Brain, Package, CheckCircle2, TrendingUp, Lock,
+  Calendar, Headphones, Factory, FolderKanban, Shield,
+  ArrowRight,
 } from 'lucide-react'
 
-// ─── Module showcase data ────────────────────────────────────────────────────
+// ─── Module showcase data (6 main) ──────────────────────────────────────────
 
 const MODULES = [
   {
     id: 'cfdi',
     icon: FileText,
-    color: 'from-blue-500 to-blue-700',
-    accent: 'blue',
+    accent: '#3b82f6',
     label: 'Facturación CFDI 4.0',
-    desc: 'Timbrado real ante el SAT en segundos. Emite, cancela y gestiona CFDIs de ingreso, egreso, traslado y pago.',
+    tagline: 'Timbrado real ante el SAT',
+    bullets: [
+      'Emisión instantánea de CFDI ingreso, egreso, traslado y pago',
+      'Cancelación y sustitución con un clic',
+      'Catálogo SAT 2026 integrado (productos, unidades, regímenes)',
+      'Envío automático por correo al receptor',
+    ],
     stats: [
       { label: 'CFDIs emitidos', value: '1,847', trend: '+8.2%' },
-      { label: 'Tiempo promedio', value: '1.2s',  trend: 'por timbre' },
-      { label: 'Cancelaciones',  value: '0.3%',  trend: 'tasa' },
+      { label: 'Tiempo promedio', value: '1.2s' },
+      { label: 'Tasa cancelación', value: '0.3%' },
     ],
     demo: [35, 52, 41, 68, 48, 75, 58, 82, 63, 88, 71, 95],
   },
   {
     id: 'finanzas',
     icon: BarChart3,
-    color: 'from-emerald-500 to-emerald-700',
-    accent: 'emerald',
+    accent: '#10b981',
     label: 'Contabilidad & Finanzas',
-    desc: 'Balanza de comprobación, pólizas automáticas, flujo de caja y cierre contable. Cumplimiento PCGA total.',
+    tagline: 'Control financiero total',
+    bullets: [
+      'Balanza de comprobación y estados financieros automáticos',
+      'Pólizas contables generadas desde facturas y nómina',
+      'Flujo de caja proyectado a 13 semanas',
+      'Conciliación bancaria y gestión de gastos',
+    ],
     stats: [
       { label: 'Ingresos / mes', value: '$425K', trend: '+12.4%' },
-      { label: 'Pólizas auto',   value: '342',   trend: 'este mes' },
-      { label: 'IVA neto',       value: '$38K',  trend: 'a favor' },
+      { label: 'Pólizas auto', value: '342' },
+      { label: 'IVA neto', value: '$38K' },
     ],
     demo: [60, 45, 70, 55, 80, 65, 90, 72, 85, 78, 92, 88],
   },
   {
     id: 'nomina',
     icon: Users,
-    color: 'from-violet-500 to-violet-700',
-    accent: 'violet',
-    label: 'Nómina ISR / IMSS 2026',
-    desc: 'Cálculo preciso de ISR, IMSS, INFONAVIT. Timbrado de recibos de nómina y cumplimiento laboral automático.',
+    accent: '#8b5cf6',
+    label: 'Nómina & Capital Humano',
+    tagline: 'ISR, IMSS, INFONAVIT 2026',
+    bullets: [
+      'Cálculo preciso de ISR según tablas vigentes',
+      'Cuotas IMSS e INFONAVIT automáticas',
+      'Timbrado de recibos de nómina (CFDI 4.0)',
+      'Directorio de empleados con documentos y expedientes',
+    ],
     stats: [
-      { label: 'Empleados',   value: '24',   trend: 'activos' },
-      { label: 'Nómina',      value: '$89K', trend: 'quincenal' },
-      { label: 'ISR retenido',value: '$11K', trend: 'acumulado' },
+      { label: 'Empleados', value: '24' },
+      { label: 'Nómina quincenal', value: '$89K' },
+      { label: 'ISR retenido', value: '$11K' },
     ],
     demo: [50, 50, 52, 51, 55, 53, 58, 56, 60, 59, 62, 64],
   },
   {
     id: 'pos',
     icon: ShoppingCart,
-    color: 'from-orange-500 to-orange-700',
-    accent: 'orange',
+    accent: '#f97316',
     label: 'POS + CRM Integrado',
-    desc: 'Punto de venta táctil con inventario en tiempo real, gestión de clientes, pipeline de ventas y marketing.',
+    tagline: 'Vende, cobra, fideliza',
+    bullets: [
+      'Punto de venta táctil con escáner de código de barras',
+      'Inventario en tiempo real con alertas de restock',
+      'Pipeline de ventas tipo Kanban con seguimiento CRM',
+      'Marketing por segmentos y portal de clientes',
+    ],
     stats: [
-      { label: 'Ventas hoy',       value: '$12.4K', trend: '+15%' },
-      { label: 'Tickets',          value: '186',    trend: 'promedio' },
-      { label: 'Clientes activos', value: '1,240',  trend: 'CRM' },
+      { label: 'Ventas hoy', value: '$12.4K', trend: '+15%' },
+      { label: 'Tickets diarios', value: '186' },
+      { label: 'Clientes CRM', value: '1,240' },
     ],
     demo: [30, 48, 36, 62, 44, 71, 52, 78, 59, 83, 67, 90],
   },
   {
     id: 'ai',
     icon: Brain,
-    color: 'from-pink-500 to-pink-700',
-    accent: 'pink',
+    accent: '#ec4899',
     label: 'CIFRA AI Copilot',
-    desc: 'Asistente fiscal inteligente que responde sobre tus finanzas, detecta inconsistencias y sugiere optimizaciones.',
+    tagline: 'Inteligencia fiscal a tu servicio',
+    bullets: [
+      'Pregunta sobre tus finanzas en lenguaje natural',
+      'Detecta inconsistencias contables y fiscales',
+      'Sugiere optimizaciones de impuestos',
+      'Genera reportes ejecutivos con un clic',
+    ],
     stats: [
-      { label: 'Consultas',    value: '2,341', trend: 'este mes' },
-      { label: 'Ahorro fiscal',value: '$24K',  trend: 'detectado' },
-      { label: 'Precisión',    value: '97.8%', trend: 'respuestas' },
+      { label: 'Consultas / mes', value: '2,341' },
+      { label: 'Ahorro detectado', value: '$24K' },
+      { label: 'Precisión', value: '97.8%' },
     ],
     demo: [20, 35, 45, 60, 55, 72, 68, 80, 75, 88, 85, 95],
   },
   {
     id: 'scm',
     icon: Package,
-    color: 'from-cyan-500 to-cyan-700',
-    accent: 'cyan',
-    label: 'Inventario & SCM',
-    desc: 'Control de stock en tiempo real, órdenes de compra, logística y gestión de proveedores integrada.',
+    accent: '#06b6d4',
+    label: 'Inventario & Cadena de Suministro',
+    tagline: 'Stock, compras y logística',
+    bullets: [
+      'Control de inventarios multi-almacén en tiempo real',
+      'Órdenes de compra con aprobación por roles',
+      'Seguimiento de envíos y logística integrada',
+      'Gestión de proveedores con historial de costos',
+    ],
     stats: [
-      { label: 'SKUs activos', value: '847',  trend: 'productos' },
-      { label: 'Rotación',     value: '4.2x', trend: 'mensual' },
-      { label: 'OCs abiertas', value: '23',   trend: 'pendientes' },
+      { label: 'SKUs activos', value: '847' },
+      { label: 'Rotación', value: '4.2x' },
+      { label: 'OCs pendientes', value: '23' },
     ],
     demo: [55, 62, 48, 70, 58, 75, 65, 80, 70, 85, 78, 88],
   },
 ]
 
-const ACCENT: Record<string, { text: string; bg: string; border: string; bar: string; ring: string }> = {
-  blue:    { text: 'text-blue-400',    bg: 'bg-blue-500/15',    border: 'border-blue-500/30',    bar: '#3b82f6', ring: 'ring-blue-500/40'    },
-  emerald: { text: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', bar: '#10b981', ring: 'ring-emerald-500/40' },
-  violet:  { text: 'text-violet-400',  bg: 'bg-violet-500/15',  border: 'border-violet-500/30',  bar: '#8b5cf6', ring: 'ring-violet-500/40'  },
-  orange:  { text: 'text-orange-400',  bg: 'bg-orange-500/15',  border: 'border-orange-500/30',  bar: '#f97316', ring: 'ring-orange-500/40'  },
-  pink:    { text: 'text-pink-400',    bg: 'bg-pink-500/15',    border: 'border-pink-500/30',    bar: '#ec4899', ring: 'ring-pink-500/40'    },
-  cyan:    { text: 'text-cyan-400',    bg: 'bg-cyan-500/15',    border: 'border-cyan-500/30',    bar: '#06b6d4', ring: 'ring-cyan-500/40'    },
-}
+// Additional modules (brief mention)
+const EXTRA_MODULES = [
+  { icon: Calendar, label: 'Calendario & Citas' },
+  { icon: FolderKanban, label: 'Gestión de Proyectos' },
+  { icon: Factory, label: 'Manufactura (MRP)' },
+  { icon: Headphones, label: 'Soporte & Tickets' },
+  { icon: Shield, label: 'Seguridad RBAC' },
+]
 
 // ─── Marketing Panel ─────────────────────────────────────────────────────────
 
 function MarketingPanel() {
-  const [active, setActive]           = useState(0)
-  const [fading, setFading]           = useState(false)
-  const panelRef                      = useRef<HTMLDivElement>(null)
-  const intervalRef                   = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [active, setActive]   = useState(0)
+  const [fading, setFading]   = useState(false)
+  const panelRef              = useRef<HTMLDivElement>(null)
+  const spotlightRef          = useRef<HTMLDivElement>(null)
+  const intervalRef           = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const mod = MODULES[active]
-  const a   = ACCENT[mod.accent]
 
-  // GSAP entrance — lazy import to avoid SSR issues
+  // ── GSAP entrance animations ──
   useEffect(() => {
     let ctx: { revert?: () => void } = {}
     import('gsap').then(({ gsap }) => {
+      if (!panelRef.current) return
       ctx = gsap.context(() => {
-        gsap.from('.gsap-panel', {
-          x: -60, opacity: 0, duration: 0.9, ease: 'power3.out',
+        gsap.from('.gsap-panel-inner', {
+          x: -80, opacity: 0, duration: 1, ease: 'power3.out',
+        })
+        gsap.from('.gsap-logo-area', {
+          y: -20, opacity: 0, duration: 0.7, delay: 0.2, ease: 'power2.out',
         })
         gsap.from('.gsap-headline', {
-          y: 30, opacity: 0, duration: 0.8, delay: 0.25, ease: 'power3.out',
+          y: 40, opacity: 0, duration: 0.9, delay: 0.35, ease: 'power3.out',
         })
         gsap.from('.gsap-tabs > *', {
-          y: 20, opacity: 0, duration: 0.5, stagger: 0.06, delay: 0.45, ease: 'power2.out',
+          scale: 0.8, opacity: 0, duration: 0.4, stagger: 0.05, delay: 0.55, ease: 'back.out(1.7)',
         })
         gsap.from('.gsap-card', {
-          y: 40, opacity: 0, duration: 0.7, delay: 0.6, ease: 'power3.out',
+          y: 50, opacity: 0, duration: 0.8, delay: 0.75, ease: 'power3.out',
+        })
+        gsap.from('.gsap-extras', {
+          y: 20, opacity: 0, duration: 0.6, delay: 1, ease: 'power2.out',
+        })
+        gsap.from('.gsap-trust', {
+          y: 15, opacity: 0, duration: 0.5, delay: 1.15, ease: 'power2.out',
         })
       }, panelRef)
     })
     return () => ctx.revert?.()
   }, [])
 
-  // Auto-rotate
-  const startInterval = () => {
+  // ── Cursor spotlight ──
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!spotlightRef.current || !panelRef.current) return
+    const rect = panelRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    spotlightRef.current.style.transform = `translate(${x - 200}px, ${y - 200}px)`
+    spotlightRef.current.style.opacity = '1'
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    if (spotlightRef.current) spotlightRef.current.style.opacity = '0'
+  }, [])
+
+  // ── Auto-rotate ──
+  const startInterval = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current)
     intervalRef.current = setInterval(() => {
       setFading(true)
       setTimeout(() => {
         setActive(p => (p + 1) % MODULES.length)
         setFading(false)
-      }, 220)
-    }, 4000)
-  }
+      }, 250)
+    }, 5000)
+  }, [])
 
   useEffect(() => {
     startInterval()
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [startInterval])
 
   const switchTo = (idx: number) => {
     if (idx === active) return
     if (intervalRef.current) clearInterval(intervalRef.current)
     setFading(true)
-    setTimeout(() => { setActive(idx); setFading(false) }, 220)
+    setTimeout(() => { setActive(idx); setFading(false) }, 250)
     startInterval()
   }
 
@@ -170,68 +226,83 @@ function MarketingPanel() {
   return (
     <aside
       ref={panelRef}
-      className="gsap-panel hidden lg:flex lg:flex-col lg:w-[58%] relative overflow-hidden select-none"
-      style={{ background: 'linear-gradient(145deg, #040c1a 0%, #071220 45%, #0c1d38 100%)' }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="hidden lg:flex lg:flex-col lg:w-[56%] relative overflow-hidden select-none"
+      style={{ background: 'linear-gradient(155deg, #020a18 0%, #061224 40%, #0a1a35 75%, #0d2040 100%)' }}
     >
       {/* Mesh grid */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none opacity-40"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(59,130,246,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.035) 1px, transparent 1px)',
-          backgroundSize: '44px 44px',
+            'linear-gradient(rgba(59,130,246,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.06) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
         }}
       />
 
-      {/* Dynamic glow — follows active module */}
+      {/* Cursor spotlight */}
       <div
-        className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full pointer-events-none transition-all duration-700"
-        style={{ background: `radial-gradient(circle at 75% 25%, ${a.bar}1a 0%, transparent 65%)` }}
-      />
-      <div
-        className="absolute -bottom-48 -left-24 w-[400px] h-[400px] rounded-full pointer-events-none"
-        style={{ background: `radial-gradient(circle, ${a.bar}0d 0%, transparent 70%)` }}
+        ref={spotlightRef}
+        className="absolute w-[400px] h-[400px] rounded-full pointer-events-none transition-opacity duration-300"
+        style={{
+          background: `radial-gradient(circle, ${mod.accent}18 0%, transparent 70%)`,
+          opacity: 0,
+        }}
       />
 
-      <div className="relative z-10 flex flex-col h-full p-10">
+      {/* Ambient glow keyed to active module */}
+      <div
+        className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full pointer-events-none transition-all duration-1000"
+        style={{ background: `radial-gradient(circle, ${mod.accent}15 0%, transparent 65%)` }}
+      />
+      <div
+        className="absolute -bottom-40 -left-20 w-[350px] h-[350px] rounded-full pointer-events-none"
+        style={{ background: `radial-gradient(circle, ${mod.accent}0a 0%, transparent 70%)` }}
+      />
 
-        {/* Logo — crisp SVG */}
-        <div className="mb-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-500/30 flex-shrink-0">
-            <span className="text-xl font-black text-white leading-none select-none">Δ</span>
-          </div>
-          <span className="text-[22px] font-black text-white tracking-tight">CIFRA</span>
+      <div className="gsap-panel-inner relative z-10 flex flex-col h-full p-10 overflow-y-auto">
+
+        {/* Logo */}
+        <div className="gsap-logo-area mb-8 flex-shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-dark.png"
+            alt="CIFRA"
+            className="h-14 object-contain object-left"
+          />
         </div>
 
         {/* Headline */}
-        <div className="gsap-headline mb-7">
-          <p className={`text-[11px] font-black uppercase tracking-[0.2em] mb-3 transition-colors duration-500 ${a.text}`}>
+        <div className="gsap-headline mb-6 flex-shrink-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] mb-3 transition-colors duration-700"
+            style={{ color: mod.accent }}>
             ERP Integral para tu Empresa
           </p>
-          <h2 className="text-[2.6rem] font-black text-white leading-[1.05] mb-4">
+          <h2 className="text-[2.5rem] font-black text-white leading-[1.08] mb-3">
             Tu empresa,<br />
-            <span className={`transition-colors duration-500 ${a.text}`}>sin límites.</span>
+            <span className="transition-colors duration-700" style={{ color: mod.accent }}>sin límites.</span>
           </h2>
-          <p className="text-slate-400 text-[0.88rem] leading-relaxed max-w-[340px]">
-            CFDI · SAT · IMSS · Nómina · Contabilidad · CRM · IA. Todo integrado, todo en México.
+          <p className="text-slate-400 text-sm leading-relaxed max-w-[360px]">
+            Facturación CFDI, contabilidad, nómina, CRM, punto de venta e inteligencia artificial. Todo integrado, todo en México.
           </p>
         </div>
 
         {/* Module tabs */}
-        <div className="gsap-tabs flex flex-wrap gap-2 mb-5">
+        <div className="gsap-tabs flex flex-wrap gap-2 mb-5 flex-shrink-0">
           {MODULES.map((m, idx) => {
             const MIcon = m.icon
             const isActive = idx === active
-            const ma = ACCENT[m.accent]
             return (
               <button
                 key={m.id}
                 onClick={() => switchTo(idx)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-300 border ${
                   isActive
-                    ? `${ma.bg} ${ma.text} ${ma.border} shadow-md`
-                    : 'bg-white/5 text-slate-500 border-white/8 hover:bg-white/10 hover:text-slate-300'
+                    ? 'border-white/20 shadow-lg text-white'
+                    : 'bg-white/[0.03] text-slate-500 border-white/[0.06] hover:bg-white/[0.08] hover:text-slate-300'
                 }`}
+                style={isActive ? { background: `${m.accent}20`, borderColor: `${m.accent}40`, color: m.accent } : undefined}
               >
                 <MIcon className="h-3 w-3 flex-shrink-0" />
                 <span>{m.label.split(' ')[0]}</span>
@@ -242,73 +313,100 @@ function MarketingPanel() {
 
         {/* Module content card */}
         <div
-          className={`gsap-card flex-1 rounded-2xl border backdrop-blur-sm p-5 flex flex-col transition-all duration-220 ${a.border} ${
-            fading ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
+          className={`gsap-card flex-1 rounded-2xl border backdrop-blur-sm p-5 flex flex-col transition-all duration-300 min-h-0 ${
+            fading ? 'opacity-0 translate-y-3 scale-[0.98]' : 'opacity-100 translate-y-0 scale-100'
           }`}
-          style={{ background: 'rgba(8,18,36,0.75)' }}
+          style={{ background: 'rgba(6,14,30,0.8)', borderColor: `${mod.accent}25` }}
         >
           {/* Module header */}
-          <div className="flex items-start gap-3 mb-4">
-            <div className={`w-11 h-11 rounded-xl ${a.bg} flex items-center justify-center shrink-0`}>
-              <Icon className={`h-5 w-5 ${a.text}`} />
+          <div className="flex items-start gap-3.5 mb-4 flex-shrink-0">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: `${mod.accent}15` }}>
+              <Icon className="h-6 w-6" style={{ color: mod.accent }} />
             </div>
-            <div>
-              <h3 className="text-white font-bold text-[0.9rem]">{mod.label}</h3>
-              <p className="text-slate-400 text-[0.78rem] mt-0.5 leading-relaxed max-w-[280px]">{mod.desc}</p>
+            <div className="flex-1">
+              <h3 className="text-white font-bold text-base">{mod.label}</h3>
+              <p className="text-sm mt-0.5 font-medium" style={{ color: mod.accent }}>{mod.tagline}</p>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          {/* Bullet points */}
+          <ul className="space-y-2 mb-4 flex-shrink-0">
+            {mod.bullets.map((b, i) => (
+              <li key={i} className="flex items-start gap-2.5 text-[0.8rem] text-slate-300 leading-relaxed">
+                <ArrowRight className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: mod.accent }} />
+                {b}
+              </li>
+            ))}
+          </ul>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-2 mb-3 flex-shrink-0">
             {mod.stats.map(s => (
-              <div key={s.label} className="bg-white/[0.04] rounded-xl p-3 border border-white/5">
-                <p className="text-slate-500 text-[10px] mb-1 truncate">{s.label}</p>
-                <p className="text-white font-black text-[1.05rem] leading-none">{s.value}</p>
-                <p className={`text-[10px] mt-1 font-bold ${a.text}`}>{s.trend}</p>
+              <div key={s.label} className="bg-white/[0.035] rounded-xl p-2.5 border border-white/[0.04]">
+                <p className="text-slate-500 text-[10px] mb-0.5 truncate">{s.label}</p>
+                <p className="text-white font-black text-base leading-none">{s.value}</p>
+                {s.trend && <p className="text-[10px] mt-0.5 font-bold" style={{ color: mod.accent }}>{s.trend}</p>}
               </div>
             ))}
           </div>
 
           {/* Mini bar chart */}
-          <div className="flex-1 flex flex-col justify-end">
-            <div className="flex items-end gap-[3px] h-14 mb-2">
-              {mod.demo.map((h, i) => (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t-[3px] transition-all duration-500"
-                  style={{
-                    height: `${h}%`,
-                    background:
-                      i === mod.demo.length - 1
-                        ? `linear-gradient(to top, ${a.bar}, ${a.bar}dd)`
-                        : i >= mod.demo.length - 3
-                        ? `${a.bar}77`
-                        : `${a.bar}28`,
-                  }}
-                />
-              ))}
-            </div>
-            <div className="flex justify-between items-center">
-              <p className="text-slate-600 text-[10px]">Últimos 12 meses · tendencia</p>
-              <div className={`flex items-center gap-1 text-[10px] font-bold ${a.text}`}>
-                <TrendingUp className="h-3 w-3" />
-                En crecimiento
-              </div>
+          <div className="flex items-end gap-[3px] h-12 mt-auto flex-shrink-0">
+            {mod.demo.map((h, i) => (
+              <div
+                key={i}
+                className="flex-1 rounded-t-[3px] transition-all duration-500"
+                style={{
+                  height: `${h}%`,
+                  background:
+                    i === mod.demo.length - 1
+                      ? `linear-gradient(to top, ${mod.accent}, ${mod.accent}cc)`
+                      : i >= mod.demo.length - 3
+                      ? `${mod.accent}55`
+                      : `${mod.accent}1a`,
+                }}
+              />
+            ))}
+          </div>
+          <div className="flex justify-between items-center mt-1.5 flex-shrink-0">
+            <p className="text-slate-600 text-[10px]">Tendencia · 12 meses</p>
+            <div className="flex items-center gap-1 text-[10px] font-bold" style={{ color: mod.accent }}>
+              <TrendingUp className="h-3 w-3" />
+              Crecimiento
             </div>
           </div>
         </div>
 
-        {/* Footer: progress dots + trust badges */}
-        <div className="flex items-center gap-2 mt-5">
+        {/* Extra modules brief */}
+        <div className="gsap-extras flex items-center gap-3 mt-5 flex-shrink-0">
+          <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider whitespace-nowrap">
+            Y más:
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {EXTRA_MODULES.map(m => {
+              const EIcon = m.icon
+              return (
+                <span key={m.label} className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] text-slate-400 text-[10px]">
+                  <EIcon className="h-2.5 w-2.5" />
+                  {m.label}
+                </span>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Progress dots + trust */}
+        <div className="gsap-trust flex items-center gap-2 mt-5 flex-shrink-0">
           {MODULES.map((_, idx) => (
             <button
               key={idx}
               onClick={() => switchTo(idx)}
-              className={`h-[3px] rounded-full transition-all duration-400 ${
-                idx === active
-                  ? `w-6 ${a.text.replace('text-', 'bg-')}`
-                  : 'w-1.5 bg-white/15 hover:bg-white/30'
-              }`}
+              className="h-[3px] rounded-full transition-all duration-400"
+              style={{
+                width: idx === active ? 24 : 6,
+                background: idx === active ? mod.accent : 'rgba(255,255,255,0.12)',
+              }}
             />
           ))}
           <div className="ml-auto flex items-center gap-4">
@@ -351,6 +449,7 @@ function LoginForm() {
   useEffect(() => {
     let ctx: { revert?: () => void } = {}
     import('gsap').then(({ gsap }) => {
+      if (!formRef.current) return
       ctx = gsap.context(() => {
         gsap.from('.gsap-form', {
           y: 40, opacity: 0, duration: 0.8, delay: 0.15, ease: 'power3.out',
@@ -468,14 +567,12 @@ function LoginForm() {
     <div ref={formRef} className="w-full max-w-md">
       <div className="gsap-form p-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-white/30 dark:border-neutral-700/40 rounded-3xl shadow-[0_24px_64px_-12px_rgba(0,0,0,0.14)] dark:shadow-[0_24px_64px_-12px_rgba(0,0,0,0.55)] my-8 transition-colors duration-300">
 
-        {/* Logo — crisp SVG in form panel */}
+        {/* Logo — PNG, light/dark */}
         <div className="flex flex-col items-center mb-7">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-md shadow-blue-500/25 flex-shrink-0">
-              <span className="text-xl font-black text-white leading-none select-none">Δ</span>
-            </div>
-            <span className="text-[22px] font-black text-slate-900 dark:text-white tracking-tight">CIFRA</span>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-light.png" alt="CIFRA" className="h-12 object-contain mb-4 block dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-dark.png"  alt="CIFRA" className="h-12 object-contain mb-4 hidden dark:block" />
           <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">
             {isLogin ? 'Iniciar Sesión' : 'Prueba Gratuita · 14 días'}
           </h1>
@@ -496,8 +593,6 @@ function LoginForm() {
           {/* Registration-only fields */}
           {!isLogin && (
             <div className="space-y-4">
-
-              {/* Tipo de persona */}
               <div>
                 <label className={labelCls}>Tipo de Persona</label>
                 <div className="flex gap-4">
@@ -511,7 +606,6 @@ function LoginForm() {
                 </div>
               </div>
 
-              {/* Nombre / Razón Social */}
               <div>
                 <label className={labelCls}>{personType === 'moral' ? 'Razón Social' : 'Nombre Completo'}</label>
                 <input name="fullName" type="text" required
@@ -522,14 +616,12 @@ function LoginForm() {
                 )}
               </div>
 
-              {/* RFC */}
               <div>
                 <label className={labelCls}>RFC</label>
                 <input name="rfc" type="text" required placeholder="XAXX010101000"
                   maxLength={13} className={`${inputCls} uppercase tracking-widest`} />
               </div>
 
-              {/* Teléfono */}
               <div>
                 <label className={labelCls}>Teléfono</label>
                 <div className="flex gap-2">
@@ -671,14 +763,9 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex font-sans">
-
-      {/* Left: Marketing panel */}
       <MarketingPanel />
 
-      {/* Right: Auth form */}
       <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-neutral-950 text-slate-900 dark:text-white selection:bg-blue-500/30 overflow-y-auto py-10 transition-colors duration-300 relative">
-
-        {/* Subtle background orbs (mobile only — desktop has the panel) */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden lg:hidden" aria-hidden>
           <div className="absolute -top-40 -right-32 w-80 h-80 bg-blue-400/6 dark:bg-blue-500/5 rounded-full blur-3xl" />
           <div className="absolute -bottom-40 -left-32 w-80 h-80 bg-indigo-400/6 dark:bg-indigo-500/5 rounded-full blur-3xl" />
@@ -690,7 +777,6 @@ export default function LoginPage() {
           <LoginForm />
         </Suspense>
       </div>
-
     </div>
   )
 }

@@ -4,7 +4,6 @@ import { LogOut, Search, AlertCircle, Clock, Menu } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import NotificationCenter from '@/components/layout/NotificationCenter';
-import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { useI18n } from '@/lib/i18n/context';
 
 interface HeaderProps {
@@ -107,9 +106,6 @@ export default function Header({
             )}
           </Link>
         )}
-
-        {/* Selector de idioma */}
-        <LanguageSwitcher />
 
         {/* Notificaciones */}
         <NotificationCenter />
