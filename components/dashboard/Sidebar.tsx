@@ -79,13 +79,13 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName, onMobil
   if (!mounted) {
     // Skeleton mientras monta
     return (
-      <aside className="w-72 bg-neutral-50 dark:bg-black border-r border-neutral-200 dark:border-neutral-800 h-full animate-pulse" />
+      <aside className="w-72 bg-white dark:bg-black border-r border-neutral-200 dark:border-neutral-800 h-full animate-pulse" />
     );
   }
 
   return (
     <aside
-      className={`bg-neutral-50 dark:bg-black border-r border-neutral-200 dark:border-neutral-800 flex flex-col transition-all duration-300 h-full relative z-50
+      className={`bg-white dark:bg-black border-r border-neutral-200 dark:border-neutral-800 flex flex-col transition-all duration-300 h-full relative z-50
         ${isCollapsed ? 'w-20' : 'w-72'}`}
     >
       {/* Toggle collapsar */}
@@ -104,27 +104,24 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName, onMobil
       <Link
         href="/dashboard"
         title="Ir al Inicio"
-        className={`px-4 py-6 mb-2 flex items-center transition-opacity hover:opacity-80 ${
+        className={`px-3 py-4 mb-2 flex items-center transition-opacity hover:opacity-80 ${
           isCollapsed ? 'justify-center' : 'justify-start'
         }`}
       >
         {!isCollapsed ? (
-          <div className="flex flex-col gap-1 overflow-hidden">
+          <div className="w-full overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-light.png"
               alt="CIFRA"
-              className="h-16 object-contain object-left block dark:hidden"
+              className="h-16 w-full object-contain object-left block dark:hidden"
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-dark.png"
               alt="CIFRA"
-              className="h-16 object-contain object-left hidden dark:block"
+              className="h-16 w-full object-contain object-left hidden dark:block"
             />
-            <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest truncate">
-              {t.sidebar.workspace}
-            </p>
           </div>
         ) : (
           /* Collapsed: ícono cuadrado con Δ */
