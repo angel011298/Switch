@@ -139,57 +139,34 @@ const EXTRA_MODULES = [
   { icon: Shield, label: 'Seguridad RBAC' },
 ]
 
+// ─── CSS animation keyframes (injected once) ─────────────────────────────────
+
+const PANEL_STYLES = `
+  @keyframes mktFadeUp   { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes mktFadeLeft { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:translateX(0); } }
+  @keyframes mktPop      { from { opacity:0; transform:scale(0.88); } to { opacity:1; transform:scale(1); } }
+`
+
 // ─── Marketing Panel ─────────────────────────────────────────────────────────
 
 function MarketingPanel() {
-  const [active, setActive]   = useState(0)
-  const [fading, setFading]   = useState(false)
-  const panelRef              = useRef<HTMLDivElement>(null)
-  const spotlightRef          = useRef<HTMLDivElement>(null)
-  const intervalRef           = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [active, setActive] = useState(0)
+  const [fading, setFading] = useState(false)
+  const panelRef            = useRef<HTMLDivElement>(null)
+  const spotlightRef        = useRef<HTMLDivElement>(null)
+  const intervalRef         = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const mod = MODULES[active]
+  const mod  = MODULES[active]
+  const Icon = mod.icon
 
-  // ── GSAP entrance animations ──
-  useEffect(() => {
-    let ctx: { revert?: () => void } = {}
-    import('gsap').then(({ gsap }) => {
-      if (!panelRef.current) return
-      ctx = gsap.context(() => {
-        gsap.from('.gsap-panel-inner', {
-          x: -80, opacity: 0, duration: 1, ease: 'power3.out',
-        })
-        gsap.from('.gsap-logo-area', {
-          y: -20, opacity: 0, duration: 0.7, delay: 0.2, ease: 'power2.out',
-        })
-        gsap.from('.gsap-headline', {
-          y: 40, opacity: 0, duration: 0.9, delay: 0.35, ease: 'power3.out',
-        })
-        gsap.from('.gsap-tabs > *', {
-          scale: 0.8, opacity: 0, duration: 0.4, stagger: 0.05, delay: 0.55, ease: 'back.out(1.7)',
-        })
-        gsap.from('.gsap-card', {
-          y: 50, opacity: 0, duration: 0.8, delay: 0.75, ease: 'power3.out',
-        })
-        gsap.from('.gsap-extras', {
-          y: 20, opacity: 0, duration: 0.6, delay: 1, ease: 'power2.out',
-        })
-        gsap.from('.gsap-trust', {
-          y: 15, opacity: 0, duration: 0.5, delay: 1.15, ease: 'power2.out',
-        })
-      }, panelRef)
-    })
-    return () => ctx.revert?.()
-  }, [])
-
-  // ── Cursor spotlight ──
+  // ── Cursor spotlight (plain JS, no GSAP) ──
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!spotlightRef.current || !panelRef.current) return
     const rect = panelRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
     spotlightRef.current.style.transform = `translate(${x - 200}px, ${y - 200}px)`
-    spotlightRef.current.style.opacity = '1'
+    spotlightRef.current.style.opacity   = '1'
   }, [])
 
   const handleMouseLeave = useCallback(() => {
@@ -221,8 +198,6 @@ function MarketingPanel() {
     startInterval()
   }
 
-  const Icon = mod.icon
-
   return (
     <aside
       ref={panelRef}
@@ -231,6 +206,9 @@ function MarketingPanel() {
       className="hidden lg:flex lg:flex-col lg:w-[56%] relative overflow-hidden select-none"
       style={{ background: 'linear-gradient(155deg, #020a18 0%, #061224 40%, #0a1a35 75%, #0d2040 100%)' }}
     >
+      {/* CSS keyframe definitions */}
+      <style>{PANEL_STYLES}</style>
+
       {/* Mesh grid */}
       <div
         className="absolute inset-0 pointer-events-none opacity-40"
@@ -244,39 +222,51 @@ function MarketingPanel() {
       {/* Cursor spotlight */}
       <div
         ref={spotlightRef}
-        className="absolute w-[400px] h-[400px] rounded-full pointer-events-none transition-opacity duration-300"
+        className="absolute w-[400px] h-[400px] rounded-full pointer-events-none"
         style={{
-          background: `radial-gradient(circle, ${mod.accent}18 0%, transparent 70%)`,
+          background: `radial-gradient(circle, ${mod.accent}22 0%, transparent 70%)`,
           opacity: 0,
+          transition: 'opacity 0.3s',
         }}
       />
 
-      {/* Ambient glow keyed to active module */}
+      {/* Ambient glow */}
       <div
-        className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full pointer-events-none transition-all duration-1000"
-        style={{ background: `radial-gradient(circle, ${mod.accent}15 0%, transparent 65%)` }}
+        className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full pointer-events-none"
+        style={{
+          background: `radial-gradient(circle, ${mod.accent}18 0%, transparent 65%)`,
+          transition: 'background 1s',
+        }}
       />
       <div
         className="absolute -bottom-40 -left-20 w-[350px] h-[350px] rounded-full pointer-events-none"
-        style={{ background: `radial-gradient(circle, ${mod.accent}0a 0%, transparent 70%)` }}
+        style={{ background: `radial-gradient(circle, ${mod.accent}0c 0%, transparent 70%)` }}
       />
 
-      <div className="gsap-panel-inner relative z-10 flex flex-col h-full p-10 overflow-y-auto">
+      {/* ── Main content ── */}
+      <div
+        className="relative z-10 flex flex-col h-full p-10 overflow-y-auto"
+        style={{ animation: 'mktFadeLeft 0.8s ease-out both' }}
+      >
 
-        {/* Logo */}
-        <div className="gsap-logo-area mb-8 flex-shrink-0">
+        {/* Logo — always dark variant (panel background is always dark) */}
+        <div
+          className="mb-8 flex-shrink-0"
+          style={{ animation: 'mktFadeUp 0.6s ease-out both', animationDelay: '0.1s' }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo-dark.png"
-            alt="CIFRA"
-            className="h-14 object-contain object-left"
-          />
+          <img src="/logo-dark.png" alt="CIFRA" className="h-14 object-contain object-left" />
         </div>
 
         {/* Headline */}
-        <div className="gsap-headline mb-6 flex-shrink-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] mb-3 transition-colors duration-700"
-            style={{ color: mod.accent }}>
+        <div
+          className="mb-6 flex-shrink-0"
+          style={{ animation: 'mktFadeUp 0.7s ease-out both', animationDelay: '0.2s' }}
+        >
+          <p
+            className="text-[11px] font-black uppercase tracking-[0.2em] mb-3 transition-colors duration-700"
+            style={{ color: mod.accent }}
+          >
             ERP Integral para tu Empresa
           </p>
           <h2 className="text-[2.5rem] font-black text-white leading-[1.08] mb-3">
@@ -284,25 +274,29 @@ function MarketingPanel() {
             <span className="transition-colors duration-700" style={{ color: mod.accent }}>sin límites.</span>
           </h2>
           <p className="text-slate-400 text-sm leading-relaxed max-w-[360px]">
-            Facturación CFDI, contabilidad, nómina, CRM, punto de venta e inteligencia artificial. Todo integrado, todo en México.
+            Facturación CFDI, contabilidad, nómina, CRM, punto de venta e inteligencia artificial.
+            Todo integrado, todo en México.
           </p>
         </div>
 
         {/* Module tabs */}
-        <div className="gsap-tabs flex flex-wrap gap-2 mb-5 flex-shrink-0">
+        <div
+          className="flex flex-wrap gap-2 mb-5 flex-shrink-0"
+          style={{ animation: 'mktFadeUp 0.7s ease-out both', animationDelay: '0.35s' }}
+        >
           {MODULES.map((m, idx) => {
-            const MIcon = m.icon
+            const MIcon    = m.icon
             const isActive = idx === active
             return (
               <button
                 key={m.id}
                 onClick={() => switchTo(idx)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-300 border ${
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all duration-300 border"
+                style={
                   isActive
-                    ? 'border-white/20 shadow-lg text-white'
-                    : 'bg-white/[0.03] text-slate-500 border-white/[0.06] hover:bg-white/[0.08] hover:text-slate-300'
-                }`}
-                style={isActive ? { background: `${m.accent}20`, borderColor: `${m.accent}40`, color: m.accent } : undefined}
+                    ? { background: `${m.accent}20`, borderColor: `${m.accent}50`, color: m.accent }
+                    : { background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)', color: '#64748b' }
+                }
               >
                 <MIcon className="h-3 w-3 flex-shrink-0" />
                 <span>{m.label.split(' ')[0]}</span>
@@ -313,15 +307,23 @@ function MarketingPanel() {
 
         {/* Module content card */}
         <div
-          className={`gsap-card flex-1 rounded-2xl border backdrop-blur-sm p-5 flex flex-col transition-all duration-300 min-h-0 ${
-            fading ? 'opacity-0 translate-y-3 scale-[0.98]' : 'opacity-100 translate-y-0 scale-100'
-          }`}
-          style={{ background: 'rgba(6,14,30,0.8)', borderColor: `${mod.accent}25` }}
+          className="flex-1 rounded-2xl border backdrop-blur-sm p-5 flex flex-col min-h-0"
+          style={{
+            background: 'rgba(6,14,30,0.85)',
+            borderColor: `${mod.accent}28`,
+            animation: 'mktFadeUp 0.8s ease-out both',
+            animationDelay: '0.5s',
+            transition: 'border-color 0.4s, opacity 0.25s, transform 0.25s',
+            opacity: fading ? 0 : 1,
+            transform: fading ? 'translateY(6px) scale(0.985)' : 'translateY(0) scale(1)',
+          }}
         >
           {/* Module header */}
           <div className="flex items-start gap-3.5 mb-4 flex-shrink-0">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: `${mod.accent}15` }}>
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: `${mod.accent}18` }}
+            >
               <Icon className="h-6 w-6" style={{ color: mod.accent }} />
             </div>
             <div className="flex-1">
@@ -343,7 +345,7 @@ function MarketingPanel() {
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-2 mb-3 flex-shrink-0">
             {mod.stats.map(s => (
-              <div key={s.label} className="bg-white/[0.035] rounded-xl p-2.5 border border-white/[0.04]">
+              <div key={s.label} className="rounded-xl p-2.5 border border-white/[0.04]" style={{ background: 'rgba(255,255,255,0.035)' }}>
                 <p className="text-slate-500 text-[10px] mb-0.5 truncate">{s.label}</p>
                 <p className="text-white font-black text-base leading-none">{s.value}</p>
                 {s.trend && <p className="text-[10px] mt-0.5 font-bold" style={{ color: mod.accent }}>{s.trend}</p>}
@@ -356,9 +358,10 @@ function MarketingPanel() {
             {mod.demo.map((h, i) => (
               <div
                 key={i}
-                className="flex-1 rounded-t-[3px] transition-all duration-500"
+                className="flex-1 rounded-t-[3px]"
                 style={{
                   height: `${h}%`,
+                  transition: 'height 0.5s ease',
                   background:
                     i === mod.demo.length - 1
                       ? `linear-gradient(to top, ${mod.accent}, ${mod.accent}cc)`
@@ -378,8 +381,11 @@ function MarketingPanel() {
           </div>
         </div>
 
-        {/* Extra modules brief */}
-        <div className="gsap-extras flex items-center gap-3 mt-5 flex-shrink-0">
+        {/* Extra modules */}
+        <div
+          className="flex items-center gap-3 mt-5 flex-shrink-0"
+          style={{ animation: 'mktFadeUp 0.6s ease-out both', animationDelay: '0.65s' }}
+        >
           <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider whitespace-nowrap">
             Y más:
           </span>
@@ -387,7 +393,11 @@ function MarketingPanel() {
             {EXTRA_MODULES.map(m => {
               const EIcon = m.icon
               return (
-                <span key={m.label} className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] text-slate-400 text-[10px]">
+                <span
+                  key={m.label}
+                  className="flex items-center gap-1 px-2 py-1 rounded-full border text-slate-400 text-[10px]"
+                  style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.07)' }}
+                >
                   <EIcon className="h-2.5 w-2.5" />
                   {m.label}
                 </span>
@@ -396,16 +406,20 @@ function MarketingPanel() {
           </div>
         </div>
 
-        {/* Progress dots + trust */}
-        <div className="gsap-trust flex items-center gap-2 mt-5 flex-shrink-0">
+        {/* Progress dots + trust badges */}
+        <div
+          className="flex items-center gap-2 mt-5 flex-shrink-0"
+          style={{ animation: 'mktFadeUp 0.6s ease-out both', animationDelay: '0.75s' }}
+        >
           {MODULES.map((_, idx) => (
             <button
               key={idx}
               onClick={() => switchTo(idx)}
-              className="h-[3px] rounded-full transition-all duration-400"
+              className="h-[3px] rounded-full"
               style={{
                 width: idx === active ? 24 : 6,
-                background: idx === active ? mod.accent : 'rgba(255,255,255,0.12)',
+                background: idx === active ? mod.accent : 'rgba(255,255,255,0.14)',
+                transition: 'width 0.3s, background 0.3s',
               }}
             />
           ))}
@@ -439,25 +453,12 @@ function LoginForm() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-  const formRef  = useRef<HTMLDivElement>(null)
 
   const [personType, setPersonType]         = useState('moral')
   const [showPassword, setShowPassword]     = useState(false)
   const [showConfirmPwd, setShowConfirmPwd] = useState(false)
 
-  // GSAP form entrance
-  useEffect(() => {
-    let ctx: { revert?: () => void } = {}
-    import('gsap').then(({ gsap }) => {
-      if (!formRef.current) return
-      ctx = gsap.context(() => {
-        gsap.from('.gsap-form', {
-          y: 40, opacity: 0, duration: 0.8, delay: 0.15, ease: 'power3.out',
-        })
-      }, formRef)
-    })
-    return () => ctx.revert?.()
-  }, [])
+  // Form entrance: CSS animation, no GSAP dependency
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -564,8 +565,11 @@ function LoginForm() {
   }
 
   return (
-    <div ref={formRef} className="w-full max-w-md">
-      <div className="gsap-form p-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-white/30 dark:border-neutral-700/40 rounded-3xl shadow-[0_24px_64px_-12px_rgba(0,0,0,0.14)] dark:shadow-[0_24px_64px_-12px_rgba(0,0,0,0.55)] my-8 transition-colors duration-300">
+    <div className="w-full max-w-md">
+      <div
+        className="p-8 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-white/30 dark:border-neutral-700/40 rounded-3xl shadow-[0_24px_64px_-12px_rgba(0,0,0,0.14)] dark:shadow-[0_24px_64px_-12px_rgba(0,0,0,0.55)] my-8 transition-colors duration-300"
+        style={{ animation: 'mktFadeUp 0.7s ease-out both', animationDelay: '0.1s' }}
+      >
 
         {/* Logo — PNG, light/dark */}
         <div className="flex flex-col items-center mb-7">
@@ -763,6 +767,8 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex font-sans">
+      {/* Shared keyframes for form side too */}
+      <style>{PANEL_STYLES}</style>
       <MarketingPanel />
 
       <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-neutral-950 text-slate-900 dark:text-white selection:bg-blue-500/30 overflow-y-auto py-10 transition-colors duration-300 relative">
