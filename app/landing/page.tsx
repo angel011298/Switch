@@ -624,7 +624,7 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-4 gap-10 mb-12">
               <div className="md:col-span-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-dark.png" alt="CIFRA" className="h-10 object-contain mb-4" />
+                <img src="/logo-light.png" alt="CIFRA" className="h-10 object-contain mb-4" />
                 <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
                   ERP integral para empresas mexicanas. Facturación CFDI, contabilidad, nómina y más. Todo en la nube, todo en México.
                 </p>
