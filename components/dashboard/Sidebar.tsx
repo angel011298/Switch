@@ -109,18 +109,18 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName, onMobil
         }`}
       >
         {!isCollapsed ? (
-          <div className="w-full overflow-hidden">
+          <div className="w-full overflow-hidden flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-light.png"
               alt="CIFRA"
-              className="h-16 w-full object-contain object-left block dark:hidden"
+              className="h-14 w-full object-contain object-left block dark:hidden"
             />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo-dark.png"
               alt="CIFRA"
-              className="h-16 w-full object-contain object-left hidden dark:block"
+              className="h-14 w-full object-contain object-left hidden dark:block"
             />
           </div>
         ) : (

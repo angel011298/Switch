@@ -213,7 +213,7 @@ export default function LandingPage() {
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-sm">
           <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-light.png" alt="CIFRA" className="h-11 object-contain" />
+            <img src="/logo-light.png" alt="CIFRA" className="h-12 object-contain" />
             <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
               <a href="#modulos" className="hover:text-blue-600 transition-colors">Módulos</a>
               <a href="#como-funciona" className="hover:text-blue-600 transition-colors">Cómo funciona</a>
@@ -632,7 +632,7 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-4 gap-10 mb-12">
               <div className="md:col-span-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-dark.png" alt="CIFRA" className="h-10 object-contain mb-4" />
+                <img src="/logo-dark.png" alt="CIFRA" className="h-14 object-contain mb-4" />
                 <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
                   ERP integral para empresas mexicanas. Facturación CFDI, contabilidad, nómina y más. Todo en la nube, todo en México.
                 </p>
