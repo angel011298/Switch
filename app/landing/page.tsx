@@ -157,6 +157,13 @@ export default function LandingPage() {
         .anim-float     { animation: float 4s ease-in-out infinite; }
         .anim-pulse-glow{ animation: pulse-glow 2.5s ease-in-out infinite; }
 
+        /* Accesibilidad: si el usuario tiene "Reduce motion", mostrar todo sin animación */
+        @media (prefers-reduced-motion: reduce) {
+          .anim-fade-up, .anim-fade-in, .anim-slide-left { animation: none; opacity: 1; transform: none; }
+          .anim-float, .anim-pulse-glow, .ticker-track { animation: none; }
+          .shimmer-text { animation: none; }
+        }
+
         .delay-1 { animation-delay: 0.1s; }
         .delay-2 { animation-delay: 0.2s; }
         .delay-3 { animation-delay: 0.3s; }
@@ -169,7 +176,8 @@ export default function LandingPage() {
           background: linear-gradient(150deg, #020b1a 0%, #061830 35%, #0c2144 65%, #102857 100%);
         }
         .shimmer-text {
-          background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 30%, #a78bfa 60%, #3b82f6 100%);
+          color: #93c5fd;
+          background: linear-gradient(90deg, #60a5fa 0%, #93c5fd 30%, #c4b5fd 60%, #60a5fa 100%);
           background-size: 200% 100%;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -227,7 +235,7 @@ export default function LandingPage() {
         </nav>
 
         {/* ── HERO ────────────────────────────────────────────────────────── */}
-        <section className="hero-gradient mesh-grid min-h-screen flex items-center pt-16 overflow-hidden relative">
+        <section className="hero-gradient mesh-grid min-h-screen flex items-center pt-16 overflow-hidden relative" style={{ background: 'linear-gradient(150deg, #020b1a 0%, #061830 35%, #0c2144 65%, #102857 100%)' }}>
           {/* Ambient glows */}
           <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full blur-3xl pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%)' }} />
           <div className="absolute bottom-1/4 -right-32 w-96 h-96 rounded-full blur-3xl pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.14) 0%, transparent 70%)' }} />
@@ -247,7 +255,7 @@ export default function LandingPage() {
                   <span className="shimmer-text">simplifica tu empresa</span>
                 </h1>
 
-                <p className="anim-fade-up delay-2 text-slate-400 text-lg leading-relaxed mb-8 max-w-lg">
+                <p className="anim-fade-up delay-2 text-slate-200 text-lg leading-relaxed mb-8 max-w-lg">
                   Facturación CFDI 4.0, contabilidad, nómina, CRM y punto de venta.
                   Todo en una sola plataforma diseñada para empresas mexicanas.
                 </p>
@@ -275,7 +283,7 @@ export default function LandingPage() {
                     { icon: Lock, text: 'Datos encriptados' },
                     { icon: CheckCircle2, text: 'Sin contrato' },
                   ].map(({ icon: Icon, text }) => (
-                    <div key={text} className="flex items-center gap-2 text-slate-400 text-sm">
+                    <div key={text} className="flex items-center gap-2 text-slate-200 text-sm">
                       <Icon className="h-4 w-4 text-emerald-400" />
                       {text}
                     </div>
