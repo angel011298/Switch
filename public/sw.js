@@ -10,7 +10,7 @@
  * - Sin conexión: sirve /offline
  */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_STATIC  = `cifra-static-${CACHE_VERSION}`;
 const CACHE_DYNAMIC = `cifra-dynamic-${CACHE_VERSION}`;
 const CACHE_API     = `cifra-api-${CACHE_VERSION}`;
@@ -43,7 +43,8 @@ self.addEventListener('install', (event) => {
       });
     })
   );
-  // No auto-skip: espera mensaje SKIP_WAITING del cliente
+  // Force activate immediately — no waiting for client message
+  self.skipWaiting();
 });
 
 // ── Activate ─────────────────────────────────────────────────────────────────
