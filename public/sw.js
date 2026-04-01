@@ -10,7 +10,7 @@
  * - Sin conexión: sirve /offline
  */
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_STATIC  = `cifra-static-${CACHE_VERSION}`;
 const CACHE_DYNAMIC = `cifra-dynamic-${CACHE_VERSION}`;
 const CACHE_API     = `cifra-api-${CACHE_VERSION}`;
@@ -72,25 +72,37 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip Next.js internos
-  if (url.pathname.startsWith('/_next/')) {
-    event.respondWith(cacheFirst(request, CACHE_STATIC));
-    return;
-  }
-
-  // API routes → Network-first
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(networkFirst(request, CACHE_API));
-    return;
-  }
-
-  // Páginas de navegación → Stale-while-revalidate, fallback /offline
+  // Páginas HTML → SIEMPRE network-first, sin caché de HTML
+  // Esto garantiza que cambios en el código siempre se reflejen al navegar
   if (request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(navigateWithOfflineFallback(request));
     return;
   }
 
-  // Assets estáticos → Cache-first
+  // Next.js chunks estáticos → cache-first (tienen hash en el nombre, nunca expiran)
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(cacheFirst(request, CACHE_STATIC));
+    return;
+  }
+
+  // Next.js otros internos (_next/image, etc.) → network-first
+  if (url.pathname.startsWith('/_next/')) {
+    event.respondWith(networkFirst(request, CACHE_DYNAMIC));
+    return;
+  }
+
+  // API routes → network-first
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(networkFirst(request, CACHE_API));
+    return;
+  }
+
+  // Assets estáticos (imágenes públicas como logos) → network-first para logos, cache para el resto
+  if (url.pathname.match(/\.(png|jpg|jpeg|gif|webp|svg|ico)$/)) {
+    event.respondWith(networkFirst(request, CACHE_STATIC));
+    return;
+  }
+
   event.respondWith(cacheFirst(request, CACHE_STATIC));
 });
 
