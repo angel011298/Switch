@@ -255,7 +255,7 @@ function MarketingPanel() {
           style={{ animation: 'mktFadeUp 0.6s ease-out both', animationDelay: '0.1s' }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-light.png" alt="CIFRA" className="h-14 object-contain object-left" />
+          <img src="/logo-dark.png" alt="CIFRA" className="h-14 object-contain object-left" />
         </div>
 
         {/* Headline */}
@@ -571,10 +571,12 @@ function LoginForm() {
         style={{ animation: 'mktFadeUp 0.7s ease-out both', animationDelay: '0.1s' }}
       >
 
-        {/* Logo — siempre modo día en login */}
+        {/* Logo — responsive según tema del formulario */}
         <div className="flex flex-col items-center mb-7">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-light.png" alt="CIFRA" className="h-12 object-contain mb-4" />
+          <img src="/logo-light.png" alt="CIFRA" className="h-12 object-contain mb-4 block dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-dark.png" alt="CIFRA" className="h-12 object-contain mb-4 hidden dark:block" />
           <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">
             {isLogin ? 'Iniciar Sesión' : 'Prueba Gratuita · 14 días'}
           </h1>
