@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(gh pr:*)",
+      "Bash(vercel link:*)",
+      "Bash(vercel env:*)",
+      "Bash(gh secret:*)",
+      "Bash(git commit:*)",
+      "Bash(gh run:*)",
+      "Bash(cat /c/Users/LENOVO/erp-fiscal/app/\\\\\\(dashboard\\\\\\)/onboarding/page.tsx)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Read(//c/Users/LENOVO/**)",
+      "Bash(powershell -Command \"Expand-Archive -Path ''Downloads\\\\files.zip'' -DestinationPath ''Downloads\\\\cifra-assets'' -Force\")",
+      "Bash(find C:UsersLENOVOerp-fiscal -type f \\\\\\(-name *.json -o -name *.yaml -o -name *.yml -o -name .env* -o -name *.prisma -o -name *.sql \\\\\\) ! -path */node_modules/* ! -path */.next/* ! -path */.git/*)",
+      "Bash(grep -r -i \"switch\\\\s*os\\\\|switchos\\\\|switch-os\\\\|AllSafe\\\\|Ad Astra\" C:UsersLENOVOerp-fiscal --include=*.json --include=*.yml --include=*.yaml --include=.env* --include=*.prisma --include=*.sql)",
+      "Bash(grep -r -i \"switch\\\\|allsafe\\\\|ad astra\" C:UsersLENOVOerp-fiscal --include=*.md ! -path */node_modules/* ! -path */.next/* ! -path */.git/*)",
+      "Bash(grep -r -i \"switch\\\\|allsafe\\\\|ad astra\" C:UsersLENOVOerp-fiscal --include=next.config.* --include=tsconfig.json --include=vitest.config.*)",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='''''''';process.stdin.on\\(''''data'''',c=>d+=c\\);process.stdin.on\\(''''end'''',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\(Object.keys\\({...j.dependencies,...j.devDependencies}\\).join\\(''''\\\\n''''\\)\\)}\\)\")",
+      "Bash(mkdir -p /c/Users/LENOVO/erp-fiscal/app/api/reports/cfdi/[id])",
+      "Bash(mkdir -p /c/Users/LENOVO/erp-fiscal/app/api/reports/nomina/[id])",
+      "Read(//mnt/c/Users/**)",
+      "Bash(ls /mnt/)",
+      "Bash(ls \"app/\\(dashboard\\)/mrp/bom/\")",
+      "Bash(ls \"app/\\(dashboard\\)/mrp/planificacion/\")",
+      "Bash(ls \"app/\\(dashboard\\)/mrp/calidad/\")",
+      "Bash(ls app/\\\\\\(dashboard\\\\\\)/mrp/)",
+      "Bash(ls app/\\\\\\(dashboard\\\\\\)/mrp/bom/)",
+      "Bash(ls app/\\\\\\(dashboard\\\\\\)/mrp/planificacion/)",
+      "Bash(ls app/\\\\\\(dashboard\\\\\\)/mrp/calidad/)",
+      "Bash(ls \"C:/Users/LENOVO/erp-fiscal/app/\\(dashboard\\)/mrp/\")",
+      "Bash(ls \"C:/Users/LENOVO/erp-fiscal/app/\\(dashboard\\)/mrp/bom/\")",
+      "Bash(ls \"C:/Users/LENOVO/erp-fiscal/app/\\(dashboard\\)/mrp/planificacion/\")",
+      "Bash(ls \"C:/Users/LENOVO/erp-fiscal/app/\\(dashboard\\)/mrp/calidad/\")",
+      "Bash(ls /c/Users/LENOVO/erp-fiscal/app/\\\\\\(dashboard\\\\\\)/configuracion/idioma/)",
+      "Bash(unzip -o ui-ux-pro-max-skill-main.zip -d ui-ux-pro-max-skill)"
+    ]
+  }
+}

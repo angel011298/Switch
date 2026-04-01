@@ -149,6 +149,12 @@ model Tenant {
   // FASE 48: Nómina CFDI — registro patronal IMSS
   registroPatronal  String?
 
+  // FASE 52: Geofence de trabajo (Reloj Checador)
+  workLat               Float?   // Latitud de la ubicación de trabajo
+  workLon               Float?   // Longitud de la ubicación de trabajo
+  workAddress           String?  // Descripción de la ubicación (ej. "Av. Insurgentes 1234")
+  radioToleranceMeters  Int      @default(100)  // Radio de geocerca en metros
+
   subscription     Subscription?
   paymentProofs    PaymentProof[]
   modules          TenantModule[]
@@ -170,6 +176,11 @@ model Tenant {
   deals            Deal[]           // FASE 18: CRM Deals
   webhookEndpoints WebhookEndpoint[] // FASE 37: Integraciones
   apiKeys          ApiKey[]          // FASE 37: API pública
+  workShifts       WorkShift[]       // FASE 52: Turnos
+  cashCuts         CashCut[]         // FASE 52: Corte de Caja POS
+  bankAccounts     BankAccount[]     // FASE 52: Tesorería
+  treasuryTx       TreasuryTransaction[] // FASE 52: Movimientos bancarios
+  cfdiRecibidos    CfdiRecibido[]    // FASE 52: Mis CFDI recibidos
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -813,9 +824,17 @@ model Employee {
   email           String?
   phone           String?
 
+  // Identificadores laborales
+  employeeNumber  String?      // Número de empleado único por tenant
+
   // Datos laborales
   position        String       // Puesto / titulo
-  department      String?      // Departamento / area
+  department      String?      // Departamento / area (legacy)
+  area            String?      // Área o Equipo — indexado para reportes
+
+  // Turno asignado
+  shiftId         String?
+  shift           WorkShift?   @relation(fields: [shiftId], references: [id])
 
   // Nomina
   salary          Decimal      @db.Decimal(12, 2)   // Salario mensual o quincenal
@@ -839,8 +858,10 @@ model Employee {
   updatedAt       DateTime     @updatedAt
 
   @@unique([tenantId, curp])
+  @@unique([tenantId, employeeNumber])
   @@index([tenantId])
   @@index([tenantId, active])
+  @@index([tenantId, area])
 }
 
 // Registro de asistencias diarias
@@ -853,6 +874,23 @@ model Attendance {
   clockInTime     DateTime?  // Hora de entrada
   clockOutTime    DateTime?  // Hora de salida
 
+  // Geolocalización de entrada
+  checkInLat      Float?     // Latitud al checar entrada
+  checkInLon      Float?     // Longitud al checar entrada
+  checkInAddress  String?    // Descripción/dirección al checar entrada
+  checkInStatus   String?    // "DENTRO" | "FUERA" — vs geocerca de trabajo
+
+  // Geolocalización de salida
+  checkOutLat     Float?
+  checkOutLon     Float?
+  checkOutAddress String?
+  checkOutStatus  String?    // "DENTRO" | "FUERA"
+
+  // Anomalías y distancia
+  isAnomaly       Boolean    @default(false)
+  anomalyReason   String?    // Justificación del empleado si checó fuera de rango
+  distanceMeters  Float?     // Distancia calculada (Haversine) al checar entrada
+
   // Justificantes
   absent          Boolean    @default(false)  // Falta
   justified       Boolean    @default(false)  // Falta justificada
@@ -863,6 +901,7 @@ model Attendance {
 
   @@unique([employeeId, date])
   @@index([employeeId, date])
+  @@index([employeeId, isAnomaly])
 }
 
 // ─── FASE 15: NÓMINA ─────────────────────────────────────
@@ -932,15 +971,27 @@ model PayrollItem {
 
 // Fondo fijo de caja chica
 model PettyCashFund {
-  id          String            @id @default(cuid())
-  tenantId    String
-  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id              String            @id @default(cuid())
+  tenantId        String
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  name        String            @default("Caja Chica")
-  fundAmount  Decimal           @db.Decimal(12, 2)  // Monto del fondo fijo autorizado
-  active      Boolean           @default(true)
+  name            String            @default("Caja Chica")
+  description     String?
+  fundAmount      Decimal           @db.Decimal(12, 2)  // Monto del fondo fijo autorizado
+  minimumBalance  Decimal?          @db.Decimal(12, 2)  // Umbral para solicitar reposición
+  active          Boolean           @default(true)
+
+  // Custodio responsable
+  custodianName   String?
+  custodianEmail  String?
+  custodianUserId String?           // userId del custodio en el sistema
+
+  // Estado de arqueo
+  lastAuditAt     DateTime?
+  lastAuditBalance Decimal?         @db.Decimal(12, 2)
 
   expenses    PettyCashExpense[]
+  replenishments PettyCashReplenishment[]
 
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
@@ -950,20 +1001,48 @@ model PettyCashFund {
 
 // Movimiento / gasto de caja chica
 model PettyCashExpense {
+  id            String        @id @default(cuid())
+  fundId        String
+  fund          PettyCashFund @relation(fields: [fundId], references: [id], onDelete: Cascade)
+
+  date          DateTime
+  concept       String
+  amount        Decimal       @db.Decimal(10, 2)
+  category      String        @default("General")  // Papelería, Transporte, Viáticos, etc.
+  costCenter    String?       // Centro de costos
+  receiptRef    String?       // Folio del comprobante físico
+
+  // CFDI validado
+  xmlUrl        String?       // URL en Supabase Storage
+  xmlValidated  Boolean       @default(false)
+  xmlFolio      String?       // UUID del CFDI
+  providerRfc   String?       // RFC del proveedor
+  ivaAmount     Decimal?      @db.Decimal(10, 2)
+
+  // Estado
+  status        String        @default("PENDIENTE") // PENDIENTE | APROBADO | RECHAZADO
+
+  createdAt     DateTime      @default(now())
+
+  @@index([fundId])
+  @@index([fundId, date])
+  @@index([fundId, status])
+}
+
+// Reposición del fondo de caja chica
+model PettyCashReplenishment {
   id          String        @id @default(cuid())
   fundId      String
   fund        PettyCashFund @relation(fields: [fundId], references: [id], onDelete: Cascade)
 
-  date        DateTime
-  concept     String
-  amount      Decimal       @db.Decimal(10, 2)
-  category    String        @default("General")  // Papelería, Transporte, Viáticos, etc.
-  receiptRef  String?       // Folio del comprobante físico
-
-  createdAt   DateTime      @default(now())
+  amount      Decimal       @db.Decimal(12, 2)
+  requestedAt DateTime      @default(now())
+  approvedAt  DateTime?
+  approvedBy  String?       // userId
+  notes       String?
+  status      String        @default("SOLICITADA") // SOLICITADA | APROBADA | EJECUTADA
 
   @@index([fundId])
-  @@index([fundId, date])
 }
 
 // ─── FASE 17: SCM INVENTARIOS ────────────────────────────────────────────────
@@ -1533,4 +1612,185 @@ model OrgTenant {
 
   @@unique([organizationId, tenantId])
   @@index([organizationId])
+}
+
+// ─── FASE 52: NUEVOS MÓDULOS ──────────────────────────────────────────────────
+
+// Turnos de trabajo para el Reloj Checador
+model WorkShift {
+  id                  String     @id @default(cuid())
+  tenantId            String
+  tenant              Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name                String     // "Turno Matutino", "Turno Vespertino", "Turno Nocturno"
+  startTime           String     // Hora inicio HH:mm (ej. "08:00")
+  endTime             String     // Hora fin HH:mm (ej. "17:00")
+  gracePeriodMinutes  Int        @default(15)  // Tolerancia en minutos
+  active              Boolean    @default(true)
+
+  employees           Employee[]
+
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@index([tenantId])
+}
+
+// Corte de Caja POS — registro inmutable
+model CashCut {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  cashierId       String?  // userId del cajero
+  supervisorId    String?  // userId del supervisor (si hubo anomalía)
+  cutDate         DateTime @default(now())
+
+  // Desglose denominacional (resultado del arqueo ciego)
+  // { "1000": 5, "500": 10, "200": 2, "100": 8, "50": 4, "20": 6, "20c": 3, "10c": 10, "5c": 8, "2c": 5, "1c": 20, "50cents": 0 }
+  denominations   Json?
+
+  // Totales
+  declaredAmount  Decimal  @db.Decimal(12, 2)  // Efectivo contado físicamente
+  systemAmount    Decimal  @db.Decimal(12, 2)  // Lo que dice el sistema (ventas efectivo)
+  variation       Decimal  @db.Decimal(12, 2)  // declaredAmount - systemAmount
+
+  // Resumen por método de pago
+  byPaymentMethod Json?    // { "01": { count: 10, total: 5000 }, ... }
+  ordersCount     Int      @default(0)
+  grandTotal      Decimal  @db.Decimal(12, 2) @default(0)
+
+  // Estado
+  status          String   @default("ABIERTO") // ABIERTO | CERRADO | ANOMALIA_PENDIENTE
+  anomalyApproved Boolean  @default(false)
+  anomalyNotes    String?  // Notas del supervisor al aprobar anomalía
+
+  // PDF resguardado
+  pdfUrl          String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId, cutDate])
+  @@index([tenantId, status])
+}
+
+// ─── TESORERÍA ────────────────────────────────────────────────────────────────
+
+// Cuenta bancaria del tenant
+model BankAccount {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  bankName        String                     // "BBVA", "Santander", "Citibanamex"
+  alias           String                     // "Cuenta Principal", "Nómina"
+  accountNumber   String                     // Últimos 4 dígitos o referencia
+  clabe           String?                    // 18 dígitos CLABE interbancaria
+  currency        String   @default("MXN")
+  accountType     String   @default("CHEQUES") // CHEQUES | AHORRO | INVERSION | NOMINA
+  currentBalance  Decimal  @db.Decimal(14, 2) @default(0)
+  isActive        Boolean  @default(true)
+  notes           String?
+
+  transactions    TreasuryTransaction[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+}
+
+// Movimiento bancario / transacción de tesorería
+model TreasuryTransaction {
+  id              String      @id @default(cuid())
+  tenantId        String
+  tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  bankAccountId   String
+  bankAccount     BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  date            DateTime
+  concept         String
+  type            String      // INGRESO | EGRESO | TRANSFERENCIA | INVERSION
+  amount          Decimal     @db.Decimal(14, 2)  // Siempre positivo
+  balance         Decimal     @db.Decimal(14, 2)  // Saldo después de la operación
+  reference       String?     // Número de referencia bancaria
+  category        String?     // NOMINA | PROVEEDOR | IMPUESTO | VENTA | INVERSION | OTRO
+  notes           String?
+
+  // Conciliación bancaria
+  isReconciled    Boolean     @default(false)
+  reconciledAt    DateTime?
+  invoiceId       String?     // UUID de factura relacionada
+
+  createdAt       DateTime    @default(now())
+
+  @@index([tenantId, date])
+  @@index([bankAccountId, date])
+  @@index([tenantId, type])
+  @@index([tenantId, isReconciled])
+}
+
+// ─── MIS CFDI RECIBIDOS ───────────────────────────────────────────────────────
+
+// CFDI recibido del SAT (complementa Invoice que son los emitidos)
+model CfdiRecibido {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Identificadores SAT
+  uuid            String   @unique  // UUID del timbre
+  emisorRfc       String
+  emisorNombre    String?
+  receptorRfc     String
+  serie           String?
+  folio           String?
+
+  // Importes
+  total           Decimal  @db.Decimal(12, 2)
+  subtotal        Decimal? @db.Decimal(12, 2)
+  descuento       Decimal? @db.Decimal(12, 2) @default(0)
+  totalIva        Decimal? @db.Decimal(12, 2)
+  totalIsr        Decimal? @db.Decimal(12, 2)
+
+  // Tipo y fecha
+  fechaEmision    DateTime
+  fechaTimbrado   DateTime?
+  tipoComprobante String   // I | E | T | P | N
+  metodoPago      String?
+  formaPago       String?
+  moneda          String   @default("MXN")
+
+  // Estado SAT
+  status          String   @default("VIGENTE") // VIGENTE | CANCELADO
+  canceledAt      DateTime?
+
+  // Almacenamiento
+  xmlUrl          String?  // URL en Supabase Storage
+  xmlContent      String?  @db.Text  // XML completo (opcional, para búsqueda)
+
+  // Validación fiscal
+  isEfos          Boolean  @default(false)  // Proveedor en lista negra SAT 69-B
+  validated       Boolean  @default(false)
+  validatedAt     DateTime?
+
+  // Mapeo contable (motor de reglas)
+  accountingMapped Boolean @default(false)
+  costCenter       String?
+  accountCode      String?  // Cuenta del plan contable
+  journalEntryId   String?  // Póliza generada
+
+  // Sincronización
+  syncedAt         DateTime @default(now())
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([tenantId, fechaEmision])
+  @@index([tenantId, emisorRfc])
+  @@index([tenantId, status])
+  @@index([tenantId, tipoComprobante])
+  @@index([tenantId, accountingMapped])
 }

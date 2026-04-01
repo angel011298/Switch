@@ -192,9 +192,16 @@ export default function RRHHPage() {
                   <thead>
                     <tr className="bg-neutral-50 dark:bg-black/50 text-[10px] uppercase font-black tracking-widest text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800">
                       <th className="px-4 py-4">Empleado</th>
+                      <th className="px-3 py-4 text-neutral-500">Nº Emp</th>
                       <th className="px-3 py-4">Puesto</th>
+                      <th className="px-3 py-4 text-violet-600">Área / Equipo</th>
                       <th className="px-3 py-4 text-emerald-600">Entrada</th>
+                      <th className="px-3 py-4 text-sky-600">H. Entrada Designada</th>
                       <th className="px-3 py-4 text-rose-600">Salida</th>
+                      <th className="px-3 py-4 text-orange-600">H. Salida Designada</th>
+                      <th className="px-3 py-4 text-teal-600">Ubicación Entrada</th>
+                      <th className="px-3 py-4 text-neutral-500">Ubic. Trabajo</th>
+                      <th className="px-3 py-4 text-teal-600">Ubicación Salida</th>
                       <th className="px-3 py-4 text-blue-600">Estado</th>
                       <th className="px-3 py-4 text-center">Acción</th>
                     </tr>
@@ -202,7 +209,7 @@ export default function RRHHPage() {
                   <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/50">
                     {registros.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-neutral-400 italic font-bold">
+                        <td colSpan={13} className="py-12 text-center text-neutral-400 italic font-bold">
                           No hay empleados registrados.{' '}
                           <a href="/rrhh/empleados" className="text-emerald-600 underline not-italic">
                             Agrega el primero
@@ -219,9 +226,17 @@ export default function RRHHPage() {
                           <td className="px-4 py-4 font-black text-xs text-neutral-950 dark:text-white uppercase">
                             {reg.employeeName}
                           </td>
+                          {/* Nº Emp */}
+                          <td className="px-3 py-4 text-[10px] font-bold text-neutral-500 dark:text-neutral-400 font-mono">
+                            {reg.employeeNumber ?? '—'}
+                          </td>
                           {/* Puesto */}
                           <td className="px-3 py-4 text-[10px] font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-tighter">
                             {reg.position}
+                          </td>
+                          {/* Área / Equipo */}
+                          <td className="px-3 py-4 text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-tighter">
+                            {reg.area ?? '—'}
                           </td>
                           {/* Entrada */}
                           <td className="px-3 py-4 font-mono font-black text-xs text-emerald-600">
@@ -232,6 +247,10 @@ export default function RRHHPage() {
                                   minute: '2-digit',
                                 })
                               : <span className="text-neutral-400">—</span>}
+                          </td>
+                          {/* H. Entrada Designada */}
+                          <td className="px-3 py-4 font-mono font-black text-xs text-sky-600">
+                            {reg.shiftStartTime ?? <span className="text-neutral-400">—</span>}
                           </td>
                           {/* Salida */}
                           <td className="px-3 py-4 font-mono font-black text-xs text-rose-600">
@@ -245,25 +264,70 @@ export default function RRHHPage() {
                                 ? <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] animate-pulse">ACTIVO</span>
                                 : <span className="text-neutral-400">—</span>}
                           </td>
-                          {/* Estado */}
+                          {/* H. Salida Designada */}
+                          <td className="px-3 py-4 font-mono font-black text-xs text-orange-600">
+                            {reg.shiftEndTime ?? <span className="text-neutral-400">—</span>}
+                          </td>
+                          {/* Ubicación Entrada */}
                           <td className="px-3 py-4">
-                            {reg.absent ? (
-                              <span className="bg-red-100 dark:bg-red-500/10 text-red-600 px-2 py-1 rounded-md text-[10px] font-black border border-red-200 dark:border-red-500/20">
-                                FALTA
-                              </span>
-                            ) : reg.clockOutTime ? (
-                              <span className="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-1 rounded-md text-[10px] font-black">
-                                COMPLETÓ
-                              </span>
-                            ) : reg.clockInTime ? (
-                              <span className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded-md text-[10px] font-black border border-emerald-200 dark:border-emerald-500/20">
-                                EN TURNO
+                            {reg.checkInStatus ? (
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-black border ${
+                                reg.checkInStatus === 'DENTRO'
+                                  ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-500/20'
+                                  : 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-200 dark:border-red-500/20'
+                              }`}>
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                {reg.checkInStatus}
                               </span>
                             ) : (
-                              <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 px-2 py-1 rounded-md text-[10px] font-black border border-amber-200 dark:border-amber-500/20">
-                                SIN ENTRADA
-                              </span>
+                              <span className="text-neutral-400 text-[10px] font-bold">—</span>
                             )}
+                          </td>
+                          {/* Ubic. Trabajo */}
+                          <td className="px-3 py-4 text-[10px] font-bold text-neutral-500 dark:text-neutral-400 max-w-[160px] truncate" title={reg.workAddress ?? undefined}>
+                            {reg.workAddress ?? '—'}
+                          </td>
+                          {/* Ubicación Salida */}
+                          <td className="px-3 py-4">
+                            {reg.checkOutStatus ? (
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-black border ${
+                                reg.checkOutStatus === 'DENTRO'
+                                  ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-500/20'
+                                  : 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-200 dark:border-red-500/20'
+                              }`}>
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                {reg.checkOutStatus}
+                              </span>
+                            ) : (
+                              <span className="text-neutral-400 text-[10px] font-bold">—</span>
+                            )}
+                          </td>
+                          {/* Estado */}
+                          <td className="px-3 py-4">
+                            <div className="flex flex-col gap-1">
+                              {reg.absent ? (
+                                <span className="bg-red-100 dark:bg-red-500/10 text-red-600 px-2 py-1 rounded-md text-[10px] font-black border border-red-200 dark:border-red-500/20">
+                                  FALTA
+                                </span>
+                              ) : reg.clockOutTime ? (
+                                <span className="bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-2 py-1 rounded-md text-[10px] font-black">
+                                  COMPLETÓ
+                                </span>
+                              ) : reg.clockInTime ? (
+                                <span className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded-md text-[10px] font-black border border-emerald-200 dark:border-emerald-500/20">
+                                  EN TURNO
+                                </span>
+                              ) : (
+                                <span className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 px-2 py-1 rounded-md text-[10px] font-black border border-amber-200 dark:border-amber-500/20">
+                                  SIN ENTRADA
+                                </span>
+                              )}
+                              {reg.isAnomaly && (
+                                <span className="bg-orange-50 dark:bg-orange-500/10 text-orange-600 px-2 py-1 rounded-md text-[10px] font-black border border-orange-200 dark:border-orange-500/20">
+                                  ANOMALÍA
+                                </span>
+                              )}
+                            </div>
                           </td>
                           {/* Acción */}
                           <td className="px-3 py-4 text-center">

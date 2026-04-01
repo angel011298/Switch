@@ -14,7 +14,7 @@ export default async function CortePage() {
   today.setHours(0, 0, 0, 0);
 
   const orders = await prisma.posOrder.findMany({
-    where: { tenantId, createdAt: { gte: today }, status: 'CLOSED' },
+    where: { tenantId, createdAt: { gte: today } },
     select: {
       paymentMethod: true,
       total: true,
@@ -46,3 +46,4 @@ export default async function CortePage() {
     />
   );
 }
+

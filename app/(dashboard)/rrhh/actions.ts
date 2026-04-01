@@ -30,12 +30,25 @@ export interface AttendanceRow {
   id: string;
   employeeId: string;
   employeeName: string;
+  position: string;
   date: string;
   clockInTime: string | null;
   clockOutTime: string | null;
   absent: boolean;
   justified: boolean;
   notes: string | null;
+  // Extended fields — FASE 52
+  employeeNumber: string | null;
+  area: string | null;
+  shiftStartTime: string | null;
+  shiftEndTime: string | null;
+  checkInStatus: string | null;
+  checkOutStatus: string | null;
+  checkInAddress: string | null;
+  checkOutAddress: string | null;
+  isAnomaly: boolean;
+  anomalyReason: string | null;
+  workAddress: string | null;
 }
 
 export interface DocumentRow {
@@ -501,7 +514,7 @@ export async function createReview(input: {
 
 export { getEmployees as getEmployeesLegacy };
 
-export async function getAttendanceReport() {
+export async function getAttendanceReport(): Promise<AttendanceRow[]> {
   const session = await getSwitchSession();
   if (!session?.tenantId) return [];
 
@@ -510,19 +523,29 @@ export async function getAttendanceReport() {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const employees = await prisma.employee.findMany({
-    where: { tenantId: session.tenantId, active: true },
-    include: {
-      attendances: {
-        where: { date: { gte: today, lt: tomorrow } },
+  const [employees, tenant] = await Promise.all([
+    prisma.employee.findMany({
+      where: { tenantId: session.tenantId, active: true },
+      include: {
+        attendances: {
+          where: { date: { gte: today, lt: tomorrow } },
+        },
+        shift: {
+          select: { startTime: true, endTime: true, name: true },
+        },
       },
-    },
-    orderBy: { name: 'asc' },
-  });
+      orderBy: { name: 'asc' },
+    }),
+    prisma.tenant.findUnique({
+      where: { id: session.tenantId },
+      select: { workAddress: true },
+    }),
+  ]);
 
   return employees.map((emp) => {
     const att = emp.attendances[0] ?? null;
     return {
+      id: att?.id ?? emp.id,
       employeeId: emp.id,
       employeeName: emp.name,
       position: emp.position,
@@ -530,6 +553,19 @@ export async function getAttendanceReport() {
       clockInTime: att?.clockInTime?.toISOString() ?? null,
       clockOutTime: att?.clockOutTime?.toISOString() ?? null,
       absent: att?.absent ?? false,
+      justified: att?.justified ?? false,
+      notes: att?.notes ?? null,
+      employeeNumber: emp.employeeNumber ?? null,
+      area: emp.area ?? emp.department ?? null,
+      shiftStartTime: emp.shift?.startTime ?? null,
+      shiftEndTime: emp.shift?.endTime ?? null,
+      checkInStatus: att?.checkInStatus ?? null,
+      checkOutStatus: att?.checkOutStatus ?? null,
+      checkInAddress: att?.checkInAddress ?? null,
+      checkOutAddress: att?.checkOutAddress ?? null,
+      isAnomaly: att?.isAnomaly ?? false,
+      anomalyReason: att?.anomalyReason ?? null,
+      workAddress: tenant?.workAddress ?? null,
     };
   });
 }
