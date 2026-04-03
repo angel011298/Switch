@@ -29,6 +29,8 @@ interface DashboardShellProps {
   userEmail: string;
   subscriptionStatus?: string | null;
   daysLeft?: number | null;
+  userTenants?: Array<{ id: string; name: string; rfc: string | null; role: string }>;
+  activeTenantId?: string | null;
 }
 
 export default function DashboardShell({
@@ -39,6 +41,8 @@ export default function DashboardShell({
   userEmail,
   subscriptionStatus,
   daysLeft,
+  userTenants = [],
+  activeTenantId,
 }: DashboardShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -80,6 +84,8 @@ export default function DashboardShell({
           subscriptionStatus={subscriptionStatus}
           daysLeft={daysLeft}
           onMobileMenuToggle={() => setMobileOpen(o => !o)}
+          userTenants={userTenants}
+          activeTenantId={activeTenantId}
         />
 
         {/* Extra bottom padding on mobile for the bottom nav bar */}

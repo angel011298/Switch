@@ -9,6 +9,7 @@
 import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { sanitizeData } from '@/lib/security/sanitizer';
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -203,6 +204,8 @@ export async function createBankAccount(data: {
     const session = await getSwitchSession();
     if (!session?.tenantId) return { ok: false, error: 'No autenticado' };
 
+    const sanitized = sanitizeData(data);
+
     if (!data.bankName.trim()) return { ok: false, error: 'El banco es requerido' };
     if (!data.alias.trim()) return { ok: false, error: 'El alias es requerido' };
     if (!data.accountNumber.trim()) return { ok: false, error: 'El número de cuenta es requerido' };
@@ -210,14 +213,14 @@ export async function createBankAccount(data: {
     const account = await prisma.bankAccount.create({
       data: {
         tenantId: session.tenantId,
-        bankName: data.bankName.trim(),
-        alias: data.alias.trim(),
-        accountNumber: data.accountNumber.trim(),
-        clabe: data.clabe?.trim() || null,
-        currency: data.currency ?? 'MXN',
-        accountType: data.accountType ?? 'CHEQUES',
-        currentBalance: data.currentBalance ?? 0,
-        notes: data.notes?.trim() || null,
+        bankName: sanitized.bankName,
+        alias: sanitized.alias,
+        accountNumber: sanitized.accountNumber,
+        clabe: sanitized.clabe || null,
+        currency: sanitized.currency ?? 'MXN',
+        accountType: sanitized.accountType ?? 'CHEQUES',
+        currentBalance: sanitized.currentBalance ?? 0,
+        notes: sanitized.notes || null,
       },
     });
 
@@ -246,11 +249,13 @@ export async function createTreasuryTransaction(data: {
     const session = await getSwitchSession();
     if (!session?.tenantId) return { ok: false, error: 'No autenticado' };
 
-    if (!data.concept.trim()) return { ok: false, error: 'El concepto es requerido' };
-    if (data.amount <= 0) return { ok: false, error: 'El importe debe ser mayor a cero' };
+    const sanitized = sanitizeData(data);
+
+    if (!sanitized.concept) return { ok: false, error: 'El concepto es requerido' };
+    if (sanitized.amount <= 0) return { ok: false, error: 'El importe debe ser mayor a cero' };
 
     const account = await prisma.bankAccount.findUnique({
-      where: { id: data.bankAccountId },
+      where: { id: sanitized.bankAccountId },
       select: { tenantId: true, currentBalance: true },
     });
     if (!account || account.tenantId !== session.tenantId) {
@@ -259,27 +264,27 @@ export async function createTreasuryTransaction(data: {
 
     const prevBalance = Number(account.currentBalance);
     const newBalance =
-      data.type === 'INGRESO'
-        ? prevBalance + data.amount
-        : prevBalance - data.amount;
+      sanitized.type === 'INGRESO'
+        ? prevBalance + sanitized.amount
+        : prevBalance - sanitized.amount;
 
     await prisma.$transaction([
       prisma.treasuryTransaction.create({
         data: {
           tenantId: session.tenantId,
-          bankAccountId: data.bankAccountId,
-          date: new Date(data.date),
-          concept: data.concept.trim(),
-          type: data.type,
-          amount: data.amount,
+          bankAccountId: sanitized.bankAccountId,
+          date: new Date(sanitized.date),
+          concept: sanitized.concept,
+          type: sanitized.type,
+          amount: sanitized.amount,
           balance: newBalance,
-          reference: data.reference?.trim() || null,
-          category: data.category || null,
-          invoiceId: data.invoiceId || null,
+          reference: sanitized.reference || null,
+          category: sanitized.category || null,
+          invoiceId: sanitized.invoiceId || null,
         },
       }),
       prisma.bankAccount.update({
-        where: { id: data.bankAccountId },
+        where: { id: sanitized.bankAccountId },
         data: { currentBalance: newBalance },
       }),
     ]);
@@ -333,11 +338,13 @@ export async function createPettyCashExpense(data: {
     const session = await getSwitchSession();
     if (!session?.tenantId) return { ok: false, error: 'No autenticado' };
 
-    if (!data.concept.trim()) return { ok: false, error: 'El concepto es requerido' };
-    if (data.amount <= 0) return { ok: false, error: 'El importe debe ser mayor a cero' };
+    const sanitized = sanitizeData(data);
+
+    if (!sanitized.concept) return { ok: false, error: 'El concepto es requerido' };
+    if (sanitized.amount <= 0) return { ok: false, error: 'El importe debe ser mayor a cero' };
 
     const fund = await prisma.pettyCashFund.findUnique({
-      where: { id: data.fundId },
+      where: { id: sanitized.fundId },
       select: { tenantId: true },
     });
     if (!fund || fund.tenantId !== session.tenantId) {
@@ -346,13 +353,13 @@ export async function createPettyCashExpense(data: {
 
     await prisma.pettyCashExpense.create({
       data: {
-        fundId: data.fundId,
-        date: new Date(data.date),
-        concept: data.concept.trim(),
-        amount: data.amount,
-        category: data.category ?? 'Otros',
-        costCenter: data.costCenter?.trim() || null,
-        receiptRef: data.receiptRef?.trim() || null,
+        fundId: sanitized.fundId,
+        date: new Date(sanitized.date),
+        concept: sanitized.concept,
+        amount: sanitized.amount,
+        category: sanitized.category ?? 'Otros',
+        costCenter: sanitized.costCenter || null,
+        receiptRef: sanitized.receiptRef || null,
         status: 'PENDIENTE',
       },
     });

@@ -3,6 +3,7 @@
 import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { sanitizeData } from '@/lib/security/sanitizer';
 
 export async function saveCashCut(input: {
   denominations: Record<string, number>;
@@ -12,6 +13,8 @@ export async function saveCashCut(input: {
   try {
     const session = await getSwitchSession();
     if (!session?.tenantId) return { ok: false, error: 'No autenticado' };
+
+    const sanitized = sanitizeData(input);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -38,14 +41,14 @@ export async function saveCashCut(input: {
         tenantId: session.tenantId,
         cashierId: session.userId ?? null,
         cutDate: new Date(),
-        denominations: input.denominations,
-        declaredAmount: input.declaredAmount,
+        denominations: sanitized.denominations,
+        declaredAmount: sanitized.declaredAmount,
         systemAmount,
         variation,
         ordersCount: orders.length,
         grandTotal: systemAmount,
         status: Math.abs(variation) > 10 ? 'ANOMALIA_PENDIENTE' : 'CERRADO',
-        anomalyNotes: input.notes ?? null,
+        anomalyNotes: sanitized.notes ?? null,
       },
     });
 

@@ -158,7 +158,7 @@ model Tenant {
   subscription     Subscription?
   paymentProofs    PaymentProof[]
   modules          TenantModule[]
-  users            User[]
+  memberships      TenantMembership[]
   projects         Project[]
   invoices         Invoice[]
   csdVault         CsdVault?
@@ -252,12 +252,13 @@ model PaymentProof {
 }
 
 model User {
-  id               String      @id @default(uuid())
-  tenantId         String
-  tenant           Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id               String      @id
   email            String      @unique
-  name             String
-  role             Role        @default(OPERATIVE)
+  name             String?
+  avatarUrl        String?
+  timezone         String      @default("America/Mexico_City")
+
+  memberships      TenantMembership[]
 
   // Campos de registro
   personType       String?
@@ -275,7 +276,19 @@ model User {
   // FASE 51: Seguridad 2FA
   twoFactorEnabled  Boolean  @default(false)
   twoFactorSecret   String?  // TOTP secret (encrypted via app-level AES, stored as base64)
+}
 
+model TenantMembership {
+  id        String  @id @default(uuid())
+  userId    String
+  tenantId  String
+  role      Role    @default(OPERATIVE)
+  
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([userId])
   @@index([tenantId])
 }
 

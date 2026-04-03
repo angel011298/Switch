@@ -77,6 +77,16 @@ export default async function DashboardLayout({
       )
     : null;
 
+  // FASE Multi-Tenant: Obtener todas las empresas a las que pertenece el usuario
+  const userTenants = await prisma.tenantMembership.findMany({
+    where: { userId: session.userId },
+    include: {
+      tenant: {
+        select: { id: true, name: true, rfc: true }
+      }
+    }
+  });
+
   return (
     <I18nProvider>
       {/* FASE 52: DashboardShell gestiona el estado del drawer móvil */}
@@ -87,6 +97,13 @@ export default async function DashboardLayout({
         userEmail={session.email}
         subscriptionStatus={session.subscriptionStatus ?? null}
         daysLeft={daysLeft}
+        userTenants={userTenants.map(m => ({
+          id: m.tenant.id,
+          name: m.tenant.name,
+          rfc: m.tenant.rfc,
+          role: m.role
+        }))}
+        activeTenantId={session.tenantId}
       >
         {children}
       </DashboardShell>

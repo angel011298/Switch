@@ -8,6 +8,7 @@
  */
 
 import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 
 export interface SwitchSession {
   userId: string;
@@ -42,6 +43,10 @@ export async function getSwitchSession(): Promise<SwitchSession | null> {
     data: { session },
   } = await supabase.auth.getSession();
 
+  // FASE Multi-Tenant: Soporte para cambio de tenant vía cookie
+  const cookieStore = await cookies();
+  const cookieTenantId = cookieStore.get('cifra_active_tenant_id')?.value;
+
   // Extraer claims custom del JWT (inyectados por custom_access_token_hook)
   const jwtPayload = session?.access_token
     ? JSON.parse(
@@ -49,7 +54,8 @@ export async function getSwitchSession(): Promise<SwitchSession | null> {
       )
     : null;
 
-  const tenantId = jwtPayload?.tenant_id ?? user.user_metadata?.tenant_id ?? null;
+  // Prioridad: Cookie > JWT > Metadata
+  const tenantId = cookieTenantId ?? jwtPayload?.tenant_id ?? user.user_metadata?.tenant_id ?? null;
   const isSuperAdmin =
     jwtPayload?.is_super_admin ??
     user.user_metadata?.is_super_admin ??

@@ -1,10 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { hasRoutePermission } from '@/lib/auth/rbac';
+import { isRateLimited, RATE_LIMIT_CONFIGS } from '@/lib/security/rate-limit';
 
 /**
- * CIFRA — Middleware de Autenticacion, Autorizacion y Paywall
+ * CIFRA — Middleware de Autenticacion, Autorizacion, Paywall y Seguridad
  * ==================================================================
+ * Capa -1: Rate Limiting (Protección contra ataques DoS/Brute Force)
  * Capa 1: Autenticacion (sesion Supabase via @supabase/ssr v0.9)
  * Capa 2: Paywall — verifica que la suscripcion este vigente (validUntil)
  * Capa 3: Autorizacion de modulos (JWT claim active_modules)
@@ -71,6 +73,24 @@ const PUBLIC_ROUTES = [
 ];
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const ip = request.ip ?? '127.0.0.1';
+
+  // ─── Capa -1: Rate Limiting ──────────────────────────
+  const isAuthRoute = pathname.startsWith('/api/auth') || pathname.startsWith('/login');
+  const isPublicApi = pathname.startsWith('/api/portal') || pathname.startsWith('/api/v1');
+  
+  let limitConfig = RATE_LIMIT_CONFIGS.DEFAULT;
+  if (isAuthRoute) limitConfig = RATE_LIMIT_CONFIGS.AUTH;
+  if (isPublicApi) limitConfig = RATE_LIMIT_CONFIGS.PUBLIC;
+
+  if (isRateLimited(`${ip}:${pathname}`, limitConfig)) {
+    return new NextResponse(
+      JSON.stringify({ error: 'Demasiadas peticiones. Intenta más tarde.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   // FASE 12: Inyectar pathname en headers para que Server Components puedan leerlo
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', request.nextUrl.pathname);
@@ -100,13 +120,10 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // IMPORTANTE: getUser() valida el token contra el server de Supabase.
-  const {
+    const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
 
   // Debug en desarrollo
   if (process.env.NODE_ENV === 'development') {

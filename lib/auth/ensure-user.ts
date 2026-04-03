@@ -56,13 +56,18 @@ export async function ensurePrismaUser(
         zipCode: '',              // Se captura en onboarding
         onboardingComplete: false,
 
-        users: {
+        memberships: {
           create: {
-            id: userId,
-            email,
-            name,
+            userId: userId, // ID de Supabase
             role: 'ADMIN',
-            isSuperAdmin,
+            user: {
+              create: {
+                id: userId,
+                email,
+                name,
+                isSuperAdmin,
+              },
+            },
           },
         },
 
