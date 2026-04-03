@@ -70,7 +70,7 @@
 ✅ FASE 37: Integraciones Externas — WebhookEndpoint, ApiKey, REST API v1, triggerWebhook (PR #34 merged)
 ✅ FASE 38: AI Copilot — Claude streaming, contexto ERP live, widget flotante, página /ai (PR #35 merged)
 ✅ FASE 39: Marketplace Integraciones — 8 apps, categorías, search, install flow, detail modal (PR #36 merged)
-✅ FASE 40: Enterprise Multi-empresa — Organization, OrgMember, OrgTenant, KPIs consolidados (PR #37 merged)
+✅ FASE 40: Enterprise Multi-empresa — Arquitectura M:N real desplegada, Perfil Global (/settings/profile), y Tenant Switcher nativo (PR #37 merged + M:N Upgrade)
 
 🎉 PLAN MAESTRO 100% COMPLETADO — 29 fases · 37 PRs · 50,000+ líneas de código
 ```

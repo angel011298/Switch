@@ -20,18 +20,20 @@ export async function getOrgUsers(): Promise<TenantUser[]> {
   const session = await getSwitchSession();
   if (!session?.tenantId) return [];
 
-  const users = await prisma.user.findMany({
+  const memberships = await prisma.tenantMembership.findMany({
     where: { tenantId: session.tenantId },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
-    orderBy: { createdAt: 'asc' },
+    include: {
+      user: { select: { id: true, name: true, email: true, createdAt: true } },
+    },
+    orderBy: { user: { createdAt: 'asc' } },
   });
 
-  return users.map((u) => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    role: u.role,
-    createdAt: u.createdAt.toISOString(),
+  return memberships.map((m) => ({
+    id: m.user.id,
+    name: m.user.name || 'Usuario',
+    email: m.user.email,
+    role: m.role,
+    createdAt: m.user.createdAt.toISOString(),
   }));
 }
 
@@ -63,20 +65,30 @@ export async function updateUserRole(
   }
 
   // Validar que el usuario pertenece al tenant
-  const target = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, name: true, role: true, tenantId: true },
+  const target = await prisma.tenantMembership.findUnique({
+    where: {
+      userId_tenantId: {
+        userId: userId,
+        tenantId: session.tenantId,
+      },
+    },
+    include: { user: { select: { email: true } } },
   });
 
-  if (!target || target.tenantId !== session.tenantId) {
-    return { success: false, error: 'Usuario no encontrado' };
+  if (!target) {
+    return { success: false, error: 'Usuario no encontrado en esta empresa' };
   }
 
   const oldRole = target.role;
 
-  // Actualizar en base de datos
-  await prisma.user.update({
-    where: { id: userId },
+  // Actualizar en base de datos (TABLA DE MEMBRESÍA)
+  await prisma.tenantMembership.update({
+    where: {
+      userId_tenantId: {
+        userId: userId,
+        tenantId: session.tenantId,
+      },
+    },
     data: { role: newRole },
   });
 
@@ -89,7 +101,7 @@ export async function updateUserRole(
     );
     // Buscar el auth user por email
     const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const authUser = authUsers?.users?.find((u) => u.email === target.email);
+    const authUser = authUsers?.users?.find((u) => u.email === target.user.email);
     if (authUser) {
       await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
         app_metadata: { user_role: newRole },
@@ -111,7 +123,7 @@ export async function updateUserRole(
     resourceId: userId,
     severity: newRole === 'ADMIN' ? 'warning' : 'info',
     oldData: { role: oldRole },
-    newData: { role: newRole, userEmail: target.email },
+    newData: { role: newRole, userEmail: target.user.email },
   });
 
   revalidatePath('/admin/organizacion');

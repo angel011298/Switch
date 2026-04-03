@@ -113,29 +113,40 @@ export async function deleteTenant(
   if (!session?.isSuperAdmin) throw new Error('Acceso denegado: se requiere Super Admin');
 
   try {
-    // 1. Obtener usuarios del tenant
-    const tenantUsers = await prisma.user.findMany({
+    // 1. Obtener usuarios vinculados a este tenant vía membresías
+    const memberships = await prisma.tenantMembership.findMany({
       where:  { tenantId },
-      select: { id: true, email: true },
+      include: { user: { select: { id: true, email: true } } },
     });
 
-    // 2. Eliminar cada usuario de Supabase Auth
+    const tenantUsers = memberships.map(m => m.user);
+
+    // 2. Eliminar de Supabase Auth SOLO si no tienen membresías en otras empresas
     if (tenantUsers.length > 0) {
       const supabaseAdmin = getSupabaseAdmin();
-      const deleteResults = await Promise.allSettled(
-        tenantUsers.map(u => supabaseAdmin.auth.admin.deleteUser(u.id))
-      );
-      deleteResults.forEach((r, i) => {
-        if (r.status === 'rejected') {
-          console.warn(`[deleteTenant] No se pudo eliminar user ${tenantUsers[i]?.email} de Supabase:`, r.reason);
+      
+      for (const user of tenantUsers) {
+        // Contar otras membresías
+        const otherMembershipsCount = await prisma.tenantMembership.count({
+          where: {
+            userId: user.id,
+            NOT: { tenantId: tenantId }
+          }
+        });
+
+        if (otherMembershipsCount === 0) {
+          // El usuario solo pertenecía a esta empresa, procedemos a borrarlo de Supabase
+          const { error: deleteErr } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+          if (deleteErr) {
+            console.warn(`[deleteTenant] No se pudo eliminar user ${user.email} de Supabase:`, deleteErr.message);
+          }
+        } else {
+          console.info(`[deleteTenant] Persistiendo usuario ${user.email} porque pertenece a otras ${otherMembershipsCount} empresas.`);
         }
-      });
+      }
     }
 
     // 3. Eliminar el tenant de Prisma
-    //    Nota: si el schema tiene onDelete: Cascade en las relaciones,
-    //    basta con delete(). De lo contrario, eliminamos manualmente las
-    //    relaciones conocidas primero para evitar FK constraint errors.
     try {
       await prisma.tenant.delete({ where: { id: tenantId } });
     } catch (cascadeErr: any) {
@@ -143,9 +154,7 @@ export async function deleteTenant(
         // FK constraint — eliminar relaciones conocidas manualmente
         await prisma.$transaction([
           prisma.tenantModule.deleteMany({ where: { tenantId } }),
-          // Agregar aquí otras relaciones que no tengan cascade
-          // ej: prisma.payrollItem.deleteMany({ where: { payrollRun: { tenantId } } }),
-          prisma.user.deleteMany({ where: { tenantId } }),
+          prisma.tenantMembership.deleteMany({ where: { tenantId } }),
           prisma.tenant.delete({ where: { id: tenantId } }),
         ]);
       } else {

@@ -24,7 +24,11 @@ export default async function AdminPage() {
     prisma.tenant.findMany({
       include: {
         modules: { orderBy: { moduleKey: 'asc' } },
-        users: { select: { id: true, email: true, name: true, role: true, createdAt: true } },
+        memberships: {
+          include: {
+            user: { select: { id: true, email: true, name: true, createdAt: true } }
+          }
+        },
         subscription: { select: { status: true, validUntil: true, planId: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -36,9 +40,9 @@ export default async function AdminPage() {
     }),
   ]);
 
-  const totalUsers = tenants.reduce((acc, t) => acc + t.users.length, 0);
+  const totalUsers = tenants.reduce((acc, t: any) => acc + t.memberships.length, 0);
   const totalModulesActive = tenants.reduce(
-    (acc, t) => acc + t.modules.filter((m) => m.isActive).length,
+    (acc, t: any) => acc + t.modules.filter((m: any) => m.isActive).length,
     0
   );
 
@@ -80,7 +84,7 @@ export default async function AdminPage() {
         <MetricCard
           icon={Activity}
           label="Suscripciones Activas"
-          value={String(tenants.filter((t) => t.subscription?.status === 'ACTIVE').length)}
+          value={String(tenants.filter((t: any) => t.subscription?.status === 'ACTIVE').length)}
           accent="amber"
         />
         <MetricCard
@@ -125,7 +129,7 @@ export default async function AdminPage() {
           Organizaciones Registradas
         </h2>
         <div className="space-y-4">
-          {tenants.map((tenant) => (
+          {tenants.map((tenant: any) => (
             <TenantModuleManager
               key={tenant.id}
               tenant={{
@@ -133,14 +137,14 @@ export default async function AdminPage() {
                 name: tenant.name,
                 rfc: tenant.rfc,
                 createdAt: tenant.createdAt.toISOString(),
-                userCount: tenant.users.length,
-                users: tenant.users.map((u) => ({
-                  name: u.name,
-                  email: u.email,
-                  role: u.role,
-                  createdAt: u.createdAt.toISOString(),
+                userCount: tenant.memberships.length,
+                users: tenant.memberships.map((m: any) => ({
+                  name: m.user.name,
+                  email: m.user.email,
+                  role: m.role,
+                  createdAt: m.user.createdAt.toISOString(),
                 })),
-                modules: tenant.modules.map((m) => ({
+                modules: tenant.modules.map((m: any) => ({
                   id: m.id,
                   moduleKey: m.moduleKey,
                   isActive: m.isActive,

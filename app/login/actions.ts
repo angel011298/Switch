@@ -97,16 +97,23 @@ export async function syncUserWithPrisma(
       data: {
         name: tenantName,
         rfc: rfc || null,
-        users: {
+        memberships: {
           create: {
-            id: userId,
-            email,
-            name: fullName,
             role: 'ADMIN',
-            personType,
-            rfc: rfc || null,
-            phone: phone || null,
-            isSuperAdmin,
+            user: {
+              connectOrCreate: {
+                where: { id: userId },
+                create: {
+                  id: userId,
+                  email,
+                  name: fullName,
+                  personType,
+                  rfc: rfc || null,
+                  phone: phone || null,
+                  isSuperAdmin,
+                },
+              },
+            },
           },
         },
       },
