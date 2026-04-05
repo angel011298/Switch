@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Providers } from './providers'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 import { InstallPrompt } from '@/components/pwa/InstallPrompt'
+import { CookieBanner } from '@/components/legal/CookieBanner'
 
 import '../styles/main.css'
 
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>{children}</Providers>
         <ServiceWorkerRegistration />
         <InstallPrompt />
+        <CookieBanner />
       </body>
     </html>
   )
