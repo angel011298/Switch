@@ -70,6 +70,10 @@ const PUBLIC_ROUTES = [
   '/api/webhooks',
   '/factura-tu-ticket',
   '/portal',            // FASE 27: Portal público del cliente (sin auth)
+  '/terminos',          // Documentos legales — siempre públicos
+  '/privacidad',
+  '/cookies',
+  '/planes',            // Página de precios pública
 ];
 
 export async function middleware(request: NextRequest) {

@@ -1,166 +1,183 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import { FileText, CreditCard, Lock, Scale, AlertTriangle, ShieldCheck, Database, Zap } from 'lucide-react'
+import { LegalLayout, Section, Sub } from '@/components/legal/LegalLayout'
 
-export const metadata = {
-  title: 'Términos y Condiciones — CIFRA ERP',
-  description: 'Contrato de servicios para el uso de la plataforma CIFRA ERP.',
+export const metadata: Metadata = {
+  title: 'Términos y Condiciones · CIFRA ERP',
+  description: 'Términos y Condiciones de Uso del Software ERP CIFRA para empresas mexicanas.',
 }
 
-export default function TermsPage() {
+const LAST_UPDATED = '2 de abril de 2026'
+
+export default function TerminosPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 selection:bg-blue-100 dark:selection:bg-blue-900/30">
-      <div className="max-w-4xl mx-auto px-6 py-20">
-        
-        {/* Header */}
-        <div className="mb-12">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:opacity-80 transition-opacity mb-8">
-            ← Volver al inicio
-          </Link>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-              <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <h1 className="text-4xl font-black tracking-tight">Términos y Condiciones de Uso</h1>
+    <LegalLayout>
+      <article>
+        <div className="mb-10 pb-8 border-b border-neutral-200 dark:border-neutral-800">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-full uppercase tracking-widest mb-4">
+            Documento Legal
           </div>
-          <p className="text-zinc-500 dark:text-zinc-400 text-lg">
-            Fecha de última actualización: 2 de abril de 2026
+          <h1 className="text-4xl font-black text-neutral-900 dark:text-white mb-3">
+            Términos y Condiciones de Uso
+          </h1>
+          <p className="text-neutral-500 text-sm">Última actualización: <strong>{LAST_UPDATED}</strong></p>
+          <p className="text-sm text-neutral-400 mt-2">
+            Aplica a todos los usuarios de <strong>CIFRA ERP</strong> (cifra-mx.vercel.app) operado por Angel Alberto Ortiz Sánchez.
           </p>
         </div>
 
-        <div className="prose prose-zinc dark:prose-invert max-w-none space-y-12 text-justify">
-          
-          <section>
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
-              <Scale className="w-6 h-6 text-zinc-400" />
-              1. Aceptación, Naturaleza del Servicio y Relación Comercial
-            </h2>
-            <div className="space-y-4">
-              <p className="leading-relaxed">
-                <strong>1.1. Aceptación Expresa:</strong> Al registrarse, crear una cuenta y/o hacer clic en "Acepto", el usuario (en adelante "El Cliente") consiente y acepta expresamente estos Términos y Condiciones (TyC), constituyendo un acuerdo legalmente vinculante.
-              </p>
-              <div className="p-6 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 text-sm">
-                <h3 className="font-bold mb-3">1.2. Definiciones Clave:</h3>
-                <ul className="space-y-2">
-                  <li><strong>SaaS:</strong> Software as a Service. Modalidad donde CIFRA aloja el sistema en la nube y El Cliente accede vía internet.</li>
-                  <li><strong>Tenant:</strong> Instancia lógica, privada y aislada de bases de datos asignada exclusivamente a El Cliente.</li>
-                  <li><strong>Usuario Final:</strong> Cualquier empleado, colaborador o tercero a quien El Cliente otorgue credenciales.</li>
-                  <li><strong>Datos del Cliente:</strong> Toda información, XMLs, registros y datos personales ingresados por El Cliente.</li>
-                </ul>
-              </div>
-              <p className="leading-relaxed">
-                <strong>1.3. Naturaleza Tecnológica B2B:</strong> CIFRA ERP es una plataforma SaaS diseñada para la gestión administrativa, facturación (CFDI), control de asistencia (Reloj Checador), punto de venta (POS) y conciliación. No somos un despacho contable, fiscal, legal, ni asesor financiero.
-              </p>
-              <p className="leading-relaxed">
-                <strong>1.4. Licencia de Uso:</strong> CIFRA otorga a El Cliente una licencia de uso limitada, no exclusiva, intransferible, revocable y temporal, sujeta al pago de la suscripción. Esto no constituye una venta del software ni del código fuente.
-              </p>
-              <div className="p-4 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-800 rounded-2xl flex gap-3 text-sm font-medium text-rose-800 dark:text-rose-200">
-                <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                <p><strong>1.5. Cláusula de No Asesoría:</strong> Las automatizaciones del sistema son sugerencias algorítmicas. Ningún reporte o cálculo generado constituye asesoría legal o fiscal. La validación final ante autoridades recae exclusiva y totalmente en El Cliente.</p>
-              </div>
-            </div>
-          </section>
+        <Section id="1" title="1. Aceptación, Naturaleza del Servicio y Relación Comercial">
+          <Sub title="1.1 Aceptación Expresa">
+            Al registrarse, crear una cuenta y/o hacer clic en &quot;Acepto&quot;, el usuario (en adelante <strong>&quot;El Cliente&quot;</strong>) consiente y acepta expresamente estos Términos y Condiciones (TyC), constituyendo un acuerdo legalmente vinculante conforme al Artículo 89 del Código de Comercio.
+          </Sub>
+          <Sub title="1.2 Definiciones Clave">
+            <ul className="list-disc list-inside space-y-1 mt-1">
+              <li><strong>SaaS:</strong> Software como Servicio. CIFRA aloja el sistema en la nube y El Cliente accede vía internet.</li>
+              <li><strong>Tenant:</strong> Instancia lógica, privada y aislada de base de datos asignada exclusivamente a El Cliente.</li>
+              <li><strong>Usuario Final:</strong> Cualquier empleado, colaborador o tercero a quien El Cliente otorgue credenciales.</li>
+              <li><strong>Datos del Cliente:</strong> Toda información, XMLs, registros contables y datos personales ingresados por El Cliente.</li>
+              <li><strong>CFDI:</strong> Comprobante Fiscal Digital por Internet conforme al Artículo 29 del CFF.</li>
+              <li><strong>CSD:</strong> Certificado de Sello Digital emitido por el SAT.</li>
+            </ul>
+          </Sub>
+          <Sub title="1.3 Naturaleza Tecnológica B2B">
+            CIFRA ERP es una plataforma SaaS diseñada para la gestión administrativa integral de empresas mexicanas: facturación electrónica (CFDI 4.0), contabilidad de partida doble, punto de venta (POS), control de asistencia con geolocalización, nómina ISR/IMSS, CRM, SCM, MRP y Business Intelligence. <strong>No somos un despacho contable, fiscal, legal ni asesor financiero.</strong>
+          </Sub>
+          <Sub title="1.4 Licencia de Uso">
+            CIFRA otorga a El Cliente una licencia de uso <strong>limitada, no exclusiva, intransferible, revocable y temporal</strong>, sujeta al pago de la suscripción activa. No constituye venta del software ni del código fuente.
+          </Sub>
+          <Sub title="1.5 Cláusula de No Asesoría">
+            Las automatizaciones del sistema son <strong>sugerencias algorítmicas</strong>. Ningún reporte o cálculo generado constituye asesoría legal o fiscal. La validación final ante el SAT, IMSS o cualquier autoridad recae exclusivamente en El Cliente.
+          </Sub>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
-              <ShieldCheck className="w-6 h-6 text-zinc-400" />
-              2. Credenciales Fiscales y Cumplimiento Tributario (CFF)
-            </h2>
-            <p className="leading-relaxed mb-4">
-              <strong>2.1. Uso de CSD y e.firma:</strong> Para los módulos de facturación y "Mis CFDI", El Cliente autoriza el uso de sus Certificados de Sello Digital (CSD) y/o e.firma, otorgando a CIFRA un mandato estrictamente tecnológico y automatizado para la descarga, validación y emisión de comprobantes ante el Servicio de Administración Tributaria (SAT).
-            </p>
-            <p className="leading-relaxed text-sm text-zinc-500">
-              <strong>2.2. Exención por Operaciones Simuladas (Art. 69-B CFF):</strong> El Cliente se obliga a no utilizar CIFRA ERP para simular operaciones o evadir impuestos. CIFRA no será responsable si El Cliente emite o recibe facturas de Empresas Facturadoras de Operaciones Simuladas (EFOS) o si sus CSD son restringidos (Art. 17-H Bis CFF).
-            </p>
-          </section>
+        <Section id="2" title="2. Credenciales Fiscales y Cumplimiento Tributario (CFF)">
+          <Sub title="2.1 Uso de CSD y e.firma">
+            Para los módulos de Facturación (CFDI) y timbrado vía PAC (SW Sapien), El Cliente autoriza el uso de sus CSD y/o e.firma, otorgando a CIFRA un <strong>mandato estrictamente tecnológico y automatizado</strong> para la descarga, validación y emisión de comprobantes ante el SAT.
+          </Sub>
+          <Sub title="2.2 Confidencialidad de Credenciales">
+            Las credenciales del CSD se almacenan cifradas con aislamiento por Tenant. El Cliente asume la responsabilidad de no compartirlas con terceros ajenos a CIFRA.
+          </Sub>
+          <Sub title="2.3 Exención por Operaciones Simuladas (Art. 69-B CFF)">
+            El Cliente se obliga a no utilizar CIFRA para simular operaciones o evadir impuestos. CIFRA no será responsable si El Cliente emite o recibe facturas de EFOS o si sus CSD son restringidos conforme al Art. 17-H Bis del CFF.
+          </Sub>
+          <Sub title="2.4 Cancelación de CFDI">
+            Las cancelaciones se realizan conforme a la regla 2.7.1.3 de la RMF vigente. CIFRA facilita el proceso técnico; la responsabilidad fiscal recae en El Cliente.
+          </Sub>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-6">3. Privacidad y Protección de Datos Personales (LFPDPPP)</h2>
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-                <h3 className="font-bold mb-2">3.1. Roles Legales:</h3>
-                <ul className="text-sm space-y-2">
-                  <li><strong>Responsable:</strong> CIFRA respecto a datos de registro y pagos.</li>
-                  <li><strong>Encargado:</strong> CIFRA respecto a info de terceros del Cliente.</li>
-                </ul>
-              </div>
-              <div className="p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-                <h3 className="font-bold mb-2">3.2. Vulneraciones:</h3>
-                <p className="text-xs text-zinc-500">Notificaremos a El Cliente para que cumpla con su rol de Responsable ante los titulares y la autoridad.</p>
-              </div>
-            </div>
-          </section>
+        <Section id="3" title="3. Privacidad y Protección de Datos Personales (LFPDPPP)">
+          <Sub title="3.1 Roles Legales">
+            <ul className="list-disc list-inside space-y-1 mt-1">
+              <li><strong>Como Responsable:</strong> CIFRA es responsable exclusivo de los datos de registro y facturación de la suscripción.</li>
+              <li><strong>Como Encargado:</strong> Respecto a información de terceros que El Cliente suba, CIFRA actúa únicamente como Encargado.</li>
+            </ul>
+          </Sub>
+          <Sub title="3.2 Aviso de Privacidad">
+            El tratamiento completo se detalla en nuestro{' '}
+            <Link href="/privacidad" className="text-blue-600 dark:text-blue-400 underline">Aviso de Privacidad Integral</Link>.
+          </Sub>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
-              <Zap className="w-6 h-6 text-zinc-400" />
-              4. Obligaciones Laborales y Geolocalización (LFT)
-            </h2>
-            <p className="leading-relaxed mb-4">
-              <strong>4.1. Módulo de Reloj Checador:</strong> CIFRA proporciona herramientas de control de asistencia mediante captura de ubicación geográfica.
-            </p>
-            <p className="leading-relaxed font-bold text-sm">
-              4.2. Indemnidad Laboral: Conforme a la Ley Federal del Trabajo, el patrón es El Cliente. El Cliente libera a CIFRA de cualquier contingencia ante la STPS.
-            </p>
-          </section>
+        <Section id="4" title="4. Módulo de Reloj Checador y Geolocalización (LFT)">
+          <Sub title="4.1 Funcionalidad">
+            El módulo captura la ubicación geográfica únicamente al momento de registrar asistencia para validar la presencia en el lugar de trabajo designado.
+          </Sub>
+          <Sub title="4.2 Indemnidad Laboral">
+            El patrón es El Cliente. Es su obligación recabar el consentimiento informado de sus trabajadores antes de activar este módulo, liberando a CIFRA de cualquier contingencia ante la STPS.
+          </Sub>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-4">5. Conservación de Mensajes de Datos y Seguridad (NOM-151-SCFI-2016)</h2>
-            <div className="space-y-4 text-sm">
-              <p><strong>5.1. Limitación de Certificación:</strong> CIFRA no actúa como Prestador de Servicios de Certificación (PSC). La conservación normativa es responsabilidad de El Cliente.</p>
-              <p><strong>5.2. Firma Electrónica Simple:</strong> El uso de credenciales constituye una Firma Electrónica Simple (Art. 89 C.Comercio).</p>
-            </div>
-          </section>
+        <Section id="5" title="5. Conservación de Datos y Firma Electrónica">
+          <Sub title="5.1 Limitación de Certificación">
+            CIFRA facilita el almacenamiento de XMLs y PDFs pero no actúa como PSC autorizado. La conservación normativa (Art. 30 CFF — 5 años) es responsabilidad de El Cliente.
+          </Sub>
+          <Sub title="5.2 Firma Electrónica Simple">
+            Conforme al Art. 89 del Código de Comercio, el uso de credenciales de acceso (correo/contraseña, 2FA TOTP) constituye una <strong>Firma Electrónica Simple</strong>. Toda acción bajo una sesión iniciada será legalmente vinculante.
+          </Sub>
+          <Sub title="5.3 Registro de Auditoría">
+            CIFRA mantiene un AuditLog inmutable de todas las acciones críticas, accesible desde el panel de Auditoría del dashboard.
+          </Sub>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-4">6. Propiedad Intelectual y de los Datos</h2>
-            <div className="grid md:grid-cols-2 gap-4 text-sm">
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-xl"><strong>6.1. Software:</strong> Propiedad exclusiva de CIFRA.</div>
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-xl"><strong>6.2. Datos:</strong> El Cliente conserva la titularidad; CIFRA es depositario.</div>
-            </div>
-          </section>
+        <Section id="6" title="6. Propiedad Intelectual y de los Datos">
+          <Sub title="6.1 Propiedad del Software">
+            El código fuente, algoritmos, interfaces (UI/UX), marca CIFRA y logotipos son propiedad exclusiva de Angel Alberto Ortiz Sánchez. El Cliente no tiene derecho a realizar ingeniería inversa, copiar, sublicenciar ni distribuir el software.
+          </Sub>
+          <Sub title="6.2 Propiedad de los Datos">
+            El Cliente conserva la titularidad sobre sus datos. CIFRA es depositario tecnológico y no reclamará propiedad. Al término del servicio, El Cliente podrá exportar en los formatos disponibles.
+          </Sub>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-4">7. Niveles de Servicio (SLA) y Mantenimiento</h2>
-            <p className="leading-relaxed text-sm">7.1. SLA operativo del 99.0% mensual. El servicio se presta "as is".</p>
-          </section>
+        <Section id="7" title="7. Niveles de Servicio (SLA) y Mantenimiento">
+          <Sub title="7.1 Disponibilidad">
+            CIFRA procurará un SLA del <strong>99.0% mensual</strong>, excluyendo mantenimientos programados. No se otorgan garantías absolutas por depender de infraestructura de terceros (Vercel, Supabase, SW Sapien).
+          </Sub>
+          <Sub title="7.2 Intermitencias de Terceros">
+            CIFRA no asume responsabilidad por caídas de los Webservices del SAT, fallas en la nube ni interrupciones del PAC.
+          </Sub>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-4">8. Derechos del Consumidor (LFPC)</h2>
-            <p className="leading-relaxed text-sm">8.2. Derecho de Cancelación: En cualquier momento sin reembolsos proporcionales.</p>
-          </section>
+        <Section id="8" title="8. Planes, Precios y Cancelación (LFPC)">
+          <Sub title="8.1 Precios">
+            Los planes se exhiben con todos los impuestos aplicables. El precio final es el mostrado al momento de la contratación.
+          </Sub>
+          <Sub title="8.2 Derecho de Cancelación">
+            El Cliente puede cancelar en cualquier momento. La cancelación evita cargos futuros, pero <strong>no genera reembolsos proporcionales</strong> por el período en curso.
+          </Sub>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-4">9. Limitación de Responsabilidad</h2>
-            <div className="p-6 rounded-3xl bg-zinc-900 text-white dark:bg-blue-900/20 border dark:border-blue-800">
-              <h3 className="font-black text-xl mb-4">9.3. Tope Legal</h3>
-              <p className="text-sm leading-relaxed">
-                La responsabilidad total de CIFRA está limitada al monto pagado por El Cliente durante los últimos <strong>tres (3) meses</strong>. No se responderá por lucro cesante ni multas.
-              </p>
-            </div>
-          </section>
+        <Section id="9" title="9. Limitación de Responsabilidad">
+          <Sub title="9.1 Errores de Usuario (GIGO)">
+            CIFRA no es responsable por cálculos erróneos, recargos o multas derivados de datos mal ingresados o configuraciones incorrectas.
+          </Sub>
+          <Sub title="9.2 Tope de Responsabilidad">
+            La responsabilidad total de CIFRA se limita al <strong>monto pagado durante los últimos 3 meses</strong>. No se responde por lucro cesante, daño moral ni multas administrativas.
+          </Sub>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-3 text-rose-600 dark:text-rose-400">
-              <Database className="w-6 h-6" />
-              10. Falta de Pago y Purga de Datos
-            </h2>
-            <div className="space-y-4">
-              <p className="font-bold underline text-sm">10.3. Purga Definitiva (30 días de impago):</p>
-              <div className="p-4 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-800 rounded-2xl text-xs text-rose-800 dark:text-rose-200">
-                CIFRA procederá a la eliminación irrecuperable de toda la información y Tenant de El Cliente tras 30 días de impago. CIFRA no será responsable por pérdida de información tras la purga.
-              </div>
-            </div>
-          </section>
+        <Section id="10" title="10. Suspensión y Retención de Datos">
+          <Sub title="10.1 Período de Gracia">
+            Si el cobro falla: <strong>5 días naturales</strong> de operación normal.
+          </Sub>
+          <Sub title="10.2 Solo Lectura">
+            Días 6–30 de impago: acceso de solo lectura para exportar datos.
+          </Sub>
+          <Sub title="10.3 Purga Definitiva">
+            A los 30 días de impago: <strong>eliminación definitiva e irrecuperable</strong> de toda la información y el Tenant, previa notificación.
+          </Sub>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-4">14. Jurisdicción y Ley Aplicable</h2>
-            <p className="leading-relaxed text-sm">
-              Sujeto a Tribunales competentes en la <strong>Ciudad de México</strong>, renunciando a cualquier otro fuero.
-            </p>
-          </section>
+        <Section id="11" title="11. Compliance, Anticorrupción y LFPIORPI">
+          <Sub title="11.1 Prevención de Lavado de Dinero">
+            El Cliente garantiza fondos de origen lícito y se obliga a no usar CIFRA para operaciones relacionadas con la LFPIORPI.
+          </Sub>
+        </Section>
 
+        <Section id="12" title="12. Rescisión Inmediata">
+          CIFRA puede bloquear la cuenta sin período de gracia ante: (a) ingeniería inversa; (b) fraudes fiscales o simulación de operaciones; (c) reventa de licencia; (d) violaciones a la LFPIORPI.
+        </Section>
+
+        <Section id="13" title="13. Modificaciones">
+          Los cambios materiales se notificarán con <strong>15 días naturales de anticipación</strong> por correo y/o banner en el dashboard. El uso continuo constituirá aceptación.
+        </Section>
+
+        <Section id="14" title="14. Jurisdicción y Ley Aplicable">
+          Estos TyC se rigen por el Código de Comercio, Código Civil Federal y leyes federales de los Estados Unidos Mexicanos. Las controversias se someterán a los Tribunales Federales con residencia en la Ciudad de México, agotando primero 30 días de negociación directa.
+        </Section>
+
+        <div className="mt-12 p-6 bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800">
+          <h3 className="font-black text-neutral-900 dark:text-white mb-2">Contacto Legal</h3>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            <a href="mailto:angelortizsanchez0112@gmail.com" className="text-blue-600 dark:text-blue-400 underline">
+              angelortizsanchez0112@gmail.com
+            </a>
+          </p>
+          <p className="text-xs text-neutral-400 mt-2">
+            Angel Alberto Ortiz Sánchez · Calle 33 No. 53, Col. Estado de México, C.P. 57210, Nezahualcóyotl, Estado de México
+          </p>
         </div>
-      </div>
-    </div>
+      </article>
+    </LegalLayout>
   )
 }

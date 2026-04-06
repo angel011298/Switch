@@ -1,156 +1,207 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Cookie, Shield, Lock, Globe } from 'lucide-react'
+import { LegalLayout, Section } from '@/components/legal/LegalLayout'
 
-export const metadata = {
-  title: 'Política de Cookies — CIFRA ERP',
-  description: 'Información detallada sobre el uso de cookies en la plataforma CIFRA.',
+export const metadata: Metadata = {
+  title: 'Política de Cookies · CIFRA ERP',
+  description: 'Política de Cookies de CIFRA ERP — qué cookies usamos, para qué y cómo gestionarlas.',
 }
+
+const LAST_UPDATED = '2 de abril de 2026'
 
 export default function CookiesPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 selection:bg-blue-100 dark:selection:bg-blue-900/30">
-      <div className="max-w-4xl mx-auto px-6 py-20">
-        
-        {/* Header */}
-        <div className="mb-12">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:opacity-80 transition-opacity mb-8">
-            ← Volver al inicio
-          </Link>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-              <Cookie className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <h1 className="text-4xl font-black tracking-tight">Política de Cookies</h1>
+    <LegalLayout>
+      <article>
+        <div className="mb-10 pb-8 border-b border-neutral-200 dark:border-neutral-800">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-bold rounded-full uppercase tracking-widest mb-4">
+            Cookies
           </div>
-          <p className="text-zinc-500 dark:text-zinc-400 text-lg">
-            Última actualización: {new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}
+          <h1 className="text-4xl font-black text-neutral-900 dark:text-white mb-3">
+            Política de Cookies
+          </h1>
+          <p className="text-neutral-500 text-sm">Última actualización: <strong>{LAST_UPDATED}</strong></p>
+          <p className="text-sm text-neutral-400 mt-2">
+            Describe las tecnologías de almacenamiento local que CIFRA ERP utiliza, su finalidad y cómo puede gestionarlas, conforme al Aviso de Privacidad Integral.
           </p>
         </div>
 
-        <div className="prose prose-zinc dark:prose-invert max-w-none space-y-10">
-          
-          <section>
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
-              <Shield className="w-6 h-6 text-zinc-400" />
-              ¿Qué son las cookies?
-            </h2>
-            <p className="leading-relaxed">
-              Las cookies son pequeños archivos de texto que los sitios web almacenan en su navegador para "recordar" información sobre usted. En CIFRA, utilizamos cookies para asegurar que la plataforma funcione correctamente, recordar sus preferencias y proteger sus datos.
-            </p>
-          </section>
+        <Section id="1" title="1. ¿Qué son las cookies y el almacenamiento local?">
+          <p>
+            Las <strong>cookies</strong> son pequeños archivos de texto que un sitio web deposita en su navegador. El <strong>almacenamiento local</strong> (<code>localStorage</code> / <code>sessionStorage</code>) es una API del navegador que permite guardar datos sin fecha de expiración automática. Ambas tecnologías se usan para mantener sesiones, recordar preferencias y mejorar la experiencia de uso.
+          </p>
+        </Section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-6">Categorías de cookies que utilizamos</h2>
-            <div className="grid gap-6">
-              
-              {/* Essential */}
-              <div className="p-6 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-                <div className="flex items-center gap-3 mb-3">
-                  <Lock className="w-5 h-5 text-emerald-500" />
-                  <h3 className="text-lg font-bold">Cookies Estrictamente Necesarias</h3>
-                </div>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">
-                  Estas cookies son esenciales para que usted pueda navegar por el sitio y usar sus funciones, como acceder a áreas seguras (Dashboard). Sin estas cookies, la plataforma no puede funcionar.
-                </p>
-                <div className="bg-white dark:bg-zinc-950 rounded-xl overflow-hidden border border-zinc-100 dark:border-zinc-800">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-zinc-100 dark:bg-zinc-800/50">
-                      <tr>
-                        <th className="px-4 py-2 font-bold">Nombre</th>
-                        <th className="px-4 py-2 font-bold">Propósito</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                      <tr>
-                        <td className="px-4 py-2 font-mono text-blue-600 dark:text-blue-400">sb-access-token</td>
-                        <td className="px-4 py-2 text-zinc-500">Mantiene su sesión activa de forma segura.</td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-2 font-mono text-blue-600 dark:text-blue-400">sb-refresh-token</td>
-                        <td className="px-4 py-2 text-zinc-500">Renueva su sesión automáticamente.</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+        <Section id="2" title="2. Inventario de Cookies y Almacenamiento Local">
+          <p className="font-semibold text-neutral-800 dark:text-neutral-200">A. Cookies Estrictamente Necesarias</p>
+          <p className="text-xs text-neutral-500 mb-2">No requieren consentimiento. Sin ellas la plataforma no puede operar.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-neutral-100 dark:bg-neutral-800">
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Nombre</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Tipo</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Duración</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Propósito</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['sb-[project]-auth-token', 'Cookie HttpOnly', 'Sesión / 1 h', 'JWT de acceso Supabase. Autentica cada petición al servidor.'],
+                  ['sb-[project]-auth-token-code-verifier', 'Cookie HttpOnly', 'Sesión', 'Verifier PKCE para el flujo OAuth seguro de Supabase.'],
+                  ['__cifra_cookie_consent', 'localStorage', 'Permanente', 'Guarda el nivel de consentimiento de cookies elegido por el usuario (versión + categorías).'],
+                ].map(([name, type, duration, purpose], i) => (
+                  <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+                    <td className="p-2 font-mono text-blue-600 dark:text-blue-400 border border-neutral-200 dark:border-neutral-700">{name}</td>
+                    <td className="p-2 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">{type}</td>
+                    <td className="p-2 text-neutral-500 border border-neutral-200 dark:border-neutral-700">{duration}</td>
+                    <td className="p-2 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">{purpose}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="font-semibold text-neutral-800 dark:text-neutral-200 mt-6">B. Almacenamiento de Preferencias</p>
+          <p className="text-xs text-neutral-500 mb-2">Requieren consentimiento. Recuerdan configuraciones visuales del usuario.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-neutral-100 dark:bg-neutral-800">
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Nombre</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Tipo</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Duración</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Propósito</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['theme', 'localStorage', 'Permanente', 'Tema de la interfaz seleccionado por el usuario (claro / oscuro / sistema).'],
+                  ['sidebar_collapsed', 'localStorage', 'Permanente', 'Estado colapsado o expandido del menú lateral.'],
+                ].map(([name, type, duration, purpose], i) => (
+                  <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+                    <td className="p-2 font-mono text-blue-600 dark:text-blue-400 border border-neutral-200 dark:border-neutral-700">{name}</td>
+                    <td className="p-2 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">{type}</td>
+                    <td className="p-2 text-neutral-500 border border-neutral-200 dark:border-neutral-700">{duration}</td>
+                    <td className="p-2 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">{purpose}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="font-semibold text-neutral-800 dark:text-neutral-200 mt-6">C. Caché del Service Worker (PWA)</p>
+          <p className="text-xs text-neutral-500 mb-2">Técnico, necesario para funcionamiento offline. No contiene datos personales.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-neutral-100 dark:bg-neutral-800">
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Caché</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Tipo</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Propósito</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['cifra-v5-static', 'Cache API (SW)', 'Almacena assets estáticos (JS, CSS, fuentes) para carga rápida offline.'],
+                  ['cifra-v5-pages', 'Cache API (SW)', 'Caché de páginas HTML bajo estrategia Network-First.'],
+                ].map(([name, type, purpose], i) => (
+                  <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+                    <td className="p-2 font-mono text-blue-600 dark:text-blue-400 border border-neutral-200 dark:border-neutral-700">{name}</td>
+                    <td className="p-2 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">{type}</td>
+                    <td className="p-2 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">{purpose}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="font-semibold text-neutral-800 dark:text-neutral-200 mt-6">D. Cookies de Terceros</p>
+          <p className="text-xs text-neutral-500 mb-2">Establecidas por proveedores externos integrados a la plataforma.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-neutral-100 dark:bg-neutral-800">
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Proveedor</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Cookie / Storage</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Propósito</th>
+                  <th className="text-left p-2 font-bold text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700">Política</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ['Stripe', '__stripe_mid, __stripe_sid', 'Prevención de fraude y seguridad de transacciones de pago. PCI-DSS Level 1.', 'stripe.com/privacy'],
+                  ['Vercel', '_vercel_jwt (Edge Functions)', 'Enrutamiento de funciones serverless. No contiene datos personales.', 'vercel.com/legal/privacy'],
+                ].map(([provider, name, purpose, policy], i) => (
+                  <tr key={i} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+                    <td className="p-2 font-semibold text-neutral-800 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700">{provider}</td>
+                    <td className="p-2 font-mono text-blue-600 dark:text-blue-400 border border-neutral-200 dark:border-neutral-700">{name}</td>
+                    <td className="p-2 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">{purpose}</td>
+                    <td className="p-2 text-neutral-500 border border-neutral-200 dark:border-neutral-700">{policy}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-neutral-500 mt-2">
+            CIFRA ERP <strong>no instala cookies de rastreo publicitario</strong> ni comparte datos con redes de publicidad.
+          </p>
+        </Section>
+
+        <Section id="3" title="3. Gestión del Consentimiento">
+          <p>
+            Al ingresar por primera vez, se muestra un banner de consentimiento con tres opciones:
+          </p>
+          <ul className="list-disc list-inside space-y-1 mt-1">
+            <li><strong>Aceptar todo:</strong> activa cookies esenciales, de preferencias y analíticas.</li>
+            <li><strong>Solo esenciales:</strong> activa únicamente las cookies estrictamente necesarias.</li>
+            <li><strong>Personalizar:</strong> permite elegir individualmente las categorías opcionales.</li>
+          </ul>
+          <p className="mt-3">
+            Su elección se almacena en <code>__cifra_cookie_consent</code> (localStorage). Puede modificar su preferencia en cualquier momento borrando dicho dato desde las herramientas de desarrollo de su navegador (<kbd>F12</kbd> → Application → Local Storage → eliminar la clave).
+          </p>
+        </Section>
+
+        <Section id="4" title="4. Control desde el Navegador">
+          <p>
+            Adicionalmente, puede gestionar o eliminar cookies desde la configuración de su navegador:
+          </p>
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            {[
+              ['Chrome', 'Configuración → Privacidad y seguridad → Cookies'],
+              ['Firefox', 'Opciones → Privacidad y seguridad → Cookies'],
+              ['Safari', 'Preferencias → Privacidad → Gestionar datos del sitio'],
+              ['Edge', 'Configuración → Privacidad, búsqueda y servicios → Cookies'],
+            ].map(([browser, path], i) => (
+              <div key={i} className="p-3 bg-neutral-50 dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800">
+                <p className="font-bold text-neutral-800 dark:text-neutral-200 text-xs">{browser}</p>
+                <p className="text-xs text-neutral-500 mt-0.5">{path}</p>
               </div>
+            ))}
+          </div>
+          <p className="text-xs text-neutral-500 mt-3">
+            Bloquear las cookies estrictamente necesarias (<code>sb-*</code>) impedirá el inicio de sesión y el acceso al ERP.
+          </p>
+        </Section>
 
-              {/* Functional */}
-              <div className="p-6 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-                <div className="flex items-center gap-3 mb-3">
-                  <Globe className="w-5 h-5 text-blue-500" />
-                  <h3 className="text-lg font-bold">Cookies de Personalización</h3>
-                </div>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">
-                  Permiten que el sitio recuerde las elecciones que ha realizado en el pasado, como su idioma preferido.
-                </p>
-                <div className="bg-white dark:bg-zinc-950 rounded-xl overflow-hidden border border-zinc-100 dark:border-zinc-800">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-zinc-100 dark:bg-zinc-800/50">
-                      <tr>
-                        <th className="px-4 py-2 font-bold">Nombre</th>
-                        <th className="px-4 py-2 font-bold">Propósito</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                      <tr>
-                        <td className="px-4 py-2 font-mono text-blue-600 dark:text-blue-400">cifra-locale</td>
-                        <td className="px-4 py-2 text-zinc-500">Almacena su preferencia de idioma (español/inglés).</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+        <Section id="5" title="5. Actualizaciones a Esta Política">
+          <p>
+            Cualquier cambio relevante en el uso de cookies se notificará mediante banner en el dashboard y/o correo electrónico, con al menos 15 días de anticipación. La fecha de &quot;Última actualización&quot; reflejará la versión vigente.
+          </p>
+        </Section>
 
-              {/* Third Party */}
-              <div className="p-6 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-                <div className="flex items-center gap-3 mb-3">
-                  <CreditCard className="w-5 h-5 text-purple-500" />
-                  <h3 className="text-lg font-bold">Cookies de Terceros</h3>
-                </div>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 leading-relaxed">
-                  Utilizamos servicios como Stripe para el procesamiento de pagos. Stripe utiliza cookies para prevenir el fraude y asegurar la integridad de las transacciones financieras.
-                </p>
-              </div>
-
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-4">¿Cómo puedo controlar las cookies?</h2>
-            <p className="leading-relaxed mb-4">
-              Usted tiene el derecho de decidir si acepta o rechaza las cookies. La mayoría de los navegadores web permiten controlar las cookies a través de la configuración del navegador. 
-            </p>
-            <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800 text-sm text-blue-800 dark:text-blue-200 leading-relaxed font-medium">
-              Nota: Bloquear las cookies estrictamente necesarias impedirá que pueda iniciar sesión en el ERP y utilizar sus funciones core.
-            </div>
-          </section>
-
-          <section className="pt-8 border-t border-zinc-100 dark:border-zinc-800 text-sm text-zinc-400">
-            {/* Contacto eliminado por solicitud */}
-          </section>
-
+        <div className="mt-12 p-6 bg-neutral-50 dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800">
+          <h3 className="font-black text-neutral-900 dark:text-white mb-2">Contacto</h3>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Para consultas sobre esta política:{' '}
+            <a href="mailto:angelortizsanchez0112@gmail.com" className="text-blue-600 dark:text-blue-400 underline">angelortizsanchez0112@gmail.com</a>
+          </p>
+          <div className="flex gap-4 mt-3 text-sm">
+            <Link href="/terminos" className="text-blue-600 dark:text-blue-400 underline">Términos y Condiciones</Link>
+            <Link href="/privacidad" className="text-blue-600 dark:text-blue-400 underline">Aviso de Privacidad</Link>
+          </div>
         </div>
-      </div>
-    </div>
-  )
-}
-
-function CreditCard(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="20" height="14" x="2" y="5" rx="2" />
-      <line x1="2" x2="22" y1="10" y2="10" />
-    </svg>
+      </article>
+    </LegalLayout>
   )
 }
