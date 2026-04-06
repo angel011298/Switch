@@ -42,7 +42,11 @@ export default async function ProfilePage() {
     orderBy: { tenant: { name: 'asc' } },
   });
 
+  // Use canonical email from Supabase Auth (session.email), not Prisma DB.
+  // The Prisma email can be stale; Supabase Auth is the source of truth.
+  const userWithCanonicalEmail = { ...user, email: session.email };
+
   return (
-    <ProfileClient initialUser={user} memberships={memberships as any} />
+    <ProfileClient initialUser={userWithCanonicalEmail} memberships={memberships as any} />
   );
 }

@@ -10,8 +10,9 @@
  *   4. Banca    — conexión bancaria (omitible)
  */
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 import { setupTenantProfile } from './actions';
 import { MODULE_GROUPS } from './constants';
 import type { ModuleKey } from '@prisma/client';
@@ -44,26 +45,90 @@ const INDUSTRIES: {
   regime: string;
   modules: string[];
 }[] = [
-  { key: 'comercio',     label: 'Comercio',            icon: '🛒', regime: '621', modules: ['BILLING_CFDI','POS','INVENTORY','FINANCE','TAXES'] },
-  { key: 'servicios',    label: 'Servicios prof.',      icon: '💼', regime: '612', modules: ['BILLING_CFDI','CRM','FINANCE','PROJECTS','TAXES'] },
-  { key: 'manufactura',  label: 'Manufactura',          icon: '🏭', regime: '601', modules: ['BILLING_CFDI','INVENTORY','SCM','FINANCE','TAXES'] },
-  { key: 'restaurante',  label: 'Restaurante / Food',   icon: '🍽️', regime: '621', modules: ['BILLING_CFDI','POS','INVENTORY','PAYROLL','HCM'] },
-  { key: 'salud',        label: 'Salud / Clínica',      icon: '🏥', regime: '612', modules: ['BILLING_CFDI','FINANCE','TAXES','COLLECTIONS','CRM'] },
-  { key: 'tecnologia',   label: 'Tecnología / SaaS',    icon: '💻', regime: '601', modules: ['BILLING_CFDI','CRM','BI','PROJECTS','FINANCE','TAXES'] },
-  { key: 'construccion', label: 'Construcción',         icon: '🏗️', regime: '601', modules: ['BILLING_CFDI','PROJECTS','INVENTORY','SCM','PAYROLL'] },
-  { key: 'educacion',    label: 'Educación',            icon: '🎓', regime: '605', modules: ['BILLING_CFDI','FINANCE','COLLECTIONS','HCM','PAYROLL'] },
-  { key: 'otro',         label: 'Otro',                 icon: '⚡', regime: '',    modules: [] },
+  { key: 'comercio',           label: 'Comercio',                    icon: '🛒', regime: '621', modules: ['BILLING_CFDI','POS','INVENTORY','FINANCE','TAXES'] },
+  { key: 'servicios',          label: 'Servicios prof.',              icon: '💼', regime: '612', modules: ['BILLING_CFDI','CRM','FINANCE','PROJECTS','TAXES'] },
+  { key: 'manufactura',        label: 'Manufactura',                  icon: '🏭', regime: '601', modules: ['BILLING_CFDI','INVENTORY','SCM','FINANCE','TAXES'] },
+  { key: 'restaurante',        label: 'Restaurante / Food',           icon: '🍽️', regime: '621', modules: ['BILLING_CFDI','POS','INVENTORY','PAYROLL','HCM'] },
+  { key: 'salud',              label: 'Salud / Clínica',              icon: '🏥', regime: '612', modules: ['BILLING_CFDI','FINANCE','TAXES','COLLECTIONS','CRM'] },
+  { key: 'tecnologia',         label: 'Tecnología / SaaS',            icon: '💻', regime: '601', modules: ['BILLING_CFDI','CRM','BI','PROJECTS','FINANCE','TAXES'] },
+  { key: 'construccion',       label: 'Construcción',                 icon: '🏗️', regime: '601', modules: ['BILLING_CFDI','PROJECTS','INVENTORY','SCM','PAYROLL'] },
+  { key: 'educacion',          label: 'Educación',                    icon: '🎓', regime: '605', modules: ['BILLING_CFDI','FINANCE','COLLECTIONS','HCM','PAYROLL'] },
+  { key: 'logistica',          label: 'Logística y Transporte',       icon: '🚛', regime: '601', modules: ['BILLING_CFDI','SCM','LOGISTICS','INVENTORY','FINANCE'] },
+  { key: 'cuidado_personal',   label: 'Cuidado Personal',             icon: '💇', regime: '612', modules: ['BILLING_CFDI','POS','CRM','FINANCE','COLLECTIONS'] },
+  { key: 'inmobiliaria',       label: 'Servicios Inmobiliarios',      icon: '🏢', regime: '612', modules: ['BILLING_CFDI','CRM','FINANCE','COLLECTIONS','PROJECTS'] },
+  { key: 'alimentos_artesa',   label: 'Prod. Artesanal Alimentos',    icon: '🥖', regime: '621', modules: ['BILLING_CFDI','POS','INVENTORY','FINANCE','TAXES'] },
+  { key: 'talleres',           label: 'Talleres de Reparación',       icon: '🔧', regime: '612', modules: ['BILLING_CFDI','POS','CRM','INVENTORY','FINANCE'] },
+  { key: 'financiero',         label: 'Servicios Financieros',        icon: '💰', regime: '601', modules: ['BILLING_CFDI','FINANCE','TAXES','COLLECTIONS','CRM'] },
+  { key: 'turismo',            label: 'Turismo y Hospitalidad',       icon: '🏨', regime: '612', modules: ['BILLING_CFDI','POS','CRM','FINANCE','PAYROLL'] },
+  { key: 'residuos',           label: 'Gestión de Residuos',          icon: '♻️', regime: '601', modules: ['BILLING_CFDI','SCM','INVENTORY','FINANCE','TAXES'] },
+  { key: 'eventos',            label: 'Entretenimiento y Eventos',    icon: '🎉', regime: '612', modules: ['BILLING_CFDI','CRM','FINANCE','COLLECTIONS','PROJECTS'] },
+  { key: 'seguridad_privada',  label: 'Seguridad Privada',            icon: '🛡️', regime: '601', modules: ['BILLING_CFDI','HCM','PAYROLL','CRM','FINANCE'] },
+  { key: 'otro',               label: 'Otro',                         icon: '⚡', regime: '',    modules: [] },
 ];
 
 // ─── Bancos mexicanos ─────────────────────────────────────────────────────────
 
-const BANKS = [
-  { key: 'bbva',      label: 'BBVA México',   color: '#004481', letter: 'B' },
-  { key: 'banorte',   label: 'Banorte',        color: '#e30000', letter: 'N' },
-  { key: 'santander', label: 'Santander',      color: '#ec0000', letter: 'S' },
-  { key: 'hsbc',      label: 'HSBC',           color: '#d40000', letter: 'H' },
-  { key: 'banamex',   label: 'Citibanamex',    color: '#003087', letter: 'C' },
-  { key: 'inbursa',   label: 'Inbursa',        color: '#005f8e', letter: 'I' },
+const BANKS: {
+  key: string;
+  label: string;
+  color: string;
+  bg: string;
+  logo: React.ReactNode;
+}[] = [
+  {
+    key: 'bbva', label: 'BBVA México', color: '#004481', bg: '#004481',
+    logo: (
+      <svg viewBox="0 0 64 24" className="h-5 w-auto">
+        <text x="2" y="18" fontFamily="Arial Black,Arial" fontWeight="900" fontSize="18" fill="white" letterSpacing="-0.5">BBVA</text>
+      </svg>
+    ),
+  },
+  {
+    key: 'banorte', label: 'Banorte', color: '#e30000', bg: '#e30000',
+    logo: (
+      <svg viewBox="0 0 80 24" className="h-5 w-auto">
+        <text x="2" y="18" fontFamily="Arial Black,Arial" fontWeight="900" fontSize="16" fill="white">Banorte</text>
+      </svg>
+    ),
+  },
+  {
+    key: 'santander', label: 'Santander', color: '#ec0000', bg: '#ec0000',
+    logo: (
+      <svg viewBox="0 0 32 32" className="h-8 w-8">
+        <circle cx="16" cy="16" r="14" fill="#ec0000"/>
+        <path d="M16 4 C10 4, 6 10, 8 14 C10 18, 16 16, 16 20 C16 24, 10 26, 8 24" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+        <path d="M16 4 C22 4, 26 10, 24 14 C22 18, 16 16, 16 20 C16 24, 22 26, 24 24" stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'hsbc', label: 'HSBC', color: '#d40000', bg: '#d40000',
+    logo: (
+      <svg viewBox="0 0 48 32" className="h-6 w-auto">
+        <rect x="0" y="0" width="24" height="16" fill="white"/>
+        <rect x="24" y="16" width="24" height="16" fill="white"/>
+        <rect x="24" y="0" width="24" height="16" fill="#d40000"/>
+        <rect x="0" y="16" width="24" height="16" fill="#d40000"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'banamex', label: 'Citibanamex', color: '#003087', bg: '#003087',
+    logo: (
+      <svg viewBox="0 0 72 24" className="h-5 w-auto">
+        <text x="2" y="18" fontFamily="Arial Black,Arial" fontWeight="900" fontSize="13" fill="white">Citi</text>
+        <text x="34" y="18" fontFamily="Arial,sans-serif" fontWeight="700" fontSize="11" fill="#56B4D3">banamex</text>
+      </svg>
+    ),
+  },
+  {
+    key: 'inbursa', label: 'Inbursa', color: '#005f8e', bg: '#005f8e',
+    logo: (
+      <svg viewBox="0 0 80 24" className="h-5 w-auto">
+        <text x="2" y="18" fontFamily="Arial Black,Arial" fontWeight="900" fontSize="16" fill="white">INBURSA</text>
+      </svg>
+    ),
+  },
 ];
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
@@ -176,6 +241,13 @@ export default function OnboardingPage() {
         taxRegimeKey,
         selectedModules: Array.from(selectedModules),
       });
+
+      // CRÍTICO: Forzar refresh del JWT para que el custom_access_token_hook
+      // inyecte los nuevos active_modules en el token antes de ir al dashboard.
+      // Sin esto, el sidebar carga con active_modules: [] y no muestra módulos.
+      const supabase = createClient();
+      await supabase.auth.refreshSession();
+
       setDone(true);
       setTimeout(() => router.push('/dashboard'), 2200);
     } catch (err) {
@@ -468,7 +540,7 @@ export default function OnboardingPage() {
               />
 
               {/* Industry picker */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1 -mr-1">
                 {INDUSTRIES.map((ind) => (
                   <button
                     key={ind.key}
@@ -553,13 +625,13 @@ export default function OnboardingPage() {
                   <button
                     key={bank.key}
                     type="button"
-                    className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-slate-300 dark:hover:border-neutral-600 transition-all relative group"
+                    className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-slate-300 dark:hover:border-neutral-600 transition-all relative group overflow-hidden"
                   >
                     <div
-                      className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm"
-                      style={{ background: bank.color }}
+                      className="h-12 w-full rounded-lg flex items-center justify-center shadow-sm overflow-hidden"
+                      style={{ background: bank.bg }}
                     >
-                      {bank.letter}
+                      {bank.logo}
                     </div>
                     <span className="text-xs font-medium text-slate-600 dark:text-slate-300 text-center leading-tight">
                       {bank.label}
@@ -569,6 +641,23 @@ export default function OnboardingPage() {
                     </span>
                   </button>
                 ))}
+                {/* Otro banco */}
+                <button
+                  type="button"
+                  className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-500/5 transition-all relative group"
+                >
+                  <div className="h-12 w-full rounded-lg flex items-center justify-center bg-slate-100 dark:bg-neutral-800">
+                    <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 text-center leading-tight">
+                    Otro banco o institución
+                  </span>
+                  <span className="absolute top-2 right-2 text-[9px] bg-slate-100 dark:bg-neutral-800 text-slate-400 px-1.5 py-0.5 rounded-full font-medium">
+                    Pronto
+                  </span>
+                </button>
               </div>
 
               <div className="rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 p-4 flex items-start gap-3">

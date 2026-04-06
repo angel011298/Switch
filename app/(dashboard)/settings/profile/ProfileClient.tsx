@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { User, Shield, Building2, Globe, Camera, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { User, Shield, Building2, Globe, Camera, Check, AlertCircle, Loader2, Plus, X, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createClient } from '@/utils/supabase/client';
-import { updateProfile, updateSecurity, leaveTenant, updatePreferences } from './actions';
+import { updateProfile, updateSecurity, leaveTenant, updatePreferences, startNewCompany } from './actions';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'El nombre es muy corto'),
@@ -17,7 +18,14 @@ const profileSchema = z.object({
 
 const securitySchema = z.object({
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Mínimo 6 caracteres').optional().or(z.literal('')),
+});
+
+const passwordSchema = z.object({
+  newPassword: z.string().min(8, 'Mínimo 8 caracteres'),
+  confirmPassword: z.string(),
+}).refine(d => d.newPassword === d.confirmPassword, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirmPassword'],
 });
 
 interface ProfileClientProps {
@@ -38,10 +46,16 @@ interface ProfileClientProps {
 
 export default function ProfileClient({ initialUser, memberships }: ProfileClientProps) {
   const supabase = createClient();
+  const router = useRouter();
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingSecurity, setIsUpdatingSecurity] = useState(false);
   const [isUpdatingMfa, setIsUpdatingMfa] = useState(false);
   const [mfaQr, setMfaQr] = useState<string | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+  const [isStartingCompany, setIsStartingCompany] = useState(false);
 
   // Card 1: Identidad
   const profileForm = useForm({
@@ -92,15 +106,45 @@ export default function ProfileClient({ initialUser, memberships }: ProfileClien
   // Card 2: Seguridad
   const securityForm = useForm({
     resolver: zodResolver(securitySchema),
-    defaultValues: { email: initialUser.email, password: '' },
+    defaultValues: { email: initialUser.email },
   });
 
-  const onUpdateSecurity = async (data: z.infer<typeof securitySchema>) => {
+  const onUpdateEmail = async (data: z.infer<typeof securitySchema>) => {
     setIsUpdatingSecurity(true);
-    const res = await updateSecurity(data);
+    const res = await updateSecurity({ email: data.email });
     setIsUpdatingSecurity(false);
-    if (res.ok) toast.success('Seguridad actualizada. Revisa tu email si cambiaste de correo.');
+    if (res.ok) toast.success('Revisa tu bandeja — recibirás un enlace para confirmar el cambio de correo.');
     else toast.error(res.error);
+  };
+
+  const passwordForm = useForm({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { newPassword: '', confirmPassword: '' },
+  });
+
+  const onUpdatePassword = async (data: z.infer<typeof passwordSchema>) => {
+    setIsUpdatingPassword(true);
+    const res = await updateSecurity({ email: initialUser.email, password: data.newPassword });
+    setIsUpdatingPassword(false);
+    if (res.ok) {
+      toast.success('Contraseña actualizada correctamente.');
+      setShowPasswordModal(false);
+      passwordForm.reset();
+    } else {
+      toast.error(res.error);
+    }
+  };
+
+  const handleNewCompany = async () => {
+    setIsStartingCompany(true);
+    const res = await startNewCompany();
+    if (res.ok) {
+      toast.success('Espacio de trabajo creado. Configurándolo…');
+      router.push('/onboarding');
+    } else {
+      toast.error(res.error ?? 'Error al crear empresa');
+      setIsStartingCompany(false);
+    }
   };
 
   const handleEnrollMfa = async () => {
@@ -186,26 +230,29 @@ export default function ProfileClient({ initialUser, memberships }: ProfileClien
           <div className="space-y-4">
             <div>
               <label className="text-[10px] uppercase font-black text-neutral-500 ml-1">Correo Electrónico</label>
-              <input 
+              <input
                 {...securityForm.register('email')}
-                className="w-full bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-2.5 text-sm outline-none" 
+                className="w-full bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-2.5 text-sm outline-none"
               />
+              {securityForm.formState.errors.email && (
+                <p className="text-xs text-red-500 mt-1">{securityForm.formState.errors.email.message}</p>
+              )}
             </div>
-            <div>
-              <label className="text-[10px] uppercase font-black text-neutral-500 ml-1">Nueva Contraseña</label>
-              <input 
-                {...securityForm.register('password')}
-                type="password"
-                placeholder="Dejar en blanco para no cambiar"
-                className="w-full bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-2.5 text-sm outline-none" 
-              />
-            </div>
-            <button 
-              onClick={securityForm.handleSubmit(onUpdateSecurity)}
+            <button
+              onClick={securityForm.handleSubmit(onUpdateEmail)}
               disabled={isUpdatingSecurity}
-              className="w-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-bold py-2.5 rounded-xl transition-all"
+              className="w-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
             >
-              Actualizar Accesos
+              {isUpdatingSecurity ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Actualizar Correo
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowPasswordModal(true)}
+              className="w-full border-2 border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold py-2.5 rounded-xl transition-all hover:border-neutral-400 dark:hover:border-neutral-500 flex items-center justify-center gap-2"
+            >
+              <Shield className="w-4 h-4" />
+              Cambiar Contraseña
             </button>
             
             <div className="pt-4 border-t border-neutral-100 dark:border-neutral-800">
@@ -247,7 +294,7 @@ export default function ProfileClient({ initialUser, memberships }: ProfileClien
                   <p className="text-sm font-bold">{m.tenant.name}</p>
                   <p className="text-[10px] text-neutral-500 uppercase font-mono">{m.tenant.rfc || 'Sin RFC'} • {m.role}</p>
                 </div>
-                <button 
+                <button
                   onClick={() => leaveTenant(m.id)}
                   className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors"
                 >
@@ -255,6 +302,15 @@ export default function ProfileClient({ initialUser, memberships }: ProfileClien
                 </button>
               </div>
             ))}
+            <button
+              type="button"
+              onClick={handleNewCompany}
+              disabled={isStartingCompany}
+              className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-neutral-200 dark:border-neutral-700 rounded-2xl text-sm font-bold text-neutral-500 dark:text-neutral-400 hover:border-emerald-400 dark:hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all disabled:opacity-50"
+            >
+              {isStartingCompany ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              Dar de alta nueva empresa
+            </button>
           </div>
         </div>
 
@@ -289,6 +345,87 @@ export default function ProfileClient({ initialUser, memberships }: ProfileClien
           </div>
         </div>
       </div>
+
+      {/* ── Modal: Cambiar Contraseña ───────────────────────────────────────── */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-8 shadow-2xl w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
+                </div>
+                <h3 className="text-lg font-black">Cambiar Contraseña</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowPasswordModal(false); passwordForm.reset(); }}
+                className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={passwordForm.handleSubmit(onUpdatePassword)} className="space-y-4">
+              <div>
+                <label className="text-[10px] uppercase font-black text-neutral-500 ml-1">Nueva Contraseña</label>
+                <div className="relative">
+                  <input
+                    {...passwordForm.register('newPassword')}
+                    type={showNewPwd ? 'text' : 'password'}
+                    placeholder="Mínimo 8 caracteres"
+                    className="w-full bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-2.5 text-sm outline-none pr-10"
+                  />
+                  <button type="button" onClick={() => setShowNewPwd(!showNewPwd)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600">
+                    {showNewPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {passwordForm.formState.errors.newPassword && (
+                  <p className="text-xs text-red-500 mt-1">{passwordForm.formState.errors.newPassword.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-black text-neutral-500 ml-1">Confirmar Contraseña</label>
+                <div className="relative">
+                  <input
+                    {...passwordForm.register('confirmPassword')}
+                    type={showConfirmPwd ? 'text' : 'password'}
+                    placeholder="Repite la contraseña"
+                    className="w-full bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-2.5 text-sm outline-none pr-10"
+                  />
+                  <button type="button" onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600">
+                    {showConfirmPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {passwordForm.formState.errors.confirmPassword && (
+                  <p className="text-xs text-red-500 mt-1">{passwordForm.formState.errors.confirmPassword.message}</p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowPasswordModal(false); passwordForm.reset(); }}
+                  className="flex-1 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 font-bold py-2.5 rounded-xl transition-all hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingPassword}
+                  className="flex-1 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isUpdatingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  Actualizar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <footer className="pt-10 border-t border-neutral-100 dark:border-neutral-800">
         <nav className="flex flex-wrap gap-x-6 gap-y-2 justify-center">
