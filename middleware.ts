@@ -57,6 +57,7 @@ const ALWAYS_ALLOWED = [
   '/perfil',
   '/onboarding',           // FASE 12: Onboarding obligatorio — accesible siempre
   '/billing/subscription', // Pagina de pago — accesible aunque este suspendido
+  '/billing/contrato',     // Contrato y firma digital — accesible aunque este suspendido
 ];
 
 // Rutas publicas (sin autenticacion)

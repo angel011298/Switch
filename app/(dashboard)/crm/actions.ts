@@ -13,6 +13,7 @@ import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
 import { validateRfc, normalizeRfc } from '@/lib/crm/rfc-validator';
 import { scrapeCsf, isValidSatUrl } from '@/lib/crm/sat-csf-scraper';
+import { generateDisplayCode } from '@/lib/customers/generateDisplayCode';
 import type { PersonType } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 
@@ -108,9 +109,13 @@ export async function createCustomer(input: CreateCustomerInput) {
 
   const personType = rfcValidation.personType as PersonType;
 
+  // Generar código público único por tenant (Triple ID)
+  const displayCode = await generateDisplayCode(tenantId);
+
   const customer = await prisma.customer.create({
     data: {
       tenantId,
+      displayCode,
       rfc,
       legalName: input.legalName.trim(),
       personType,

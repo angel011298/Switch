@@ -94,6 +94,7 @@ export async function setupTenantProfile(data: {
         zipCode,
         taxRegimeId: taxRegime?.id ?? undefined,
         onboardingComplete: true,
+        termsAcceptedAt: new Date(), // Registra la aceptación de T&C
       },
     });
 

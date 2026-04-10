@@ -155,6 +155,9 @@ model Tenant {
   workAddress           String?  // Descripción de la ubicación (ej. "Av. Insurgentes 1234")
   radioToleranceMeters  Int      @default(100)  // Radio de geocerca en metros
 
+  // Aceptación de términos legales
+  termsAcceptedAt  DateTime?  // Fecha en que el usuario aceptó T&C, Privacidad y Cookies
+
   subscription     Subscription?
   paymentProofs    PaymentProof[]
   modules          TenantModule[]
@@ -181,6 +184,7 @@ model Tenant {
   bankAccounts     BankAccount[]     // FASE 52: Tesorería
   treasuryTx       TreasuryTransaction[] // FASE 52: Movimientos bancarios
   cfdiRecibidos    CfdiRecibido[]    // FASE 52: Mis CFDI recibidos
+  contractSignature ContractSignature? // Firma digital del contrato
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
@@ -457,6 +461,9 @@ model Customer {
   tenantId          String
   tenant            Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  // ID público / comercial (amigable para capturistas)
+  displayCode       String?     // Ej: "CLI-0001" — único por tenant (null en registros anteriores a esta feature)
+
   // Datos fiscales (requeridos para CFDI 4.0)
   rfc               String      // RFC validado (12 o 13 caracteres)
   legalName         String      // Razón social o nombre completo
@@ -489,7 +496,8 @@ model Customer {
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
-  @@unique([tenantId, rfc])  // Un RFC por Tenant (evita duplicados)
+  @@unique([tenantId, rfc])         // Un RFC por Tenant (evita duplicados)
+  @@unique([tenantId, displayCode]) // Un código público por Tenant (NULL no conflicta en PG)
   @@index([tenantId, isActive])
   @@index([tenantId, rfc])
 }
@@ -1806,4 +1814,109 @@ model CfdiRecibido {
   @@index([tenantId, status])
   @@index([tenantId, tipoComprobante])
   @@index([tenantId, accountingMapped])
+}
+
+// ─── CONTRATO DIGITAL ────────────────────────────────────────────────────────
+
+/// Datos legales y firma digital recopilados al contratar el servicio.
+/// Se generan al finalizar el periodo de prueba y antes del primer pago.
+model ContractSignature {
+  id                   String     @id @default(uuid())
+  tenantId             String     @unique
+  tenant               Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  personType           PersonType
+
+  // ── Persona Física ────────────────────────────────────
+  fullName             String?    // Nombre completo
+  curp                 String?    // CURP (18 caracteres)
+  domicilioFiscal      String?    // Domicilio fiscal completo
+  rfcFisica            String?    // RFC 13 posiciones
+  emailFisica          String?
+  phoneFisica          String?
+
+  // ── Persona Moral — Datos de la Empresa ──────────────
+  razonSocial          String?    // Denominación social exacta
+  rfcEmpresa           String?    // RFC 12 posiciones
+  domicilioLegal       String?    // Domicilio legal/fiscal completo
+  nacionalidad         String?    @default("Mexicana")
+
+  // ── Persona Moral — Representante Legal ──────────────
+  nombreRepresentante  String?
+  rfcRepresentante     String?
+  emailRepresentante   String?
+  celularRepresentante String?
+
+  // ── Acreditación de Personalidad Jurídica ────────────
+  numEscritura         String?    // Número de escritura pública
+  fechaEscritura       DateTime?  // Fecha de la escritura
+  nombreNotario        String?    // Nombre del Notario / Corredor Público
+  numNotaria           String?    // Número de Notaría / Correduría
+  ciudadNotaria        String?    // Ciudad y estado de la Notaría
+  folioMercantil       String?    // Folio Mercantil Electrónico (RPC)
+  fechaInscripcionRPC  DateTime?  // Fecha de inscripción en el RPC
+
+  // ── Firma Digital ─────────────────────────────────────
+  signatureType        String?    // 'DRAW' | 'EFIRMA'
+  signatureData        String?    @db.Text  // Base64 PNG del trazo en canvas
+  efirmaFileName       String?    // Nombre del archivo .cer de e.firma SAT
+  signedAt             DateTime?
+
+  status               String     @default("PENDING")  // PENDING | SIGNED
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  @@index([status])
+}
+
+// ─── MARKETING AUTOMATION ─────────────────────────────────────────────────────
+
+/// Integración OAuth con plataformas de publicidad digital.
+/// Los tokens se guardan cifrados a nivel de aplicación.
+model MarketingIntegration {
+  id           String   @id @default(uuid())
+  platform     String   // 'GOOGLE_ADS' | 'META_ADS'
+  accessToken  String   // Cifrado en capa de aplicación (AES-256-GCM)
+  refreshToken String?
+  accountId    String   // ID de la cuenta publicitaria
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([platform, isActive])
+}
+
+/// Log diario de métricas de campañas publicitarias.
+/// Agrega datos de Google Ads y Meta Ads para el dashboard de RoAS.
+model AdCampaignLog {
+  id          String   @id @default(uuid())
+  platform    String   // 'GOOGLE_ADS' | 'META_ADS'
+  campaignId  String   // ID de campaña en la plataforma
+  campaignName String? // Nombre descriptivo
+  spend       Float    // Gasto del día (MXN)
+  impressions Int
+  clicks      Int
+  conversions Int      // Registros atribuidos
+  date        DateTime @default(now())
+
+  @@index([platform, date])
+  @@index([date])
+}
+
+/// Creatividades de anuncios generadas por IA, pendientes de aprobación.
+/// El flujo: generación automática → revisión humana → lanzamiento en plataforma.
+model AiGeneratedCreative {
+  id          String   @id @default(uuid())
+  platform    String   // 'GOOGLE_ADS' | 'META_ADS' | 'TIKTOK' | 'LINKEDIN'
+  angle       String?  // Ángulo de venta usado: 'ahorro', 'fiscal', 'tiempo'
+  headline    String   // Título del anuncio (máx. 30 chars para Google)
+  description String   // Descripción / cuerpo del anuncio
+  imagePrompt String?  // Prompt sugerido para generar imagen con DALL-E/Ideogram
+  status      String   @default("PENDING_APPROVAL") // PENDING_APPROVAL | ACTIVE | REJECTED
+  performance Float?   // CTR o score asignado después de correr
+  rejectedReason String? // Motivo de rechazo (feedback para el LLM)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([platform, status])
 }

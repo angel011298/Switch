@@ -4,7 +4,8 @@ import React, { useState, useTransition } from 'react';
 import {
   Megaphone, Mail, Send, Trash2, Eye, Plus, Users,
   X, AlertTriangle, CheckCircle2, Loader2, BarChart3,
-  FileText, Clock, EyeOff,
+  FileText, Clock, EyeOff, Sparkles, ExternalLink,
+  Check,
 } from 'lucide-react';
 import type { CampaignRow } from './actions';
 import { createCampaign, sendCampaign, deleteCampaign } from './actions';
@@ -322,13 +323,76 @@ function SendConfirmModal({ campaign, onClose, onSent }: SendConfirmModalProps) 
   );
 }
 
+// ─── Ads IA Tab (simplified view, links to full admin dashboard) ──────────────
+
+function AdsIATab() {
+  return (
+    <div className="space-y-6">
+      {/* Banner */}
+      <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl p-6 text-white">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-5 w-5" />
+              <h2 className="text-lg font-bold">Marketing Automation con IA</h2>
+            </div>
+            <p className="text-purple-100 text-sm leading-relaxed max-w-lg">
+              Genera y optimiza campañas en Google Ads y Meta Ads con inteligencia artificial.
+              El sistema aprende qué ángulos de venta convierten mejor y crea variantes automáticamente.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Características */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[
+          { icon: '🤖', title: 'Generación automática de copys', desc: 'Claude IA analiza el rendimiento de tus campañas y genera nuevas variantes optimizadas de títulos y descripciones.' },
+          { icon: '👥', title: 'Audiencias Lookalike', desc: 'Sincronización semanal automática de tus mejores clientes hacia Facebook Custom Audiences y Google Customer Match.' },
+          { icon: '⚡', title: 'Optimización de presupuesto', desc: 'Reglas automáticas de paro: si una campaña supera el CPA objetivo, se pausa y el presupuesto se reasigna al anuncio ganador.' },
+          { icon: '📊', title: 'Dashboard de RoAS consolidado', desc: 'Métricas unificadas de Google y Meta: gasto total, registros atribuidos, costo por lead y retorno de inversión.' },
+        ].map((feature, i) => (
+          <div key={i} className="flex gap-3 p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
+            <span className="text-2xl shrink-0">{feature.icon}</span>
+            <div>
+              <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200">{feature.title}</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 leading-relaxed">{feature.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA al dashboard del Super Admin */}
+      <div className="flex flex-col sm:flex-row items-center gap-3 p-4 rounded-xl border border-purple-200 dark:border-purple-500/30 bg-purple-50 dark:bg-purple-500/10">
+        <div className="flex-1">
+          <p className="text-sm font-bold text-purple-900 dark:text-purple-300">Centro de Control Publicitario</p>
+          <p className="text-xs text-purple-700 dark:text-purple-400 mt-0.5">
+            El Super Admin puede conectar Google Ads y Meta Ads, revisar creatividades generadas por IA y ver la analítica consolidada.
+          </p>
+        </div>
+        <a
+          href="/admin/marketing"
+          className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-all whitespace-nowrap"
+        >
+          <Sparkles className="h-4 w-4" />
+          Ir al Panel de Ads IA
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Client Component ────────────────────────────────────────────────────
 
 interface Props {
   initialCampaigns: CampaignRow[];
 }
 
+type MarketingTab = 'email' | 'ads';
+
 export default function MarketingClient({ initialCampaigns }: Props) {
+  const [activeTab, setActiveTab]             = useState<MarketingTab>('email');
   const [campaigns, setCampaigns]             = useState<CampaignRow[]>(initialCampaigns);
   const [showNewModal, setShowNewModal]       = useState(false);
   const [sendTarget, setSendTarget]           = useState<CampaignRow | null>(null);
@@ -383,20 +447,56 @@ export default function MarketingClient({ initialCampaigns }: Props) {
               <Megaphone className="h-8 w-8 text-orange-600 dark:text-orange-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-neutral-950 dark:text-white tracking-tight">Campañas de Email</h1>
+              <h1 className="text-3xl font-black text-neutral-950 dark:text-white tracking-tight">Marketing</h1>
               <p className="text-neutral-500 font-medium text-sm mt-1 flex items-center gap-2">
-                <Mail className="h-4 w-4" /> Email masivo personalizado a clientes activos del CRM.
+                <Mail className="h-4 w-4" /> Email masivo · Publicidad Digital con IA
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setShowNewModal(true)}
-            className="flex items-center gap-2 px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl transition-all shadow-lg shadow-orange-500/20 text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Nueva campaña
-          </button>
+          {activeTab === 'email' && (
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="flex items-center gap-2 px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-xl transition-all shadow-lg shadow-orange-500/20 text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              Nueva campaña
+            </button>
+          )}
         </header>
+
+        {/* ── TABS ───────────────────────────────────────────────────────────── */}
+        <div className="flex gap-1 p-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl w-fit">
+          <button
+            type="button"
+            onClick={() => setActiveTab('email')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+              activeTab === 'email'
+                ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+            }`}
+          >
+            <Mail className="h-4 w-4" />
+            Email Masivo
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('ads')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+              activeTab === 'ads'
+                ? 'bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-sm'
+                : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
+            }`}
+          >
+            <Sparkles className="h-4 w-4" />
+            Ads IA
+          </button>
+        </div>
+
+        {/* ── ADS IA TAB ─────────────────────────────────────────────────────── */}
+        {activeTab === 'ads' && <AdsIATab />}
+
+        {/* ── EMAIL TAB CONTENT ──────────────────────────────────────────────── */}
+        {activeTab === 'email' && <>
 
         {/* ── KPI CARDS ──────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -599,6 +699,8 @@ export default function MarketingClient({ initialCampaigns }: Props) {
         </div>
 
       </div>
+
+        </> /* end email tab */}
 
       {/* ── MODALS ───────────────────────────────────────────────────────────── */}
       {showNewModal && (

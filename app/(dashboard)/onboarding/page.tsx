@@ -16,9 +16,9 @@ import { setupTenantProfile } from './actions';
 import { MODULE_GROUPS } from './constants';
 import type { ModuleKey } from '@prisma/client';
 import {
-  Building2, FileText, Layers, Landmark,
+  Building2, FileText, Layers, Landmark, ScrollText,
   CheckCircle2, AlertCircle, ChevronRight, ChevronLeft,
-  Loader2, Upload, X, ShieldCheck, Info,
+  Loader2, Upload, X, ShieldCheck, Info, ExternalLink,
 } from 'lucide-react';
 
 // ─── Catálogos SAT ────────────────────────────────────────────────────────────
@@ -69,13 +69,14 @@ const BANKS = [
 // ─── Steps ────────────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { id: 1, label: 'Empresa', icon: Building2 },
-  { id: 2, label: 'Fiscal',  icon: FileText   },
-  { id: 3, label: 'Módulos', icon: Layers     },
-  { id: 4, label: 'Banca',   icon: Landmark   },
+  { id: 0, label: 'Términos', icon: ScrollText },
+  { id: 1, label: 'Empresa',  icon: Building2  },
+  { id: 2, label: 'Fiscal',   icon: FileText   },
+  { id: 3, label: 'Módulos',  icon: Layers     },
+  { id: 4, label: 'Banca',    icon: Landmark   },
 ] as const;
 
-type StepId = 1 | 2 | 3 | 4;
+type StepId = 0 | 1 | 2 | 3 | 4;
 
 function getAllModuleKeys(): ModuleKey[] {
   return MODULE_GROUPS.flatMap((g) => g.modules.map((m) => m.key));
@@ -86,10 +87,15 @@ function getAllModuleKeys(): ModuleKey[] {
 export default function OnboardingPage() {
   const router = useRouter();
 
-  const [step, setStep]       = useState<StepId>(1);
+  const [step, setStep]       = useState<StepId>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [done, setDone]       = useState(false);
+
+  // Step 0: Aceptación de términos
+  const [acceptTerms,   setAcceptTerms]   = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [acceptCookies, setAcceptCookies] = useState(false);
 
   // Step 1
   const [name, setName]           = useState('');
@@ -147,6 +153,11 @@ export default function OnboardingPage() {
 
   function nextStep() {
     setError('');
+    if (step === 0) {
+      if (!acceptTerms)   return setError('Debes aceptar los Términos de Servicio para continuar.');
+      if (!acceptPrivacy) return setError('Debes aceptar la Política de Privacidad para continuar.');
+      if (!acceptCookies) return setError('Debes aceptar la Política de Cookies para continuar.');
+    }
     if (step === 1) {
       if (!name.trim())      return setError('El nombre comercial es requerido.');
       if (!legalName.trim()) return setError('La razón social es requerida.');
@@ -281,6 +292,103 @@ export default function OnboardingPage() {
             <div className="mb-6 flex items-start gap-3 p-3.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-xl text-rose-600 dark:text-rose-400 text-sm">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
               {error}
+            </div>
+          )}
+
+          {/* ══ PASO 0: Términos y Condiciones ══════════════════════════════════ */}
+          {step === 0 && (
+            <div className="space-y-6">
+              <StepHeader
+                title="Bienvenido a CIFRA"
+                subtitle="Antes de comenzar, necesitamos que revises y aceptes los documentos legales que rigen el uso del sistema."
+              />
+
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800/50 cursor-pointer hover:border-slate-300 dark:hover:border-neutral-600 transition-colors group">
+                  <input
+                    type="checkbox"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      Términos de Servicio
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                      Acepto los términos y condiciones que rigen el uso de CIFRA ERP.
+                    </p>
+                    <a
+                      href="/terminos"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium mt-1 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Leer Términos de Servicio <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800/50 cursor-pointer hover:border-slate-300 dark:hover:border-neutral-600 transition-colors group">
+                  <input
+                    type="checkbox"
+                    checked={acceptPrivacy}
+                    onChange={(e) => setAcceptPrivacy(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      Política de Privacidad
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                      Acepto el aviso de privacidad y el tratamiento de mis datos personales conforme a la LFPDPPP.
+                    </p>
+                    <a
+                      href="/privacidad"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium mt-1 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Leer Política de Privacidad <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800/50 cursor-pointer hover:border-slate-300 dark:hover:border-neutral-600 transition-colors group">
+                  <input
+                    type="checkbox"
+                    checked={acceptCookies}
+                    onChange={(e) => setAcceptCookies(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                      Política de Cookies
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                      Acepto el uso de cookies necesarias y analíticas para el correcto funcionamiento del sistema.
+                    </p>
+                    <a
+                      href="/cookies"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium mt-1 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Leer Política de Cookies <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </label>
+              </div>
+
+              {(acceptTerms && acceptPrivacy && acceptCookies) && (
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  ¡Perfecto! Puedes continuar con la configuración de tu empresa.
+                </div>
+              )}
             </div>
           )}
 
@@ -589,7 +697,7 @@ export default function OnboardingPage() {
             {step > 1 ? (
               <button
                 type="button"
-                onClick={() => { setError(''); setStep((s) => Math.max(s - 1, 1) as StepId); }}
+                onClick={() => { setError(''); setStep((s) => Math.max(s - 1, 0) as StepId); }}
                 className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -615,7 +723,8 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={nextStep}
-                  className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-black font-semibold text-sm px-6 py-2.5 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-all active:scale-95 shadow-sm"
+                  disabled={step === 0 && !(acceptTerms && acceptPrivacy && acceptCookies)}
+                  className="flex items-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-black font-semibold text-sm px-6 py-2.5 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-all active:scale-95 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Siguiente
                   <ChevronRight className="h-4 w-4" />
