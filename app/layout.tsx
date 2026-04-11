@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from 'next'
+
+export const dynamic = 'force-dynamic';
 import { Providers } from './providers'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 import { InstallPrompt } from '@/components/pwa/InstallPrompt'
