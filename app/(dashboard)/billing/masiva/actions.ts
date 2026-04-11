@@ -3,7 +3,8 @@
 /**
  * CIFRA — Facturación Masiva (Batch CFDI)
  * =========================================
- * Procesa hasta 500 facturas desde un array de filas (Excel/CSV parseado en cliente).
+ * Genera facturas DRAFT en lote desde datos CSV parseados en el cliente.
+ * El timbrado individual se hace después desde /billing/historial.
  */
 
 import { getSwitchSession } from '@/lib/auth/session';
@@ -36,52 +37,73 @@ export async function processMasiveUpload(rows: MasivaBillingRow[]): Promise<Mas
   const session = await getSwitchSession();
   if (!session?.tenantId) throw new Error('No session');
 
+  // Get tenant data for invoice fields
+  const tenant = await prisma.tenant.findUniqueOrThrow({
+    where: { id: session.tenantId },
+    select: { rfc: true, legalName: true, taxRegimeId: true, zipCode: true },
+  });
+
+  // Get last folio for this tenant to auto-increment
+  const lastInvoice = await prisma.invoice.findFirst({
+    where: { tenantId: session.tenantId, serie: 'M' },
+    orderBy: { folio: 'desc' },
+    select: { folio: true },
+  });
+  let nextFolio = (lastInvoice?.folio ?? 0) + 1;
+
   const results: MasivaResult[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
-      const subtotal = row.cantidad * row.precioUnitario * (1 - (row.descuento ?? 0) / 100);
-      const iva = subtotal * 0.16;
-      const total = subtotal + iva;
+      const qty = row.cantidad;
+      const price = row.precioUnitario;
+      const discountPct = row.descuento ?? 0;
+      const subtotalItem = qty * price;
+      const discountAmount = subtotalItem * discountPct / 100;
+      const importeItem = subtotalItem - discountAmount;
+      const ivaAmount = importeItem * 0.16;
+      const total = importeItem + ivaAmount;
 
       const invoice = await prisma.invoice.create({
         data: {
           tenantId: session.tenantId,
-          folio: `M-${Date.now()}-${i}`,
-          rfcReceptor: row.rfcReceptor,
-          nombreReceptor: row.nombreReceptor,
-          usoCfdi: row.usoCfdi ?? 'G03',
+          serie: 'M',
+          folio: nextFolio++,
+          status: 'DRAFT',
           tipoComprobante: 'I',
           metodoPago: 'PUE',
           formaPago: '99',
           moneda: 'MXN',
-          tipoCambio: 1,
-          subtotal,
-          totalIva: iva,
-          totalIeps: 0,
-          totalRetIsr: 0,
-          totalRetIva: 0,
+          lugarExpedicion: tenant.zipCode ?? '06600',
+          emisorRfc: tenant.rfc ?? 'XAXX010101000',
+          emisorNombre: tenant.legalName ?? 'Mi Empresa',
+          emisorRegimenFiscal: '601',
+          receptorRfc: row.rfcReceptor,
+          receptorNombre: row.nombreReceptor,
+          receptorDomicilioFiscal: '06600',
+          receptorRegimenFiscal: '616',
+          receptorUsoCfdi: row.usoCfdi ?? 'G03',
+          subtotal: importeItem,
+          descuento: discountAmount,
+          totalImpuestosTrasladados: ivaAmount,
+          totalImpuestosRetenidos: 0,
           total,
-          status: 'DRAFT',
           items: {
             create: [{
-              concepto: row.concepto,
               claveProdServ: row.claveProducto ?? '84111506',
               claveUnidad: row.claveUnidad ?? 'E48',
               unidad: 'Servicio',
-              cantidad: row.cantidad,
-              valorUnitario: row.precioUnitario,
-              descuento: row.descuento ? row.precioUnitario * row.cantidad * row.descuento / 100 : 0,
-              importe: subtotal,
-              tasaIva: 0.16,
-              tasaIeps: 0,
-              tasaRetIsr: 0,
-              tasaRetIva: 0,
-              ivaAmount: iva,
-              iepsAmount: 0,
-              retIsrAmount: 0,
-              retIvaAmount: 0,
+              descripcion: row.concepto,
+              cantidad: qty,
+              valorUnitario: price,
+              descuento: discountAmount,
+              importe: importeItem,
+              trasladoBase: importeItem,
+              trasladoImpuesto: '002',
+              trasladoTipoFactor: 'Tasa',
+              trasladoTasaOCuota: 0.16,
+              trasladoImporte: ivaAmount,
             }],
           },
         },
@@ -100,14 +122,14 @@ export async function processMasiveUpload(rows: MasivaBillingRow[]): Promise<Mas
   return results;
 }
 
-export async function getRecentBatchStats() {
+export async function getMasivaStats() {
   const session = await getSwitchSession();
   if (!session?.tenantId) throw new Error('No session');
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const [totalDrafts, todayCount] = await Promise.all([
-    prisma.invoice.count({ where: { tenantId: session.tenantId, status: 'DRAFT', folio: { startsWith: 'M-' } } }),
-    prisma.invoice.count({ where: { tenantId: session.tenantId, createdAt: { gte: today }, folio: { startsWith: 'M-' } } }),
+  const [totalMasiva, todayCount] = await Promise.all([
+    prisma.invoice.count({ where: { tenantId: session.tenantId, status: 'DRAFT', serie: 'M' } }),
+    prisma.invoice.count({ where: { tenantId: session.tenantId, serie: 'M', createdAt: { gte: today } } }),
   ]);
-  return { totalDrafts, todayCount };
+  return { totalMasiva, todayCount };
 }
