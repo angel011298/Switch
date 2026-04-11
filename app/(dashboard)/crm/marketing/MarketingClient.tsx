@@ -698,9 +698,9 @@ export default function MarketingClient({ initialCampaigns }: Props) {
           )}
         </div>
 
-      </div>
-
         </> /* end email tab */}
+
+      </div>
 
       {/* ── MODALS ───────────────────────────────────────────────────────────── */}
       {showNewModal && (

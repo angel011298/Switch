@@ -29,6 +29,13 @@ import {
   Factory,
   ShieldCheck,
   Briefcase,
+  Building2,
+  TrendingUp,
+  Download,
+  ClipboardList,
+  UserCheck,
+  Waves,
+  Brain,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -36,9 +43,10 @@ import {
 
 export type ModuleKey =
   | 'DASHBOARD' | 'CALENDAR' | 'BI'
-  | 'HCM' | 'PAYROLL' | 'TALENT'
-  | 'FINANCE' | 'TAXES' | 'COLLECTIONS'
-  | 'BILLING_CFDI'
+  | 'HCM' | 'PAYROLL' | 'TALENT' | 'EMPLOYEE_PORTAL'
+  | 'FINANCE' | 'TAXES' | 'COLLECTIONS' | 'BANKING' | 'CASH_FLOW'
+  | 'SAT_TOOLS' | 'REPSE' | 'NOM035'
+  | 'BILLING_CFDI' | 'CARTA_PORTE'
   | 'POS'
   | 'CRM' | 'MARKETING' | 'SUPPORT'
   | 'SCM' | 'INVENTORY' | 'LOGISTICS'
@@ -116,6 +124,13 @@ export const MODULE_DEFS: Record<ModuleKey, ModuleDef> = {
     color: 'text-emerald-500',
     routes: [{ name: 'Gestion del Talento', href: '/rrhh/talento' }],
   },
+  EMPLOYEE_PORTAL: {
+    key: 'EMPLOYEE_PORTAL',
+    label: 'Portal Empleado',
+    icon: UserCheck,
+    color: 'text-emerald-500',
+    routes: [{ name: 'Portal de Autoservicio', href: '/rrhh/portal' }],
+  },
 
   // Finanzas
   FINANCE: {
@@ -143,6 +158,51 @@ export const MODULE_DEFS: Record<ModuleKey, ModuleDef> = {
     color: 'text-amber-500',
     routes: [{ name: 'Cuentas por Cobrar', href: '/finanzas/cobranza' }],
   },
+  BANKING: {
+    key: 'BANKING',
+    label: 'Banca Automatica',
+    icon: Building2,
+    color: 'text-amber-500',
+    routes: [{ name: 'Conciliacion Bancaria', href: '/finanzas/banca' }],
+  },
+  CASH_FLOW: {
+    key: 'CASH_FLOW',
+    label: 'Flujo de Efectivo',
+    icon: TrendingUp,
+    color: 'text-amber-500',
+    routes: [{ name: 'Flujo de Efectivo y Tesoreria', href: '/finanzas/flujo' }],
+  },
+
+  // SAT & Compliance
+  SAT_TOOLS: {
+    key: 'SAT_TOOLS',
+    label: 'Herramientas SAT',
+    icon: Download,
+    color: 'text-teal-500',
+    routes: [
+      { name: 'Buzon Tributario SAT', href: '/sat/buzon' },
+      { name: 'Validacion 69-B', href: '/sat/69b' },
+      { name: 'DIOT Automatica', href: '/sat/diot' },
+      { name: 'Alertas Fiscales', href: '/sat/alertas' },
+    ],
+  },
+  REPSE: {
+    key: 'REPSE',
+    label: 'REPSE',
+    icon: ClipboardList,
+    color: 'text-teal-500',
+    routes: [
+      { name: 'Registro REPSE', href: '/sat/repse' },
+      { name: 'Contratos ICSOE', href: '/sat/repse/contratos' },
+    ],
+  },
+  NOM035: {
+    key: 'NOM035',
+    label: 'NOM-035',
+    icon: Brain,
+    color: 'text-teal-500',
+    routes: [{ name: 'NOM-035 Riesgos Psicosociales', href: '/sat/nom035' }],
+  },
 
   // Facturacion Electronica (independiente)
   BILLING_CFDI: {
@@ -153,6 +213,16 @@ export const MODULE_DEFS: Record<ModuleKey, ModuleDef> = {
     routes: [
       { name: 'Emitir Factura', href: '/billing' },
       { name: 'Mis CFDI', href: '/billing/historial' },
+    ],
+  },
+  CARTA_PORTE: {
+    key: 'CARTA_PORTE',
+    label: 'Carta Porte',
+    icon: Truck,
+    color: 'text-cyan-500',
+    routes: [
+      { name: 'Carta Porte 3.0', href: '/billing/carta-porte' },
+      { name: 'Factura Masiva', href: '/billing/masiva' },
     ],
   },
 
@@ -261,17 +331,22 @@ export const MODULE_GROUPS: ModuleGroup[] = [
   {
     title: 'Capital Humano',
     color: 'text-emerald-500',
-    modules: ['HCM', 'PAYROLL', 'TALENT'],
+    modules: ['HCM', 'PAYROLL', 'TALENT', 'EMPLOYEE_PORTAL'],
   },
   {
     title: 'Finanzas',
     color: 'text-amber-500',
-    modules: ['FINANCE', 'TAXES', 'COLLECTIONS'],
+    modules: ['FINANCE', 'TAXES', 'COLLECTIONS', 'BANKING', 'CASH_FLOW'],
+  },
+  {
+    title: 'SAT y Compliance',
+    color: 'text-teal-500',
+    modules: ['SAT_TOOLS', 'REPSE', 'NOM035'],
   },
   {
     title: 'Facturacion CFDI',
     color: 'text-cyan-500',
-    modules: ['BILLING_CFDI'],
+    modules: ['BILLING_CFDI', 'CARTA_PORTE'],
   },
   {
     title: 'Punto de Venta',
