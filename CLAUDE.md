@@ -33,7 +33,16 @@ Tests live in `lib/__tests__/` and use Vitest.
 
 ### Multi-tenant SaaS
 
-Each **Tenant** has its own isolated data. The `tenantId` is injected into every Prisma query as a filter — there is no Row Level Security fallback for most models. The `tenantId` is available server-side via `getSwitchSession()` from `lib/auth/session.ts`, which decodes the Supabase JWT.
+Each **Tenant** has its own isolated data. The `tenantId` is injected into every Prisma query as a filter — this is the **primary** security layer. A **secondary** layer of Row Level Security (RLS) is active in Supabase as defense-in-depth (see `supabase/migrations/20260413000000_enable_rls_tenant_isolation.sql`).
+
+**RLS architecture:**
+- 53 tables with a direct `tenantId` column have RLS enabled.
+- Policy: `"tenantId" = auth.tenant_id()` where `auth.tenant_id()` reads the `tenant_id` JWT claim injected by the `custom_access_token_hook`.
+- Prisma's `DATABASE_URL` uses the `service_role` pooler which **bypasses RLS automatically** in Supabase — no app behavior changes.
+- RLS only applies to direct Supabase client queries from `anon`/`authenticated` roles.
+- Child tables without direct `tenantId` (InvoiceItem, JournalLine, etc.) remain protected by the application layer.
+
+The `tenantId` is available server-side via `getSwitchSession()` from `lib/auth/session.ts`, which decodes the Supabase JWT.
 
 ### Auth & Session
 
@@ -155,8 +164,8 @@ These features are not yet built:
 | Privacy Policy page | Missing | Add as public route under `/privacidad` |
 | Terms of Service page | Missing | Add as public route under `/terminos` |
 | Cookie Policy page | Missing | Add as public route under `/cookies` |
-| Tenant profile/account settings | Missing | `/admin/cuenta` is UI-only mockup with hardcoded data — not wired to real Supabase actions |
-| Tenant user can change own password/email | Missing | Needs Supabase `updateUser()` Server Action |
+| Tenant profile/account settings | **Done** | `/admin/cuenta` wired: `updateTenantProfile()` + `updateUserPassword()` Server Actions in `app/(dashboard)/admin/cuenta/actions.ts` |
+| Tenant user can change own password/email | **Done** | `updateUserPassword()` in `app/(dashboard)/admin/cuenta/actions.ts` uses `supabase.auth.admin.updateUserById()` |
 | Rate limiting on API routes | Missing | No middleware-level or per-route rate limiting exists |
 | Input sanitization library | Missing | RFC/email are normalized manually; no global sanitizer |
 
