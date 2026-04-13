@@ -3,14 +3,13 @@
  * GET /api/v1/invoices — Lista facturas del tenant autenticado vía API Key
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
 import prisma from '@/lib/prisma';
+import { checkApiRateLimit } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
-  const tenantId = await authenticateApiKey(req);
-  if (!tenantId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await checkApiRateLimit(req, 'read:invoices');
+  if (auth instanceof NextResponse) return auth;
+  const { tenantId, rateLimitHeaders } = auth;
 
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status');
@@ -37,9 +36,6 @@ export async function GET(req: NextRequest) {
     prisma.invoice.count({ where: { tenantId, ...(status ? { status } : {}) } }),
   ]);
 
-  // Update lastUsedAt
-  await updateApiKeyUsage(req);
-
   return NextResponse.json({
     data: invoices.map((inv) => ({
       id: inv.id,
@@ -55,35 +51,5 @@ export async function GET(req: NextRequest) {
       stampedAt: inv.stampedAt?.toISOString() ?? null,
     })),
     pagination: { total, limit, offset, hasMore: offset + limit < total },
-  });
-}
-
-// ── Auth helpers ──────────────────────────────────────────────────────────────
-
-async function authenticateApiKey(req: NextRequest): Promise<string | null> {
-  const auth = req.headers.get('authorization') ?? '';
-  const match = auth.match(/^Bearer\s+(.+)$/i);
-  if (!match) return null;
-
-  const rawKey = match[1];
-  const keyHash = createHash('sha256').update(rawKey).digest('hex');
-
-  const apiKey = await prisma.apiKey.findUnique({
-    where: { keyHash },
-    select: { tenantId: true, active: true, expiresAt: true, scopes: true },
-  });
-
-  if (!apiKey || !apiKey.active) return null;
-  if (apiKey.expiresAt && apiKey.expiresAt < new Date()) return null;
-  if (!apiKey.scopes.includes('read:invoices')) return null;
-
-  return apiKey.tenantId;
-}
-
-async function updateApiKeyUsage(req: NextRequest): Promise<void> {
-  const auth = req.headers.get('authorization') ?? '';
-  const match = auth.match(/^Bearer\s+(.+)$/i);
-  if (!match) return;
-  const keyHash = createHash('sha256').update(match[1]).digest('hex');
-  await prisma.apiKey.updateMany({ where: { keyHash }, data: { lastUsedAt: new Date() } }).catch(() => {});
+  }, { headers: rateLimitHeaders });
 }
