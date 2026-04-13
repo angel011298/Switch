@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import CopilotCapabilities from './CopilotCapabilities';
 
 // Re-use the same chat logic but in full page layout
 // Similar to CopilotChat but full-screen with:
@@ -130,7 +131,9 @@ export default function AiPage() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex flex-col h-full">
+      <CopilotCapabilities />
+      <div className="flex flex-1 min-h-0">
       {/* Left sidebar: prompt categories */}
       <div className="w-64 border-r border-gray-200 dark:border-zinc-700 p-4 overflow-y-auto hidden md:block">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Sugerencias</p>
@@ -232,6 +235,7 @@ export default function AiPage() {
             CIFRA AI tiene acceso a los datos en tiempo real de tu empresa · Powered by Anthropic Claude
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
