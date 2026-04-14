@@ -29,7 +29,8 @@ export default async function AdminPage() {
             user: { select: { id: true, email: true, name: true, createdAt: true } }
           }
         },
-        subscription: { select: { status: true, validUntil: true, planId: true } },
+        subscription: { select: { status: true, validUntil: true, planId: true, stripeSubscriptionId: true, stripePriceId: true } },
+        taxRegime: { select: { code: true, description: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -136,6 +137,18 @@ export default async function AdminPage() {
                 id: tenant.id,
                 name: tenant.name,
                 rfc: tenant.rfc,
+                legalName: (tenant as any).legalName ?? null,
+                personType: (tenant as any).personType ?? null,
+                zipCode: (tenant as any).zipCode ?? null,
+                registroPatronal: (tenant as any).registroPatronal ?? null,
+                onboardingComplete: (tenant as any).onboardingComplete ?? false,
+                // Geocerca
+                workLat: (tenant as any).workLat ?? null,
+                workLon: (tenant as any).workLon ?? null,
+                workAddress: (tenant as any).workAddress ?? null,
+                radioToleranceMeters: (tenant as any).radioToleranceMeters ?? 100,
+                // Stripe
+                stripeCustomerId: (tenant as any).stripeCustomerId ?? null,
                 createdAt: tenant.createdAt.toISOString(),
                 userCount: tenant.memberships.length,
                 users: tenant.memberships.map((m: any) => ({
@@ -152,6 +165,9 @@ export default async function AdminPage() {
                 subscriptionStatus: tenant.subscription?.status ?? null,
                 subscriptionValidUntil: tenant.subscription?.validUntil?.toISOString() ?? null,
                 subscriptionPlan: tenant.subscription?.planId ?? null,
+                stripeSubscriptionId: tenant.subscription?.stripeSubscriptionId ?? null,
+                taxRegimeCode: (tenant as any).taxRegime?.code ?? null,
+                taxRegimeDescription: (tenant as any).taxRegime?.description ?? null,
               }}
             />
           ))}
