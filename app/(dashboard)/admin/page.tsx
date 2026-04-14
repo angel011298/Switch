@@ -30,7 +30,7 @@ export default async function AdminPage() {
           }
         },
         subscription: { select: { status: true, validUntil: true, planId: true, stripeSubscriptionId: true, stripePriceId: true } },
-        taxRegime: { select: { code: true, description: true } },
+        taxRegime: { select: { satCode: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -166,8 +166,8 @@ export default async function AdminPage() {
                 subscriptionValidUntil: tenant.subscription?.validUntil?.toISOString() ?? null,
                 subscriptionPlan: tenant.subscription?.planId ?? null,
                 stripeSubscriptionId: tenant.subscription?.stripeSubscriptionId ?? null,
-                taxRegimeCode: (tenant as any).taxRegime?.code ?? null,
-                taxRegimeDescription: (tenant as any).taxRegime?.description ?? null,
+                taxRegimeCode: (tenant as any).taxRegime?.satCode ?? null,
+                taxRegimeDescription: (tenant as any).taxRegime?.name ?? null,
               }}
             />
           ))}

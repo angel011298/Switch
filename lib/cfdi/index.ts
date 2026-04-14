@@ -28,9 +28,8 @@ import { signCadenaOriginal } from './seal/digital-seal';
 import { roundSat, computeImporte, computeTax } from './arithmetic';
 import { TAX_TYPE_TO_SAT, TIPO_FACTOR } from './catalogs/sat-catalogs';
 import { calculateTransactionTaxes } from '@/lib/taxes/taxEngine';
+import { getPacClient } from './pac-client';
 import type { PacAdapter } from './pac/adapter';
-import { MockPac } from './pac/mock-pac';
-import { SwSapienPac } from './pac/sw-sapien';
 import type {
   CfdiInput,
   CfdiData,
@@ -45,18 +44,8 @@ import type { OperationType } from '@prisma/client';
 
 // ─── CONFIGURACIÓN ─────────────────────────────────────
 
-function getPacAdapter(): PacAdapter {
-  const swToken    = process.env.SW_SAPIEN_TOKEN;
-  const swUser     = process.env.SW_SAPIEN_USER;
-  const swPassword = process.env.SW_SAPIEN_PASSWORD;
-  const isSandbox  = (process.env.SW_SAPIEN_URL ?? 'test').includes('test');
-
-  if (swToken || (swUser && swPassword)) {
-    return new SwSapienPac({ token: swToken, user: swUser, password: swPassword, sandbox: isSandbox });
-  }
-  // Sin credenciales → mock (desarrollo)
-  return new MockPac();
-}
+// Alias para mantener consistencia interna del módulo
+const getPacAdapter = getPacClient;
 
 // ─── PIPELINE PRINCIPAL ────────────────────────────────
 
@@ -397,5 +386,6 @@ export class CfdiError extends Error {
 export { getCsd, storeCsd } from './csd/vault';
 export { MockPac } from './pac/mock-pac';
 export { SwSapienPac } from './pac/sw-sapien';
+export { getPacClient, withAuditLog } from './pac-client';
 export type { PacAdapter } from './pac/adapter';
 export type { CfdiInput, CfdiResult, CfdiReceptor, CfdiConceptoInput } from './types';
