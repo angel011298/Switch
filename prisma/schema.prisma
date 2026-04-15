@@ -1807,3 +1807,19 @@ model CfdiRecibido {
   @@index([tenantId, tipoComprobante])
   @@index([tenantId, accountingMapped])
 }
+
+// ─── VERIFICACIÓN OTP (WhatsApp / SMS) ──────────────────
+// Almacenamiento persistente de códigos OTP para flujos de
+// verificación no-email. Reemplaza el Map en memoria que se
+// perdía en Vercel cold starts.
+
+model VerificationCode {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  channel   String   @default("whatsapp") // "whatsapp" | "sms"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, channel])
+}
