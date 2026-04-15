@@ -173,7 +173,11 @@ export async function middleware(request: NextRequest) {
         const activeModules: string[] = payload.active_modules ?? [];
         const subStatus: string = payload.sub_status ?? 'TRIAL';
         const validUntilRaw: string | null = payload.valid_until ?? null;
-        const onboardingComplete: boolean = payload.onboarding_complete === true;
+        // Cookie puente: el JWT solo refleja onboarding_complete tras el siguiente
+        // refresco (~1h). La cookie cifra_onboarding_complete=1 cubre esa ventana
+        // para que el usuario no sea rebotado de vuelta a /onboarding.
+        const onboardingCookie = request.cookies.get('cifra_onboarding_complete')?.value === '1';
+        const onboardingComplete: boolean = payload.onboarding_complete === true || onboardingCookie;
 
         // ── Capa 0: Onboarding obligatorio ──────────────────────────────
         // Si el tenant no completó el onboarding, redirigir a /onboarding.
