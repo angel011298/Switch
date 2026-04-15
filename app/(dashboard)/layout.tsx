@@ -40,11 +40,19 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
+  // Belt-and-suspenders: re-derivar isSuperAdmin desde el email directamente en el layout.
+  // Cubre el caso donde session.ts devuelve isSuperAdmin=false porque el hook de Supabase
+  // no está configurado Y el deployment en Vercel todavía tiene el código viejo (??).
+  const SUPER_ADMIN_EMAIL = '553angelortiz@gmail.com';
+  const isSuperAdmin =
+    session.isSuperAdmin ||
+    session.email.toLowerCase().trim() === SUPER_ADMIN_EMAIL;
+
   // Asegurar que el usuario exista en Prisma
   await ensurePrismaUser(session.userId, session.email, session.name);
 
   // FASE 12: Forzar onboarding si el tenant no tiene perfil fiscal
-  if (!session.isSuperAdmin && session.tenantId) {
+  if (!isSuperAdmin && session.tenantId) {
     const tenant = await prisma.tenant.findUnique({
       where: { id: session.tenantId },
       select: { onboardingComplete: true },
@@ -75,7 +83,7 @@ export default async function DashboardLayout({
 
   // Super admin: si el JWT no tiene módulos (hook no configurado), mostrar todos
   const activeModulesForShell =
-    session.isSuperAdmin && session.activeModules.length === 0
+    isSuperAdmin && session.activeModules.length === 0
       ? Object.keys(MODULE_DEFS)
       : session.activeModules;
 
@@ -101,7 +109,7 @@ export default async function DashboardLayout({
       {/* FASE 52: DashboardShell gestiona el estado del drawer móvil */}
       <DashboardShell
         activeModules={activeModulesForShell}
-        isSuperAdmin={session.isSuperAdmin}
+        isSuperAdmin={isSuperAdmin}
         userName={session.name}
         userEmail={session.email}
         subscriptionStatus={session.subscriptionStatus ?? null}
