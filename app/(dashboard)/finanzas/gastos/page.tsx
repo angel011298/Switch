@@ -10,8 +10,8 @@ import {
 } from 'lucide-react';
 
 // --- Supabase Client setup ---
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // --- Tipos y Lógica de Parseo (Tu código intacto) ---

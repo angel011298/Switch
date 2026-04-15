@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { redirect } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { Suspense } from 'react';
