@@ -19,12 +19,18 @@ export interface PacStampResult {
   rfcProvCertif: string | null;
   xmlTimbrado: string | null;
   error?: string;
+  /** true cuando el PAC indica que el CFDI fue timbrado anteriormente (SW código 307).
+   *  El uuid y xmlTimbrado contienen el comprobante ya timbrado. */
+  alreadyStamped?: boolean;
+  /** HTTP status code del PAC para manejo upstream (ej. 401, 500). */
+  httpStatus?: number;
 }
 
 export interface PacCancelResult {
   success: boolean;
   acuse: string | null;
   error?: string;
+  httpStatus?: number;
 }
 
 export interface PacStatusResult {

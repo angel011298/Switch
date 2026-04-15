@@ -9,6 +9,7 @@ import {
   CalendarDays, User2, Mail, Clock, TrendingUp,
   FileText, ShoppingCart, DollarSign, Package,
   CheckCircle2, XCircle, Download,
+  MapPin, Navigation, Globe, Receipt,
 } from 'lucide-react';
 import { MODULE_DEFS, type ModuleKey } from '@/lib/modules/registry';
 import {
@@ -31,6 +32,22 @@ interface TenantData {
   id: string;
   name: string;
   rfc: string | null;
+  legalName: string | null;
+  personType: string | null;
+  zipCode: string | null;
+  registroPatronal: string | null;
+  onboardingComplete: boolean;
+  // Geocerca
+  workLat: number | null;
+  workLon: number | null;
+  workAddress: string | null;
+  radioToleranceMeters: number;
+  // Stripe
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  // Régimen fiscal
+  taxRegimeCode: string | null;
+  taxRegimeDescription: string | null;
   createdAt: string;
   userCount: number;
   users: TenantUser[];
@@ -279,12 +296,56 @@ export default function TenantModuleManager({ tenant }: Props) {
                   ))}
                 </div>
 
-                {/* Subscription detail */}
-                {(tenant.subscriptionPlan || validUntilDate) && (
+                {/* ── Datos fiscales ─────────────────────────────── */}
+                <div className="bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4">
+                  <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <Receipt className="h-3 w-3" />
+                    Información Fiscal
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <p className="text-[10px] text-neutral-400 uppercase tracking-wider">RFC</p>
+                      <p className="font-mono font-bold text-neutral-700 dark:text-neutral-300">{tenant.rfc ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Razón Social</p>
+                      <p className="font-bold text-neutral-700 dark:text-neutral-300 truncate">{tenant.legalName ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Tipo Persona</p>
+                      <p className="font-bold text-neutral-700 dark:text-neutral-300">{tenant.personType ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-neutral-400 uppercase tracking-wider">C.P. Fiscal</p>
+                      <p className="font-bold text-neutral-700 dark:text-neutral-300">{tenant.zipCode ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Régimen Fiscal</p>
+                      <p className="font-bold text-neutral-700 dark:text-neutral-300 truncate" title={tenant.taxRegimeDescription ?? ''}>
+                        {tenant.taxRegimeCode ? `${tenant.taxRegimeCode} – ${tenant.taxRegimeDescription ?? ''}` : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Reg. Patronal</p>
+                      <p className="font-mono font-bold text-neutral-700 dark:text-neutral-300">{tenant.registroPatronal ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Onboarding</p>
+                      <span className={`inline-flex items-center gap-1 text-xs font-bold ${tenant.onboardingComplete ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {tenant.onboardingComplete
+                          ? <><CheckCircle2 className="h-3.5 w-3.5" />Completo</>
+                          : <><XCircle className="h-3.5 w-3.5" />Pendiente</>}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Suscripción y Stripe ───────────────────────── */}
+                {(tenant.subscriptionPlan || validUntilDate || tenant.stripeCustomerId) && (
                   <div className="bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4">
                     <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                       <CreditCard className="h-3 w-3" />
-                      Detalles de Suscripción
+                      Suscripción y Pagos
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                       {tenant.subscriptionPlan && (
@@ -296,16 +357,77 @@ export default function TenantModuleManager({ tenant }: Props) {
                       {validUntilDate && (
                         <div>
                           <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Vigente hasta</p>
-                          <p className="font-bold text-neutral-700 dark:text-neutral-300">{validUntilDate}</p>
+                          <p className={`font-bold ${daysLeft !== null && daysLeft <= 5 ? 'text-red-600' : 'text-neutral-700 dark:text-neutral-300'}`}>{validUntilDate}</p>
                         </div>
                       )}
                       <div>
                         <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Registro</p>
                         <p className="font-bold text-neutral-700 dark:text-neutral-300">{createdDate}</p>
                       </div>
+                      {tenant.stripeCustomerId && (
+                        <div className="col-span-2 md:col-span-3">
+                          <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Stripe Customer ID</p>
+                          <p className="font-mono text-xs text-neutral-500 dark:text-neutral-400 break-all">{tenant.stripeCustomerId}</p>
+                        </div>
+                      )}
+                      {tenant.stripeSubscriptionId && (
+                        <div className="col-span-2 md:col-span-3">
+                          <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Stripe Subscription ID</p>
+                          <p className="font-mono text-xs text-neutral-500 dark:text-neutral-400 break-all">{tenant.stripeSubscriptionId}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
+
+                {/* ── Geolocalización / Geocerca ─────────────────── */}
+                <div className="bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700 rounded-xl p-4">
+                  <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <MapPin className="h-3 w-3" />
+                    Geolocalización de Trabajo
+                  </p>
+                  {tenant.workLat !== null && tenant.workLon !== null ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div>
+                        <p className="text-[10px] text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                          <Navigation className="h-2.5 w-2.5" />Latitud
+                        </p>
+                        <p className="font-mono font-bold text-neutral-700 dark:text-neutral-300">{tenant.workLat.toFixed(6)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                          <Navigation className="h-2.5 w-2.5 rotate-90" />Longitud
+                        </p>
+                        <p className="font-mono font-bold text-neutral-700 dark:text-neutral-300">{tenant.workLon.toFixed(6)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-neutral-400 uppercase tracking-wider flex items-center gap-1">
+                          <MapPin className="h-2.5 w-2.5" />Radio (m)
+                        </p>
+                        <p className="font-bold text-neutral-700 dark:text-neutral-300">{tenant.radioToleranceMeters} m</p>
+                      </div>
+                      {tenant.workAddress && (
+                        <div className="col-span-2 md:col-span-4">
+                          <p className="text-[10px] text-neutral-400 uppercase tracking-wider">Dirección</p>
+                          <p className="font-bold text-neutral-700 dark:text-neutral-300">{tenant.workAddress}</p>
+                        </div>
+                      )}
+                      <div className="col-span-2 md:col-span-4">
+                        <a
+                          href={`https://maps.google.com/?q=${tenant.workLat},${tenant.workLon}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+                        >
+                          <Globe className="h-3 w-3" />
+                          Ver en Google Maps
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-neutral-400">Sin geocerca configurada</p>
+                  )}
+                </div>
 
                 {/* Action buttons */}
                 <div className="flex flex-wrap gap-2">

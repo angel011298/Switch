@@ -17,21 +17,11 @@ import { decryptPrivateKey } from '../csd/key-reader';
 import { buildNominaCfdiXml, type NominaInput } from './builder';
 import { buildNominaCadenaOriginal } from './cadena-original';
 import { signCadenaOriginal } from '../seal/digital-seal';
-import { MockPac } from '../pac/mock-pac';
-import { SwSapienPac } from '../pac/sw-sapien';
 import type { PacAdapter } from '../pac/adapter';
+import { getPacClient } from '../pac-client';
 
-function getPac(): PacAdapter {
-  const swToken    = process.env.SW_SAPIEN_TOKEN;
-  const swUser     = process.env.SW_SAPIEN_USER;
-  const swPassword = process.env.SW_SAPIEN_PASSWORD;
-  const envUrl     = process.env.SW_SAPIEN_URL ?? '';
-  const isSandbox  = envUrl.includes('test') || !envUrl;
-  if (swToken || (swUser && swPassword)) {
-    return new SwSapienPac({ token: swToken, user: swUser, password: swPassword, sandbox: isSandbox });
-  }
-  return new MockPac();
-}
+// Alias para legibilidad del módulo de nómina
+const getPac = getPacClient;
 
 export interface NominaStampResult {
   success: boolean;

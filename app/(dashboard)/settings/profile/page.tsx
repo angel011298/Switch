@@ -14,35 +14,42 @@ export default async function ProfilePage() {
     redirect('/login');
   }
 
-  // Fetch full user data from Prisma
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      avatarUrl: true,
-      timezone: true,
-      twoFactorEnabled: true,
-    },
-  });
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  // Fetch user memberships
-  const memberships = await prisma.tenantMembership.findMany({
-    where: { userId: session.userId },
-    include: {
-      tenant: {
-        select: { id: true, name: true, rfc: true },
+  // Fetch full user data from Prisma (may not exist if DB was reset or ensurePrismaUser failed)
+  const [user, memberships] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatarUrl: true,
+        timezone: true,
+        twoFactorEnabled: true,
       },
-    },
-    orderBy: { tenant: { name: 'asc' } },
-  });
+    }),
+    prisma.tenantMembership.findMany({
+      where: { userId: session.userId },
+      include: {
+        tenant: {
+          select: { id: true, name: true, rfc: true },
+        },
+      },
+      orderBy: { tenant: { name: 'asc' } },
+    }),
+  ]);
+
+  // Fallback: construir perfil desde datos de sesión si el registro de Prisma no existe.
+  // Ocurre cuando el DB fue reseteado o ensurePrismaUser falló silenciosamente.
+  const initialUser = user ?? {
+    id: session.userId,
+    email: session.email,
+    name: session.name,
+    avatarUrl: null,
+    timezone: 'America/Mexico_City',
+    twoFactorEnabled: false,
+  };
 
   return (
-    <ProfileClient initialUser={user} memberships={memberships as any} />
+    <ProfileClient initialUser={initialUser} memberships={memberships as any} />
   );
 }
