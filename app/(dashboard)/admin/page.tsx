@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { ShieldAlert, Building2, Users, Blocks, Activity, Banknote } from 'lucide-react';
 import TenantModuleManager from '@/components/admin/TenantModuleManager';
 import PendingPaymentsPanel from '@/components/admin/PendingPaymentsPanel';
+import AdminRefreshButton from '@/components/admin/AdminRefreshButton';
 
 export const metadata = { title: 'Admin Maestro | CIFRA' };
 
@@ -54,12 +55,13 @@ export default async function AdminPage() {
         <div className="bg-emerald-500 p-3 rounded-xl">
           <ShieldAlert className="h-8 w-8 text-neutral-950" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-3xl font-black tracking-tight">Centro de Mando</h1>
           <p className="text-emerald-500 font-bold text-sm uppercase tracking-widest mt-1">
             Modo Super Admin Activo
           </p>
         </div>
+        <AdminRefreshButton />
       </header>
 
       {/* Metricas globales */}

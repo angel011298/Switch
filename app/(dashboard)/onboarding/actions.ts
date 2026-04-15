@@ -143,12 +143,14 @@ export async function setupTenantProfile(data: {
   // hora vía custom_access_token_hook. Sin esta cookie, el middleware redirige
   // al usuario de vuelta a /onboarding porque el JWT todavía dice false.
   // La cookie se destruye sola cuando caduca (1 hora = tiempo máximo de JWT).
+  // Cookie puente: valor = userId para que el middleware no la aplique a otras cuentas
+  // que usen el mismo navegador antes de que el JWT se refresque (~1h).
   const cookieStore = await cookies();
-  cookieStore.set('cifra_onboarding_complete', '1', {
+  cookieStore.set('cifra_onboarding_complete', session.userId, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    maxAge: 3600, // 1 hora — coincide con el ciclo de vida del JWT
+    maxAge: 3600,
   });
 
   // Navegar a dashboard — evita que Next.js re-renderice el layout actual
