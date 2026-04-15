@@ -19,6 +19,7 @@
 import { getSwitchSession } from '@/lib/auth/session';
 import { validateRfc } from '@/lib/crm/rfc-validator';
 import { sendWelcomeEmail } from '@/lib/email/mailer';
+import { ensurePrismaUser } from '@/lib/auth/ensure-user';
 import prisma from '@/lib/prisma';
 import { ModuleKey } from '@prisma/client';
 import { cookies } from 'next/headers';
@@ -58,8 +59,16 @@ export async function setupTenantProfile(data: {
     return { ok: false, error: 'No hay sesión activa' };
   }
 
-  // Fallback: si el JWT no tiene tenant_id (hook de Supabase no configurado),
-  // buscamos directamente en la BD por el userId
+  // Garantizar que el usuario y su tenant existan en Prisma.
+  // Red de seguridad para usuarios de Google OAuth cuyo JWT fue emitido antes
+  // de que ensurePrismaUser creara el tenant (e.g. primer login vía Google).
+  await ensurePrismaUser(
+    session.userId,
+    session.email,
+    session.name ?? session.email.split('@')[0],
+  );
+
+  // Resolver tenantId: primero del JWT (rápido), luego por membership en BD.
   let tenantId = session.tenantId;
   if (!tenantId) {
     const membership = await prisma.tenantMembership.findFirst({
