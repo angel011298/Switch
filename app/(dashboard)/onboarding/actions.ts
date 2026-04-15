@@ -11,6 +11,9 @@
  *   3. Crear TenantModule para cada módulo seleccionado (upsert — idempotente)
  *   4. Email de bienvenida (best-effort — nunca bloquea)
  *   5. Marcar onboardingComplete = true
+ *   6. Escribir cookie cifra_onboarding_complete=1 para que el middleware
+ *      no rebote al usuario de vuelta a /onboarding mientras el JWT se refresca
+ *      (el JWT de Supabase solo se regenera cada hora via custom_access_token_hook)
  */
 
 import { getSwitchSession } from '@/lib/auth/session';
@@ -18,6 +21,7 @@ import { validateRfc } from '@/lib/crm/rfc-validator';
 import { sendWelcomeEmail } from '@/lib/email/mailer';
 import prisma from '@/lib/prisma';
 import { ModuleKey } from '@prisma/client';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 // Módulos que se activan en el plan TRIAL por defecto
@@ -133,6 +137,21 @@ export async function setupTenantProfile(data: {
   } catch {
     // Nunca bloquea el flujo principal
   }
+
+  // ── Cookie puente para el middleware ────────────────────────────────────
+  // El JWT de Supabase (con el claim onboarding_complete) se regenera cada
+  // hora vía custom_access_token_hook. Sin esta cookie, el middleware redirige
+  // al usuario de vuelta a /onboarding porque el JWT todavía dice false.
+  // La cookie se destruye sola cuando caduca (1 hora = tiempo máximo de JWT).
+  // Cookie puente: valor = userId para que el middleware no la aplique a otras cuentas
+  // que usen el mismo navegador antes de que el JWT se refresque (~1h).
+  const cookieStore = await cookies();
+  cookieStore.set('cifra_onboarding_complete', session.userId, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 3600,
+  });
 
   // Navegar a dashboard — evita que Next.js re-renderice el layout actual
   // (lo que causaría "An error occurred in the Server Components render")

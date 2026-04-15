@@ -3,18 +3,12 @@ import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import ProfileClient from './ProfileClient';
 
-export const metadata = {
-  title: 'Mi Perfil | CIFRA',
-};
+export const metadata = { title: 'Mi Perfil | CIFRA' };
 
 export default async function ProfilePage() {
   const session = await getSwitchSession();
+  if (!session) redirect('/login');
 
-  if (!session) {
-    redirect('/login');
-  }
-
-  // Fetch full user data from Prisma (may not exist if DB was reset or ensurePrismaUser failed)
   const [user, memberships] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
@@ -25,21 +19,28 @@ export default async function ProfilePage() {
         avatarUrl: true,
         timezone: true,
         twoFactorEnabled: true,
+        phone: true,
       },
     }),
     prisma.tenantMembership.findMany({
       where: { userId: session.userId },
       include: {
         tenant: {
-          select: { id: true, name: true, rfc: true },
+          select: {
+            id: true,
+            name: true,
+            rfc: true,
+            modules: {
+              select: { moduleKey: true, isActive: true },
+              orderBy: { moduleKey: 'asc' },
+            },
+          },
         },
       },
       orderBy: { tenant: { name: 'asc' } },
     }),
   ]);
 
-  // Fallback: construir perfil desde datos de sesión si el registro de Prisma no existe.
-  // Ocurre cuando el DB fue reseteado o ensurePrismaUser falló silenciosamente.
   const initialUser = user ?? {
     id: session.userId,
     email: session.email,
@@ -47,9 +48,14 @@ export default async function ProfilePage() {
     avatarUrl: null,
     timezone: 'America/Mexico_City',
     twoFactorEnabled: false,
+    phone: null,
   };
 
   return (
-    <ProfileClient initialUser={initialUser} memberships={memberships as any} />
+    <ProfileClient
+      initialUser={initialUser}
+      memberships={memberships as any}
+      activeTenantId={session.tenantId}
+    />
   );
 }

@@ -376,15 +376,14 @@ function WhatsAppFlow({ email, onBack }: { email: string; onBack: () => void }) 
       return
     }
 
-    // Now verify Supabase session (use email OTP as fallback — user should also have received email)
-    // For demo: auto-verify via magic link is not possible here without server action.
-    // We mark WA as verified and show success; a future production integration would call
-    // supabase.auth.admin.updateUserById to confirm the user.
     setSuccess(true)
-    setMessage('¡WhatsApp verificado! Activando tu cuenta...')
-    // Redirect to a page that explains they still need to click the email link OR
-    // in production, we'd use service role to update user confirmated_at.
-    setTimeout(() => { window.location.href = '/' }, 2000)
+    if (waData.magicLink) {
+      setMessage('¡WhatsApp verificado! Entrando a CIFRA...')
+      setTimeout(() => { window.location.href = waData.magicLink }, 1500)
+    } else {
+      setMessage('¡Verificado! Redirigiendo...')
+      setTimeout(() => { window.location.href = '/' }, 2000)
+    }
   }
 
   const handleDigitChange = (index: number, value: string) => {

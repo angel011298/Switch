@@ -16,6 +16,7 @@
  */
 
 import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 const BASE_MODULES = ['DASHBOARD', 'BILLING_CFDI', 'POS', 'CRM'] as const;
 const TRIAL_DAYS = 14;
@@ -95,6 +96,9 @@ export async function ensurePrismaUser(
       `[ensurePrismaUser] Tenant creado para ${email}. ` +
         `Módulos: ${BASE_MODULES.join(', ')}. TRIAL hasta: ${validUntil.toISOString()}`
     );
+
+    // Invalidate the Super Admin panel so new tenants appear immediately.
+    try { revalidatePath('/admin') } catch { /* no-op outside request context */ }
   } catch (error: any) {
     // P2002 = unique constraint → usuario ya existe, no es error real
     if (error?.code === 'P2002') return;
