@@ -11,7 +11,6 @@
  */
 
 import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { setupTenantProfile } from './actions';
 import { MODULE_GROUPS } from './constants';
 import type { ModuleKey } from '@prisma/client';
@@ -84,12 +83,9 @@ function getAllModuleKeys(): ModuleKey[] {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
-  const router = useRouter();
-
   const [step, setStep]       = useState<StepId>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
-  const [done, setDone]       = useState(false);
 
   // Step 1
   const [name, setName]           = useState('');
@@ -168,6 +164,8 @@ export default function OnboardingPage() {
     if (selectedModules.size === 0) return setError('Selecciona al menos un módulo.');
     setLoading(true);
     try {
+      // On success, the server action calls redirect('/dashboard') — browser navigates away.
+      // If we receive a result back, it's always an error.
       const result = await setupTenantProfile({
         name,
         legalName,
@@ -176,45 +174,12 @@ export default function OnboardingPage() {
         taxRegimeKey,
         selectedModules: Array.from(selectedModules),
       });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setDone(true);
-      setTimeout(() => router.push('/dashboard'), 2200);
+      setError(result.error);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
-  }
-
-  // ── Pantalla de éxito ────────────────────────────────────────────────────────
-  if (done) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-neutral-950">
-        <div className="text-center space-y-5 px-6 max-w-sm">
-          <div className="flex justify-center">
-            <div className="h-20 w-20 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-bounce">
-              <CheckCircle2 className="h-10 w-10 text-white" />
-            </div>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              ¡Listo, {name}!
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm leading-relaxed">
-              Tu empresa está configurada con {selectedModules.size} módulo{selectedModules.size !== 1 ? 's' : ''} activos.
-              Redirigiendo a tu dashboard…
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Preparando tu espacio de trabajo
-          </div>
-        </div>
-      </div>
-    );
   }
 
   // ── Layout principal ─────────────────────────────────────────────────────────

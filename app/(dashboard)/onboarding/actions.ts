@@ -18,6 +18,7 @@ import { validateRfc } from '@/lib/crm/rfc-validator';
 import { sendWelcomeEmail } from '@/lib/email/mailer';
 import prisma from '@/lib/prisma';
 import { ModuleKey } from '@prisma/client';
+import { redirect } from 'next/navigation';
 
 // Módulos que se activan en el plan TRIAL por defecto
 const TRIAL_MODULES: ModuleKey[] = [
@@ -46,7 +47,7 @@ export async function setupTenantProfile(data: {
   zipCode: string;
   taxRegimeKey: string;
   selectedModules?: ModuleKey[];
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+}): Promise<{ ok: false; error: string }> {
   try {
   const session = await getSwitchSession();
   if (!session?.userId) {
@@ -133,9 +134,15 @@ export async function setupTenantProfile(data: {
     // Nunca bloquea el flujo principal
   }
 
-  return { ok: true };
+  // Navegar a dashboard — evita que Next.js re-renderice el layout actual
+  // (lo que causaría "An error occurred in the Server Components render")
+  redirect('/dashboard');
 
   } catch (err: any) {
+    // CRÍTICO: redirect() lanza NEXT_REDIRECT — debe re-lanzarse para que
+    // Next.js lo procese correctamente como navegación.
+    if ((err as any)?.digest?.startsWith('NEXT_REDIRECT')) throw err;
+
     // Capturamos cualquier error inesperado (Prisma, red, etc.) y lo devolvemos
     // como string legible para que el cliente pueda mostrarlo sin que Next.js
     // lo oculte con el mensaje genérico de producción.
