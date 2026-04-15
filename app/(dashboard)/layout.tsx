@@ -51,19 +51,37 @@ export default async function DashboardLayout({
   // Asegurar que el usuario exista en Prisma
   await ensurePrismaUser(session.userId, session.email, session.name);
 
-  // FASE 12: Forzar onboarding si el tenant no tiene perfil fiscal
-  if (!isSuperAdmin && session.tenantId) {
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: session.tenantId },
-      select: { onboardingComplete: true },
-    });
-
-    // Obtener pathname para no redirigir si ya está en /onboarding
+  // FASE 12: Forzar onboarding si el tenant no tiene perfil fiscal.
+  // Cubre dos casos:
+  //   a) session.tenantId presente (JWT actualizado) → buscar por tenantId (rápido)
+  //   b) session.tenantId null (JWT emitido antes de que ensurePrismaUser creara el tenant,
+  //      típico en primer login con Google OAuth) → buscar por userId vía membership
+  if (!isSuperAdmin) {
     const headersList = headers();
     const pathname = headersList.get('x-pathname') ?? '';
 
-    if (!tenant?.onboardingComplete && !pathname.startsWith('/onboarding')) {
-      redirect('/onboarding');
+    if (!pathname.startsWith('/onboarding')) {
+      let onboardingComplete = false;
+
+      if (session.tenantId) {
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: session.tenantId },
+          select: { onboardingComplete: true },
+        });
+        onboardingComplete = tenant?.onboardingComplete ?? false;
+      } else {
+        // JWT sin tenantId: el tenant acaba de ser creado por ensurePrismaUser.
+        // Buscar a través de la membresía para obtener el estado real.
+        const membership = await prisma.tenantMembership.findFirst({
+          where: { userId: session.userId },
+          select: { tenant: { select: { onboardingComplete: true } } },
+        });
+        onboardingComplete = membership?.tenant.onboardingComplete ?? false;
+      }
+
+      if (!onboardingComplete) {
+        redirect('/onboarding');
+      }
     }
   }
 
