@@ -168,7 +168,7 @@ export default function OnboardingPage() {
     if (selectedModules.size === 0) return setError('Selecciona al menos un módulo.');
     setLoading(true);
     try {
-      await setupTenantProfile({
+      const result = await setupTenantProfile({
         name,
         legalName,
         rfc,
@@ -176,6 +176,10 @@ export default function OnboardingPage() {
         taxRegimeKey,
         selectedModules: Array.from(selectedModules),
       });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       setDone(true);
       setTimeout(() => router.push('/dashboard'), 2200);
     } catch (err) {

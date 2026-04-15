@@ -47,10 +47,25 @@ export async function setupTenantProfile(data: {
   zipCode: string;
   taxRegimeKey: string;
   selectedModules?: ModuleKey[];
-}) {
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
   const session = await getSwitchSession();
-  if (!session?.tenantId) {
-    throw new Error('No hay sesión activa');
+  if (!session?.userId) {
+    return { ok: false, error: 'No hay sesión activa' };
+  }
+
+  // Fallback: si el JWT no tiene tenant_id (hook de Supabase no configurado),
+  // buscamos directamente en la BD por el userId
+  let tenantId = session.tenantId;
+  if (!tenantId) {
+    const membership = await prisma.tenantMembership.findFirst({
+      where: { userId: session.userId },
+      select: { tenantId: true },
+    });
+    tenantId = membership?.tenantId ?? null;
+  }
+  if (!tenantId) {
+    return { ok: false, error: 'No se encontró la empresa asociada a tu cuenta. Contacta soporte.' };
   }
 
   // ── Normalizar datos ─────────────────────────────────────────────────────
@@ -61,14 +76,14 @@ export async function setupTenantProfile(data: {
 
   // ── Validaciones ─────────────────────────────────────────────────────────
   if (!validateRfc(rfc)) {
-    throw new Error('RFC inválido. Verifica el formato (12 chars moral, 13 física).');
+    return { ok: false, error: 'RFC inválido. Verifica el formato (12 chars moral, 13 física).' };
   }
   if (!/^[0-9]{5}$/.test(zipCode)) {
-    throw new Error('Código postal inválido (debe ser 5 dígitos numéricos)');
+    return { ok: false, error: 'Código postal inválido (debe ser 5 dígitos numéricos)' };
   }
-  if (!name)      throw new Error('Nombre de empresa requerido');
-  if (!legalName) throw new Error('Razón social requerida');
-  if (!data.taxRegimeKey) throw new Error('Régimen fiscal requerido');
+  if (!name)      return { ok: false, error: 'Nombre de empresa requerido' };
+  if (!legalName) return { ok: false, error: 'Razón social requerida' };
+  if (!data.taxRegimeKey) return { ok: false, error: 'Régimen fiscal requerido' };
 
   // ── Régimen fiscal ───────────────────────────────────────────────────────
   const taxRegime = await prisma.taxRegime.findFirst({
@@ -79,8 +94,6 @@ export async function setupTenantProfile(data: {
   const modulesToActivate = data.selectedModules?.length
     ? data.selectedModules
     : TRIAL_MODULES;
-
-  const tenantId = session.tenantId;
 
   // ── Transacción atómica ──────────────────────────────────────────────────
   await prisma.$transaction(async (tx) => {
@@ -122,6 +135,16 @@ export async function setupTenantProfile(data: {
   }
 
   revalidatePath('/', 'layout');
+  return { ok: true };
+
+  } catch (err: any) {
+    // Capturamos cualquier error inesperado (Prisma, red, etc.) y lo devolvemos
+    // como string legible para que el cliente pueda mostrarlo sin que Next.js
+    // lo oculte con el mensaje genérico de producción.
+    const msg = err?.message ?? 'Error inesperado al guardar. Intenta de nuevo.';
+    console.error('[setupTenantProfile]', msg);
+    return { ok: false, error: msg };
+  }
 }
 
 // ─── ESTADO DE ONBOARDING ────────────────────────────────────────────────────
