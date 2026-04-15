@@ -26,9 +26,10 @@ function AuthCodeHandler() {
 
       try {
         if (code) {
-          // PKCE flow — intercambiar código por sesión
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
-          if (error) throw error
+          // PKCE flow — delegate to the server Route Handler so ensurePrismaUser
+          // and the onboarding DB check always run regardless of how the user arrived.
+          window.location.href = `/auth/callback?code=${encodeURIComponent(code)}`
+          return
         } else if (tokenHash && type) {
           // OTP token hash flow
           const { error } = await supabase.auth.verifyOtp({
