@@ -18,7 +18,6 @@ import { validateRfc } from '@/lib/crm/rfc-validator';
 import { sendWelcomeEmail } from '@/lib/email/mailer';
 import prisma from '@/lib/prisma';
 import { ModuleKey } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
 
 // Módulos que se activan en el plan TRIAL por defecto
 const TRIAL_MODULES: ModuleKey[] = [
@@ -134,7 +133,6 @@ export async function setupTenantProfile(data: {
     // Nunca bloquea el flujo principal
   }
 
-  revalidatePath('/', 'layout');
   return { ok: true };
 
   } catch (err: any) {
