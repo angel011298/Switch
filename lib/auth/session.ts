@@ -56,11 +56,13 @@ export async function getSwitchSession(): Promise<SwitchSession | null> {
 
   // Prioridad: Cookie > JWT > Metadata
   const tenantId = cookieTenantId ?? jwtPayload?.tenant_id ?? user.user_metadata?.tenant_id ?? null;
-  // Fallback: verificar email directamente cuando el hook de Supabase no inyecta el claim
+  // Fallback: verificar email directamente cuando el hook de Supabase no inyecta el claim.
+  // Comparación case-insensitive con trim para tolerar variaciones de formato.
+  const SUPER_ADMIN_EMAIL = '553angelortiz@gmail.com';
   const isSuperAdmin: boolean =
     jwtPayload?.is_super_admin === true ||
     user.user_metadata?.is_super_admin === true ||
-    user.email === '553angelortiz@gmail.com';
+    (user.email?.toLowerCase().trim() === SUPER_ADMIN_EMAIL);
   const userRole = jwtPayload?.user_role ?? 'OPERATIVE';
   const activeModules: string[] = jwtPayload?.active_modules ?? [];
 

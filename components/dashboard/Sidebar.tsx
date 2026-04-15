@@ -14,7 +14,7 @@ import {
   Sparkles,
   ShieldAlert,
 } from 'lucide-react';
-import { getActiveGroups, type ModuleDef } from '@/lib/modules/registry';
+import { getActiveGroups, MODULE_DEFS, type ModuleDef } from '@/lib/modules/registry';
 import { useI18n } from '@/lib/i18n/context';
 
 // ─── Props ──────────────────────────────────────────────
@@ -73,7 +73,7 @@ export default function Sidebar({ activeModules, isSuperAdmin, userName, onMobil
   // Super admin ve todo si no tiene módulos asignados
   const effectiveGroups =
     isSuperAdmin && visibleGroups.length === 0
-      ? getActiveGroups(Object.keys(require('@/lib/modules/registry').MODULE_DEFS))
+      ? getActiveGroups(Object.keys(MODULE_DEFS))
       : visibleGroups;
 
   if (!mounted) {

@@ -169,7 +169,7 @@ export async function middleware(request: NextRequest) {
 
         const isSuperAdmin: boolean =
           payload.is_super_admin === true ||
-          user.email === '553angelortiz@gmail.com';
+          (user.email?.toLowerCase().trim() === '553angelortiz@gmail.com');
         const activeModules: string[] = payload.active_modules ?? [];
         const subStatus: string = payload.sub_status ?? 'TRIAL';
         const validUntilRaw: string | null = payload.valid_until ?? null;

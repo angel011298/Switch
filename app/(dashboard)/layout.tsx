@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import { getSwitchSession } from '@/lib/auth/session';
 import { ensurePrismaUser } from '@/lib/auth/ensure-user';
 import prisma from '@/lib/prisma';
+import { MODULE_DEFS } from '@/lib/modules/registry';
 import DashboardShell from '@/components/dashboard/DashboardShell';
 import ModuleDeniedToast from '@/components/dashboard/ModuleDeniedToast';
 import { I18nProvider } from '@/lib/i18n/context';
@@ -72,6 +73,12 @@ export default async function DashboardLayout({
     }
   }
 
+  // Super admin: si el JWT no tiene módulos (hook no configurado), mostrar todos
+  const activeModulesForShell =
+    session.isSuperAdmin && session.activeModules.length === 0
+      ? Object.keys(MODULE_DEFS)
+      : session.activeModules;
+
   // Calcular días restantes para badge de suscripción
   const daysLeft = session.validUntil
     ? Math.ceil(
@@ -93,7 +100,7 @@ export default async function DashboardLayout({
     <I18nProvider>
       {/* FASE 52: DashboardShell gestiona el estado del drawer móvil */}
       <DashboardShell
-        activeModules={session.activeModules}
+        activeModules={activeModulesForShell}
         isSuperAdmin={session.isSuperAdmin}
         userName={session.name}
         userEmail={session.email}
