@@ -376,14 +376,11 @@ function WhatsAppFlow({ email, onBack }: { email: string; onBack: () => void }) 
       return
     }
 
-    // El servidor genera un magic link con el service role key de Supabase,
-    // que confirma el email y establece la sesión en un solo paso.
+    setSuccess(true)
     if (waData.magicLink) {
-      setSuccess(true)
       setMessage('¡WhatsApp verificado! Entrando a CIFRA...')
       setTimeout(() => { window.location.href = waData.magicLink }, 1500)
     } else {
-      setSuccess(true)
       setMessage('¡Verificado! Redirigiendo...')
       setTimeout(() => { window.location.href = '/' }, 2000)
     }
