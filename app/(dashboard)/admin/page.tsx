@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
 import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
-import { ShieldAlert, Building2, Users, Blocks, Activity, Banknote, PlusCircle } from 'lucide-react';
+import { ShieldAlert, Building2, Users, Blocks, Activity, Banknote, PlusCircle, TrendingUp, FlaskConical } from 'lucide-react';
 import TenantModuleManager from '@/components/admin/TenantModuleManager';
 import PendingPaymentsPanel from '@/components/admin/PendingPaymentsPanel';
 import AdminRefreshButton from '@/components/admin/AdminRefreshButton';
 import AdminCreateTenantButton from '@/components/admin/AdminCreateTenantButton';
+import { PLANS } from '@/lib/billing/plans';
 
 export const metadata = { title: 'Admin Maestro | CIFRA' };
 
@@ -54,6 +55,23 @@ export default async function AdminPage() {
     0
   );
 
+  // MRR estimado desde planes activos (sin Stripe API — usa planId local)
+  const PLAN_PRICES: Record<string, number> = Object.fromEntries(
+    PLANS.map(p => [p.slug, p.monthlyPrice])
+  );
+  const estimatedMrr = tenants.reduce((acc: number, t: any) => {
+    const sub = t.subscription;
+    if (!sub || sub.status !== 'ACTIVE') return acc;
+    return acc + (PLAN_PRICES[sub.planId ?? ''] ?? 0);
+  }, 0);
+
+  const trialsCount = tenants.filter((t: any) => t.subscription?.status === 'TRIAL').length;
+
+  // Últimos 5 tenants creados (actividad reciente)
+  const recentTenants = [...tenants]
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
       {/* Header */}
@@ -74,38 +92,43 @@ export default async function AdminPage() {
       </header>
 
       {/* Metricas globales */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <MetricCard
-          icon={Building2}
-          label="Tenants"
-          value={String(tenants.length)}
-          accent="blue"
-        />
-        <MetricCard
-          icon={Users}
-          label="Usuarios Totales"
-          value={String(totalUsers)}
-          accent="emerald"
-        />
-        <MetricCard
-          icon={Blocks}
-          label="Modulos Activos"
-          value={String(totalModulesActive)}
-          accent="purple"
-        />
-        <MetricCard
-          icon={Activity}
-          label="Suscripciones Activas"
-          value={String(tenants.filter((t: any) => t.subscription?.status === 'ACTIVE').length)}
-          accent="amber"
-        />
-        <MetricCard
-          icon={Banknote}
-          label="Pagos Pendientes"
-          value={String(pendingProofs.length)}
-          accent={pendingProofs.length > 0 ? 'red' : 'emerald'}
-        />
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
+        <MetricCard icon={Building2}      label="Tenants"        value={String(tenants.length)}                                                                              accent="blue"    />
+        <MetricCard icon={Users}          label="Usuarios"       value={String(totalUsers)}                                                                                  accent="emerald" />
+        <MetricCard icon={Blocks}         label="Módulos"        value={String(totalModulesActive)}                                                                          accent="purple"  />
+        <MetricCard icon={Activity}       label="Activos"        value={String(tenants.filter((t: any) => t.subscription?.status === 'ACTIVE').length)}                      accent="amber"   />
+        <MetricCard icon={FlaskConical}   label="En Prueba"      value={String(trialsCount)}                                                                                 accent="blue"    />
+        <MetricCard icon={TrendingUp}     label="MRR Est."       value={`$${estimatedMrr.toLocaleString('es-MX')}`}                                                          accent="emerald" />
+        <MetricCard icon={Banknote}       label="Pagos Pend."    value={String(pendingProofs.length)}                                                                        accent={pendingProofs.length > 0 ? 'red' : 'emerald'} />
       </div>
+
+      {/* Actividad reciente — últimas altas */}
+      {recentTenants.length > 0 && (
+        <section>
+          <h2 className="text-base font-bold text-neutral-900 dark:text-white mb-3 flex items-center gap-2">
+            <Activity className="h-4 w-4 text-emerald-500" />
+            Registros Recientes
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {recentTenants.map((t: any) => (
+              <div key={t.id} className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3">
+                <p className="font-semibold text-sm truncate">{t.name}</p>
+                <p className="text-xs text-neutral-500">{t.rfc ?? 'Sin RFC'}</p>
+                <p className="text-xs text-neutral-400 mt-1">
+                  {new Intl.DateTimeFormat('es-MX', { dateStyle: 'short' }).format(new Date(t.createdAt))}
+                </p>
+                <span className={`mt-1 inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                  t.subscription?.status === 'ACTIVE' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                  : t.subscription?.status === 'TRIAL' ? 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400'
+                  : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500'
+                }`}>
+                  {t.subscription?.status ?? 'Sin sub'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ─── Pagos Pendientes ─────────────────────────────────── */}
       <section>

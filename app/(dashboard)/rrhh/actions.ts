@@ -620,3 +620,26 @@ export async function createEmployee(data: {
 
   revalidatePath('/rrhh');
 }
+
+// ─── Portal del Empleado ──────────────────────────────────────────────────────
+
+/**
+ * Genera un enlace de auto-servicio para un empleado.
+ * Válido 30 días — no requiere contraseña.
+ */
+export async function generateEmployeePortalLink(employeeId: string): Promise<string> {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) throw new Error('No session');
+
+  // Verificar que el empleado pertenece al tenant
+  const emp = await prisma.employee.findFirst({
+    where: { id: employeeId, tenantId: session.tenantId },
+    select: { id: true },
+  });
+  if (!emp) throw new Error('Empleado no encontrado');
+
+  const { generateEmployeeToken } = await import('@/lib/portal/employee-token');
+  const token = generateEmployeeToken(employeeId, session.tenantId, 30);
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://cifra-mx.vercel.app';
+  return `${base}/portal/empleado/${token}`;
+}

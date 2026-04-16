@@ -13,7 +13,9 @@ export type NotificationType =
   | 'LOW_STOCK'
   | 'DEAL_WON'
   | 'PAYROLL_READY'
-  | 'ACCESS_DENIED';
+  | 'ACCESS_DENIED'
+  | 'FISCAL_ALERT'
+  | 'RFC_BLACKLISTED';  // RFC detectado en lista 69-B
 
 export interface NotifyPayload {
   tenantId: string;
@@ -107,5 +109,36 @@ export async function notifyLowStock(opts: {
     title: `Stock bajo: ${opts.productName}`,
     body: `${opts.currentStock} uds. en ${opts.warehouseName} (mínimo: ${opts.minStock})`,
     link: `/scm/inventarios`,
+  });
+}
+
+export async function notifyFiscalDeadline(opts: {
+  tenantId: string;
+  obligationLabel: string;
+  daysLeft: number;
+  period: string;
+}) {
+  const urgency = opts.daysLeft <= 1 ? '🚨' : opts.daysLeft <= 3 ? '⚠️' : '📅';
+  await notify({
+    tenantId: opts.tenantId,
+    type: 'FISCAL_ALERT',
+    title: `${urgency} ${opts.obligationLabel} — ${opts.daysLeft}d restantes`,
+    body: `La obligación de ${opts.period} vence en ${opts.daysLeft} día${opts.daysLeft !== 1 ? 's' : ''}`,
+    link: `/finanzas/cumplimiento`,
+  });
+}
+
+export async function notifyRfcBlacklisted(opts: {
+  tenantId: string;
+  rfc: string;
+  providerName: string;
+  status: string;
+}) {
+  await notify({
+    tenantId: opts.tenantId,
+    type: 'RFC_BLACKLISTED',
+    title: `RFC en lista 69-B: ${opts.rfc}`,
+    body: `${opts.providerName} aparece en la lista del SAT (${opts.status}). No deduzcas sus facturas sin validación de tu contador.`,
+    link: `/finanzas/cumplimiento`,
   });
 }

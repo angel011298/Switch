@@ -30,6 +30,7 @@ const ROUTE_MODULE_MAP: Record<string, string> = {
   '/finanzas/impuestos': 'TAXES',
   '/finanzas/cobranza': 'COLLECTIONS',
   '/finanzas/contabilidad': 'FINANCE',
+  '/finanzas/cumplimiento': 'FINANCE',  // Calendario de cumplimiento fiscal
   '/billing': 'BILLING_CFDI',
   '/pos': 'POS',
   '/crm': 'CRM',
