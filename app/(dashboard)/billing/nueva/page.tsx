@@ -21,6 +21,7 @@ import {
 } from '../actions';
 import { FORMA_PAGO, USO_CFDI } from '@/lib/cfdi/catalogs/sat-catalogs';
 import type { CfdiInput, CfdiConceptoInput } from '@/lib/cfdi/types';
+import RfcBadge from '@/components/sat/RfcBadge';
 
 // ─── Tipos locales ────────────────────────────────────────────────────────────
 
@@ -530,13 +531,20 @@ function Step1Receptor({ receptor, setReceptor, query, setQuery, customers, sear
         <p className="text-xs text-neutral-400 mb-4">— o ingresa manualmente —</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FieldInput
-            label="RFC *"
-            value={receptor.rfc}
-            onChange={(v: string) => setReceptor({ ...receptor, rfc: v.toUpperCase() })}
-            placeholder="XAXX010101000"
-            mono
-          />
+          <div>
+            <FieldInput
+              label="RFC *"
+              value={receptor.rfc}
+              onChange={(v: string) => setReceptor({ ...receptor, rfc: v.toUpperCase() })}
+              placeholder="XAXX010101000"
+              mono
+            />
+            {receptor.rfc.length >= 12 && (
+              <div className="mt-1.5">
+                <RfcBadge rfc={receptor.rfc} />
+              </div>
+            )}
+          </div>
           <FieldInput
             label="Nombre / Razón Social *"
             value={receptor.nombre}

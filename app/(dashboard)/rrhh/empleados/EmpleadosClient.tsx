@@ -9,9 +9,10 @@ import { useState, useTransition } from 'react';
 import {
   Users, UserCheck, UserMinus, Search, Clock, LogIn, LogOut,
   FileText, CheckCircle2, Circle, Loader2, CalendarClock,
+  Link2, Mail, Copy,
 } from 'lucide-react';
 import type { EmployeeRow, RrhhKpis } from '../actions';
-import { clockIn, clockOut } from '../actions';
+import { clockIn, clockOut, generateEmployeePortalLink, sendEmployeePortalLinkToEmployee } from '../actions';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -78,6 +79,8 @@ export default function EmpleadosClient({ initialEmployees, kpis }: Props) {
   const [tab, setTab] = useState<FilterTab>('todos');
   const [actionError, setActionError] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  // Portal del empleado: estado por empleado ('idle'|'loading'|'copied'|'sent'|'error')
+  const [portalState, setPortalState] = useState<Record<string, string>>({});
 
   // ── Filter ──
   const filtered = employees.filter((e) => {
@@ -130,6 +133,39 @@ export default function EmpleadosClient({ initialEmployees, kpis }: Props) {
         setActionError(err instanceof Error ? err.message : 'Error al registrar salida');
       } finally {
         setLoadingId(null);
+      }
+    });
+  }
+
+  // ── Portal del Empleado ──
+  function handleCopyPortalLink(emp: EmployeeRow) {
+    setPortalState(s => ({ ...s, [emp.id]: 'loading' }));
+    startTransition(async () => {
+      try {
+        const url = await generateEmployeePortalLink(emp.id);
+        await navigator.clipboard.writeText(url);
+        setPortalState(s => ({ ...s, [emp.id]: 'copied' }));
+        setTimeout(() => setPortalState(s => ({ ...s, [emp.id]: 'idle' })), 3000);
+      } catch {
+        setPortalState(s => ({ ...s, [emp.id]: 'error' }));
+        setTimeout(() => setPortalState(s => ({ ...s, [emp.id]: 'idle' })), 3000);
+      }
+    });
+  }
+
+  function handleSendPortalEmail(emp: EmployeeRow) {
+    setPortalState(s => ({ ...s, [`${emp.id}_email`]: 'loading' }));
+    startTransition(async () => {
+      try {
+        const result = await sendEmployeePortalLinkToEmployee(emp.id);
+        setPortalState(s => ({ ...s, [`${emp.id}_email`]: result.sent ? 'sent' : 'copied' }));
+        if (!result.sent && result.portalUrl) {
+          await navigator.clipboard.writeText(result.portalUrl).catch(() => {});
+        }
+        setTimeout(() => setPortalState(s => ({ ...s, [`${emp.id}_email`]: 'idle' })), 3000);
+      } catch {
+        setPortalState(s => ({ ...s, [`${emp.id}_email`]: 'error' }));
+        setTimeout(() => setPortalState(s => ({ ...s, [`${emp.id}_email`]: 'idle' })), 3000);
       }
     });
   }
@@ -358,6 +394,45 @@ export default function EmpleadosClient({ initialEmployees, kpis }: Props) {
                               <span className="text-[10px] text-neutral-300 dark:text-neutral-700 font-medium">
                                 Inactivo
                               </span>
+                            )}
+
+                            {/* Botones portal empleado — solo empleados activos */}
+                            {emp.active && (
+                              <>
+                                <button
+                                  onClick={() => handleCopyPortalLink(emp)}
+                                  disabled={isPending || portalState[emp.id] === 'loading'}
+                                  title="Copiar link del portal"
+                                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-40
+                                    ${portalState[emp.id] === 'copied'
+                                      ? 'text-emerald-400 bg-emerald-500/10'
+                                      : 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20'}`}
+                                >
+                                  {portalState[emp.id] === 'copied'
+                                    ? <><CheckCircle2 className="h-3 w-3" /> Copiado</>
+                                    : portalState[emp.id] === 'loading'
+                                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                                    : <><Copy className="h-3 w-3" /> Link</>}
+                                </button>
+
+                                {emp.email && (
+                                  <button
+                                    onClick={() => handleSendPortalEmail(emp)}
+                                    disabled={isPending || portalState[`${emp.id}_email`] === 'loading'}
+                                    title={`Enviar portal por email a ${emp.email}`}
+                                    className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-colors disabled:opacity-40
+                                      ${portalState[`${emp.id}_email`] === 'sent'
+                                        ? 'text-emerald-400 bg-emerald-500/10'
+                                        : 'text-violet-400 bg-violet-500/10 hover:bg-violet-500/20'}`}
+                                  >
+                                    {portalState[`${emp.id}_email`] === 'sent'
+                                      ? <><CheckCircle2 className="h-3 w-3" /> Enviado</>
+                                      : portalState[`${emp.id}_email`] === 'loading'
+                                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                                      : <><Mail className="h-3 w-3" /> Email</>}
+                                  </button>
+                                )}
+                              </>
                             )}
                           </div>
                         </td>

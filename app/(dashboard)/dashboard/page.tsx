@@ -20,6 +20,9 @@ import {
   ShoppingCart,
   Target,
   Zap,
+  Calendar,
+  Clock,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   BarChart,
@@ -30,7 +33,7 @@ import {
   Cell,
 } from 'recharts';
 import Link from 'next/link';
-import { getDashboardStats, type DashboardStats } from './actions';
+import { getDashboardStats, getFiscalAlertsWidget, type DashboardStats, type FiscalAlertsWidget } from './actions';
 
 function formatoMoneda(valor: number) {
   return valor.toLocaleString('es-MX', {
@@ -43,13 +46,18 @@ function formatoMoneda(valor: number) {
 export default function DashboardHub() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fiscalAlerts, setFiscalAlerts] = useState<FiscalAlertsWidget | null>(null);
 
   useEffect(() => {
     async function cargarTodo() {
       setLoading(true);
       try {
-        const data = await getDashboardStats();
+        const [data, fiscal] = await Promise.all([
+          getDashboardStats(),
+          getFiscalAlertsWidget(),
+        ]);
         setStats(data);
+        setFiscalAlerts(fiscal);
       } catch (err) {
         console.error('[Dashboard] Error cargando stats:', err);
       } finally {
@@ -207,6 +215,56 @@ export default function DashboardHub() {
           />
         </div>
       </div>
+
+      {/* Widget: Próximas Obligaciones Fiscales */}
+      {fiscalAlerts && (fiscalAlerts.overdue > 0 || fiscalAlerts.dueSoon > 0 || fiscalAlerts.next3.length > 0) && (
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-black text-neutral-950 dark:text-white flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-amber-500" />
+              Obligaciones Fiscales
+            </h2>
+            <div className="flex items-center gap-2">
+              {fiscalAlerts.overdue > 0 && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                  {fiscalAlerts.overdue} vencida{fiscalAlerts.overdue > 1 ? 's' : ''}
+                </span>
+              )}
+              {fiscalAlerts.dueSoon > 0 && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  {fiscalAlerts.dueSoon} próxima{fiscalAlerts.dueSoon > 1 ? 's' : ''}
+                </span>
+              )}
+              <Link href="/finanzas/cumplimiento" className="text-xs text-blue-500 hover:underline font-semibold">
+                Ver todo →
+              </Link>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {fiscalAlerts.next3.map(ob => {
+              const isOverdue  = ob.status === 'OVERDUE';
+              const isDueSoon  = ob.status === 'DUE_SOON';
+              const colorClass = isOverdue ? 'border-rose-500/30 bg-rose-500/5'
+                : isDueSoon ? 'border-amber-500/30 bg-amber-500/5'
+                : 'border-neutral-200 dark:border-neutral-800';
+              const textColor  = isOverdue ? 'text-rose-400' : isDueSoon ? 'text-amber-400' : 'text-slate-400';
+              const Icon       = isOverdue ? ShieldAlert : isDueSoon ? Clock : Calendar;
+              return (
+                <div key={ob.id} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${colorClass}`}>
+                  <Icon className={`h-4 w-4 flex-shrink-0 ${textColor}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate">{ob.label}</p>
+                    <p className="text-xs text-neutral-500 truncate">{ob.period} · {ob.authority}</p>
+                  </div>
+                  <span className={`text-xs font-mono flex-shrink-0 ${textColor}`}>
+                    {ob.daysLeft < 0 ? `${Math.abs(ob.daysLeft)}d venc.` : ob.daysLeft === 0 ? 'Hoy' : `${ob.daysLeft}d`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

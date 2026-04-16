@@ -161,3 +161,39 @@ function buildMonthlyData(
     gastos: round2(m.gastos),
   }));
 }
+
+// ─── Widget: Alertas de Cumplimiento Fiscal ───────────────────────────────────
+
+import type { FiscalObligation } from '@/lib/fiscal/calendar';
+import { generateFiscalObligations } from '@/lib/fiscal/calendar';
+
+export interface FiscalAlertsWidget {
+  overdue: number;
+  dueSoon: number;
+  next3: Pick<FiscalObligation, 'id' | 'label' | 'dueDate' | 'daysLeft' | 'status' | 'authority' | 'period'>[];
+}
+
+export async function getFiscalAlertsWidget(): Promise<FiscalAlertsWidget> {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) return { overdue: 0, dueSoon: 0, next3: [] };
+
+  const [tenant, empCount] = await Promise.all([
+    prisma.tenant.findUnique({
+      where: { id: session.tenantId },
+      select: { taxRegime: { select: { satCode: true } } },
+    }),
+    prisma.employee.count({ where: { tenantId: session.tenantId, active: true } }),
+  ]);
+
+  const regimeCode = tenant?.taxRegime?.satCode ?? null;
+  const obligations = generateFiscalObligations(regimeCode, empCount > 0, 60);
+
+  const overdue  = obligations.filter(o => o.status === 'OVERDUE').length;
+  const dueSoon  = obligations.filter(o => o.status === 'DUE_SOON').length;
+  const next3    = obligations.slice(0, 3).map(o => ({
+    id: o.id, label: o.label, dueDate: o.dueDate,
+    daysLeft: o.daysLeft, status: o.status, authority: o.authority, period: o.period,
+  }));
+
+  return { overdue, dueSoon, next3 };
+}

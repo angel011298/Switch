@@ -643,3 +643,51 @@ export async function generateEmployeePortalLink(employeeId: string): Promise<st
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://cifra-mx.vercel.app';
   return `${base}/portal/empleado/${token}`;
 }
+
+/**
+ * Genera y envía el link del portal de empleado por email.
+ * Si el empleado no tiene email, retorna ok:true con sent:false.
+ */
+export async function sendEmployeePortalLinkToEmployee(
+  employeeId: string,
+): Promise<{ ok: boolean; sent: boolean; portalUrl?: string; error?: string }> {
+  const session = await getSwitchSession();
+  if (!session?.tenantId) return { ok: false, sent: false, error: 'No session' };
+
+  const [emp, tenant] = await Promise.all([
+    prisma.employee.findFirst({
+      where: { id: employeeId, tenantId: session.tenantId },
+      select: { id: true, name: true, email: true },
+    }),
+    prisma.tenant.findUnique({
+      where: { id: session.tenantId },
+      select: { name: true },
+    }),
+  ]);
+
+  if (!emp) return { ok: false, sent: false, error: 'Empleado no encontrado' };
+
+  const { generateEmployeeToken } = await import('@/lib/portal/employee-token');
+  const token = generateEmployeeToken(emp.id, session.tenantId, 30);
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://cifra-mx.vercel.app';
+  const portalUrl = `${base}/portal/empleado/${token}`;
+
+  if (!emp.email) {
+    return { ok: true, sent: false, portalUrl };
+  }
+
+  try {
+    const { sendEmployeePortalLinkEmail } = await import('@/lib/email/mailer');
+    await sendEmployeePortalLinkEmail({
+      toEmail: emp.email,
+      employeeName: emp.name,
+      tenantName: tenant?.name ?? 'Tu empresa',
+      portalUrl,
+      validDays: 30,
+    });
+    return { ok: true, sent: true, portalUrl };
+  } catch (err) {
+    console.error('[sendEmployeePortalLinkToEmployee]', err);
+    return { ok: true, sent: false, portalUrl, error: 'Email no enviado — copia el link manualmente' };
+  }
+}

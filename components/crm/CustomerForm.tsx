@@ -10,6 +10,7 @@
 import { useState, useTransition } from 'react';
 import { createCustomer } from '@/app/(dashboard)/crm/actions';
 import type { CsfData } from '@/lib/crm/sat-csf-scraper';
+import RfcBadge from '@/components/sat/RfcBadge';
 
 interface CustomerFormProps {
   prefillData?: CsfData | null;
@@ -80,7 +81,10 @@ export default function CustomerForm({ prefillData, onSuccess, onCancel }: Custo
               placeholder="XAXX010101000"
               className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:ring-2 focus:ring-pink-500 focus:border-transparent uppercase"
             />
-            <p className="text-xs text-zinc-500 mt-1">12 chars (Moral) o 13 chars (Fisica)</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs text-zinc-500">12 chars (Moral) o 13 chars (Fisica)</p>
+              {form.rfc.length >= 12 && <RfcBadge rfc={form.rfc} />}
+            </div>
           </div>
 
           <div>

@@ -127,6 +127,7 @@ export const MODULE_DEFS: Record<ModuleKey, ModuleDef> = {
       { name: 'Tesoreria y Caja Chica', href: '/finanzas/caja-chica' },
       { name: 'Gastos XML', href: '/finanzas/gastos' },
       { name: 'Gestion Legal', href: '/finanzas/legal' },
+      { name: 'Cumplimiento Fiscal', href: '/finanzas/cumplimiento' },
     ],
   },
   TAXES: {

@@ -327,3 +327,55 @@ export async function sendEmail(opts: SendEmailOptions): Promise<void> {
     })),
   });
 }
+
+// ─── Correo: Link de Portal del Empleado ─────────────────────────────────────
+
+export interface EmployeePortalLinkInput {
+  toEmail: string;
+  employeeName: string;
+  tenantName: string;
+  portalUrl: string;
+  validDays?: number;
+}
+
+export async function sendEmployeePortalLinkEmail(input: EmployeePortalLinkInput): Promise<void> {
+  const resend = getResend();
+  if (!resend) {
+    console.log('[mailer] RESEND_API_KEY no configurado — email de portal empleado omitido');
+    return;
+  }
+
+  const days = input.validDays ?? 30;
+
+  const body = `
+    <span class="badge" style="background:#dbeafe;color:#1e40af;">🔗 Tu portal de empleado</span>
+    <p>Hola <strong>${input.employeeName}</strong>,</p>
+    <p><strong>${input.tenantName}</strong> te ha generado un enlace de acceso a tu portal de empleado en CIFRA,
+    donde puedes consultar tus recibos de nómina, registros de asistencia y solicitar permisos o vacaciones.</p>
+    <div class="info-box">
+      <p><strong>Acceso sin contraseña</strong> — solo haz clic en el botón de abajo.</p>
+      <p style="margin-top:8px;"><strong>Vigencia:</strong> ${days} días a partir de hoy.</p>
+    </div>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="${input.portalUrl}"
+         style="display:inline-block;background:#09090b;color:#10b981;font-weight:700;font-size:14px;
+                padding:14px 36px;border-radius:10px;text-decoration:none;letter-spacing:.02em;">
+        Abrir mi Portal →
+      </a>
+    </div>
+    <p style="font-size:13px;color:#71717a;">
+      Si el botón no funciona, copia y pega este enlace en tu navegador:<br/>
+      <span style="word-break:break-all;color:#3b82f6;">${input.portalUrl}</span>
+    </p>
+    <p style="font-size:12px;color:#a1a1aa;margin-top:16px;">
+      Este enlace es personal e intransferible. No lo compartas con otras personas.
+    </p>
+  `;
+
+  await resend.emails.send({
+    from: getFrom(),
+    to: input.toEmail,
+    subject: `🔗 Tu portal de empleado — ${input.tenantName}`,
+    html: wrapHtml(body),
+  });
+}
