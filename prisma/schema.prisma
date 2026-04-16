@@ -1195,11 +1195,21 @@ model AuditLog {
   userAgent   String?
   severity    String   @default("info") // info | warning | critical
 
+  // FASE 54: Registro de Eventos Manuales
+  // eventDate = fecha en que ocurrió el evento (puede ser retroactiva)
+  // createdAt = fecha real de creación del registro
+  // isManualEntry = true cuando el Super Admin lo registró manualmente
+  eventDate     DateTime? // Fecha retroactiva del evento (null = usar createdAt)
+  isManualEntry Boolean   @default(false)
+  manualNotes   String?   // Notas adicionales del Super Admin
+
   createdAt   DateTime @default(now())
 
   @@index([tenantId, createdAt])
+  @@index([tenantId, eventDate])
   @@index([tenantId, action])
   @@index([tenantId, severity])
+  @@index([tenantId, isManualEntry])
 }
 
 model Notification {

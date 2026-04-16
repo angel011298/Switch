@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation';
 import { getSwitchSession } from '@/lib/auth/session';
 import prisma from '@/lib/prisma';
-import { ShieldAlert, Building2, Users, Blocks, Activity, Banknote } from 'lucide-react';
+import { ShieldAlert, Building2, Users, Blocks, Activity, Banknote, PlusCircle } from 'lucide-react';
 import TenantModuleManager from '@/components/admin/TenantModuleManager';
 import PendingPaymentsPanel from '@/components/admin/PendingPaymentsPanel';
 import AdminRefreshButton from '@/components/admin/AdminRefreshButton';
+import AdminCreateTenantButton from '@/components/admin/AdminCreateTenantButton';
 
 export const metadata = { title: 'Admin Maestro | CIFRA' };
 
@@ -20,8 +21,8 @@ export default async function AdminPage() {
     redirect('/dashboard');
   }
 
-  // Traer todos los tenants + comprobantes pendientes en paralelo
-  const [tenants, pendingProofs] = await Promise.all([
+  // Traer todos los tenants + comprobantes pendientes + regímenes fiscales en paralelo
+  const [tenants, pendingProofs, taxRegimes] = await Promise.all([
     prisma.tenant.findMany({
       include: {
         modules: { orderBy: { moduleKey: 'asc' } },
@@ -39,6 +40,11 @@ export default async function AdminPage() {
       where: { status: 'PENDING' },
       include: { tenant: { select: { id: true, name: true, rfc: true } } },
       orderBy: { createdAt: 'asc' },
+    }),
+    prisma.taxRegime.findMany({
+      where: { isActive: true },
+      select: { id: true, satCode: true, name: true, personType: true },
+      orderBy: { satCode: 'asc' },
     }),
   ]);
 
@@ -61,7 +67,10 @@ export default async function AdminPage() {
             Modo Super Admin Activo
           </p>
         </div>
-        <AdminRefreshButton />
+        <div className="flex items-center gap-3">
+          <AdminCreateTenantButton taxRegimes={taxRegimes} />
+          <AdminRefreshButton />
+        </div>
       </header>
 
       {/* Metricas globales */}
@@ -128,9 +137,15 @@ export default async function AdminPage() {
 
       {/* Lista de Tenants con Manager de modulos */}
       <section>
-        <h2 className="text-xl font-black text-neutral-900 dark:text-white mb-4">
-          Organizaciones Registradas
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-black text-neutral-900 dark:text-white flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-blue-500" />
+            Organizaciones Registradas
+            <span className="bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-bold px-2 py-0.5 rounded-full">
+              {tenants.length}
+            </span>
+          </h2>
+        </div>
         <div className="space-y-4">
           {tenants.map((tenant: any) => (
             <TenantModuleManager
